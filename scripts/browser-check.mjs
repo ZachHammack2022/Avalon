@@ -70,6 +70,16 @@ if (!process.argv.includes('--live-only')) {
         if (info.actors < team) fail(`${label}: only ${info.actors} actors`);
         if (shots && (t === times[4] || t === times[0])) await page.screenshot({ path: `.shots/${q.id}-${outcome}-${gag || 'win'}-${t.toFixed(0)}.png` });
       }
+      // the punchline must frame its star: culprit on screen at the freeze-frame, hero on screen at their banner
+      if (outcome === 'fail') {
+        const fz = segs[3].beats.find((b) => b.op === 'freeze');
+        await page.evaluate((t) => __preview.seek(t), segs[3].start + fz.t + 0.1);
+        const at = await page.evaluate(() => __preview.onScreen('culprit'));
+        if (!at || !at.visible) fail(`${label}: culprit is off screen at the freeze-frame (${JSON.stringify(at)})`);
+      } else {
+        const bn = segs[3].beats.find((b) => b.op === 'banner' && b.who === 'hero');
+        if (bn) { await page.evaluate((t) => __preview.seek(t), segs[3].start + bn.t + 0.4); const at = await page.evaluate(() => __preview.onScreen('hero')); if (!at || !at.visible) fail(`${label}: hero is off screen during their hero beat (${JSON.stringify(at)})`); }
+      }
       const errs = await page.evaluate(() => __preview.errors.filter((e) => !/GPU stall|GL Driver/.test(e)));
       if (errs.length) fail(`${label}: ${[...new Set(errs)].slice(0, 3).join(' | ')}`);
       console.log(`${failures === before ? 'ok  ' : 'FAIL'} ${label} (${dur}s)`);

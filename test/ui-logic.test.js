@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canConfirm, knownPlayers, screenFor, startHint, toggleSelection, leaderName } from '../public/phone/model.js';
-import { cardFor, trackFor } from '../public/tv/cards.js';
+import { awards, cardFor, trackFor } from '../public/tv/cards.js';
 import { Room } from '../server/room.js';
 import { FakeClock, FakeConn, fill, makeRoom, playBotGame } from './helpers.js';
 
@@ -110,4 +110,17 @@ test('whole game via the exact public state the TV cards consume: every phase of
   }
   for (const p of ['roleReveal', 'propose', 'vote', 'voteReveal', 'questPlay', 'cutscene', 'questResult', 'gameover']) assert.ok(phases.has(p), `phase ${p} seen`);
   void Room; void FakeClock; void playBotGame;
+});
+
+test('game-over awards: hero, scapegoat and walking disaster come from the recap', () => {
+  const pub = { players: [{ id: 'a', name: 'Ann' }, { id: 'b', name: 'Bo' }, { id: 'c', name: 'Cy' }] };
+  const recap = [
+    { outcome: 'success', hero: 'a' }, { outcome: 'success', hero: 'a' },
+    { outcome: 'fail', culprit: 'b', framed: true }, { outcome: 'fail', culprit: 'c', framed: false }, { outcome: 'fail', culprit: 'c', framed: false },
+  ];
+  const lines = awards(pub, recap);
+  assert.match(lines[0], /Hero of the realm: Ann \(2 quests\)/);
+  assert.match(lines[1], /Scapegoat: Bo, framed once/);
+  assert.match(lines[2], /Walking disaster: Cy \(2 catastrophes\)/);
+  assert.deepEqual(awards(pub, []), []);
 });

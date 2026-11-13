@@ -87,11 +87,12 @@ export class CampfireView {
       if (leader && this.crown.parent !== leader.root) { leader.root.add(this.crown); this.crown.position.set(0, 2.3, 0); }
     } else if (this.crown) this.crown.removeFromParent();
     // vote tokens: a grey "?" as each vote lands, then every verdict flips over one after another
-    const voteKey = g && (pub.phase === 'vote' || pub.phase === 'voteReveal') ? `${pub.phase}:${g.voted ? g.voted.join(',') : ''}` : '';
+    const voteKey = pub.phase === 'roleReveal' ? `ready:${players.filter((p) => p.ready).map((p) => p.id).join(',')}` : g && (pub.phase === 'vote' || pub.phase === 'voteReveal') ? `${pub.phase}:${g.voted ? g.voted.join(',') : ''}` : '';
     if (voteKey !== this.voteKey) {
       const wasReveal = (this.voteKey || '').startsWith('voteReveal');
       this.voteKey = voteKey;
       for (const t of this.tokens.values()) t.removeFromParent(); this.tokens.clear();
+      if (pub.phase === 'roleReveal') for (const p of players) if (p.ready) this._token(p.id, '✔', '#2e9e4f', 0); // everyone who has read their role
       if (g && pub.phase === 'vote') for (const id of g.voted) this._token(id, '?', '#6b7280', 0);
       if (g && pub.phase === 'voteReveal') {
         players.forEach((p, i) => this._token(p.id, g.votes[p.id] ? '✔' : '✘', g.votes[p.id] ? '#2e9e4f' : '#d64545', wasReveal ? 0 : 0.25 + i * 0.22, !wasReveal));
