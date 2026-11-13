@@ -299,6 +299,11 @@ export class Stage {
         const board = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.8, 0.08), mat(0xd9b77a)); board.position.y = 1.6; board.name = 'board';
         m.add(post, board); break;
       }
+      case 'feather': {
+        m = new THREE.Group(); const fm = mat(0xe0303a);
+        for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(0.16 - i * 0.025, 0.42, 6), fm); f.position.set(-i * 0.09 - i * i * 0.03, 0.2 + i * 0.3, 0); f.rotation.z = 0.25 + i * 0.22; m.add(f); }
+        break;
+      }
       case 'ring': m = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.07, 8, 24), mat(0xffffff)); m.rotation.x = Math.PI / 2; break;
       default: throw new Error(`unknown builtin prop "${kind}"`);
     }

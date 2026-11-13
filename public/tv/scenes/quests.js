@@ -6,54 +6,6 @@ import { box, cyl, flame, flicker, ground, mat, mesh, put, scatter } from './kit
 
 const common = { forward: 90, wideDist: 16, wideHeight: 7, wideAngle: 0 };
 
-export function dragonScene() {
-  const parts = {};
-  function buildDragon(stage) {
-    const d = new THREE.Group();
-    const green = mat(0x3f9d5a); const belly = mat(0xd9c46a);
-    const body = mesh(new THREE.SphereGeometry(3.2, 20, 14), 0, { m: green, pos: [0, 2.6, 0] }); body.scale.set(1.5, 0.95, 1);
-    const head = new THREE.Group(); head.position.set(-5, 3.2, 0);
-    head.add(mesh(new THREE.BoxGeometry(2.8, 1.8, 2.2), 0, { m: green }));
-    const jaw = mesh(new THREE.BoxGeometry(2.4, 0.5, 2), 0, { m: belly, pos: [-0.1, -1.0, 0] }); head.add(jaw);
-    for (const z of [-0.8, 0.8]) head.add(mesh(new THREE.ConeGeometry(0.22, 0.8, 8), 0, { m: mat(0xf2ead0), pos: [-1.4, 0.9, z * 0.9] }));
-    const eyeLid = mesh(new THREE.SphereGeometry(0.42, 14, 10), 0, { m: mat(0x2a6e40), pos: [-1.1, 0.55, 1.05] });
-    const eye = mesh(new THREE.SphereGeometry(0.34, 14, 10), 0, { m: new THREE.MeshBasicMaterial({ color: 0xffd21f }), pos: [-1.1, 0.55, 1.08] });
-    eye.scale.y = 0.08; head.add(eye, eyeLid);
-    const tail = mesh(new THREE.ConeGeometry(1.3, 7, 10), 0, { m: green, pos: [6.5, 1.1, 0], rot: [0, 0, 90] });
-    const wings = [-1, 1].map((s) => { const w = mesh(new THREE.BoxGeometry(5, 0.15, 3), 0, { m: mat(0x2f7d49), pos: [0.5, 5.2, s * 3.2], rot: [s * 20, 0, 0] }); return w; });
-    d.add(body, head, tail, ...wings);
-    Object.assign(parts, { dragon: d, eye, eyeLid, head, jaw, tail, wings });
-    return d;
-  }
-  return {
-    ...common, name: 'dragon', music: 'dragon', center: [0, 0, 0],
-    bg: 0x0b0806, fog: { color: 0x0b0806, near: 16, far: 60 },
-    hemi: { sky: 0xb08a5a, ground: 0x2c1c0e, i: 1.6 }, sun: { color: 0xffc680, i: 1.8, pos: [-6, 16, 10] },
-    marks: { spawn: [-20, 4], start: [-11, 4], mid: [-2, 4], goal: [6, 4], spot: [3, 4], dragon: [8, 0], crown: [8, 7.5] },
-    preload: ['knight', 'mage', 'rogue', 'barbarian', 'rogueHooded', 'dungeon:coin_stack_large', 'dungeon:coin_stack_medium', 'dungeon:chest_gold'],
-    build(stage) {
-      const g = new THREE.Group();
-      g.add(ground(0x3b2c20, 90));
-      const glow = new THREE.PointLight(0xffa860, 160, 45, 1.4); glow.position.set(-2, 7, 6); g.add(glow); // warm light from the hoard
-      const gold = mat(0xf0b92b, { metalness: 0.7, roughness: 0.35 });
-      const heap = mesh(new THREE.ConeGeometry(8.5, 5, 24), 0, { m: gold, pos: [9, 2.5, 0] }); g.add(heap);
-      for (let i = 0; i < 14; i++) { const c = put(stage, 'dungeon:coin_stack_large', { pos: [-4 + (i % 7) * 1.6, 0, -6 + Math.floor(i / 7) * 9], rot: i * 40, scale: 1.1 }); if (c) g.add(c); }
-      g.add(buildDragon(stage)); parts.dragon.position.set(9, 4.2, -2);
-      const crown = mesh(new THREE.TorusGeometry(0.55, 0.14, 8, 16), 0, { m: new THREE.MeshStandardMaterial({ color: 0xffd54a, metalness: 0.9, roughness: 0.2, emissive: 0x553300 }), pos: [3.3, 4.6, 2.6], rot: [90, 0, 0] }); g.add(crown);
-      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; g.add(mesh(new THREE.ConeGeometry(2 + (i % 3), 9 + (i % 4) * 3, 7), 0x453629, { pos: [Math.cos(a) * 34, 3, Math.sin(a) * 34] })); }
-      return g;
-    },
-    update(dt, stage) { if (parts.dragon && !parts.awake) parts.dragon.scale.y = 1 + Math.sin(stage.time * 1.6) * 0.012; },
-    rigs: {
-      dragon: {
-        openEye(stage, { dur }) { stage.tween({ dur, update: (k) => { parts.eye.scale.y = 0.08 + k * 0.92; } }); },
-        sneeze(stage, { dur }) { stage.tween({ dur, ease: 'in', update: (k) => { parts.head.rotation.z = Math.sin(k * 20) * 0.05 * k; parts.head.position.y = 3.2 + k * 0.6; }, done: () => { stage.fx.burst('firePuff', parts.head.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(-2, 0, 0)), 40, 1.8); } }); },
-        wake(stage) { parts.awake = true; parts.eye.scale.y = 1; },
-      },
-    },
-  };
-}
-
 export function throneScene() {
   return {
     ...common, name: 'throne', music: 'throne', center: [0, 0, 0],

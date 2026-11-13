@@ -44,7 +44,7 @@ export const OPS = {
   emote:     { args: { text: 'str', '?who': 'who', '?at': 'pos', '?dur': 'num', '?color': 'str', '?height': 'num' }, desc: 'Big glyph over a head: ! ? … ♥ ★ Zzz ♪' },
   spawnActor:{ args: { id: 'str', kind: 'str', at: 'pos', '?face': 'any', '?scale': 'num', '?color': 'str' }, desc: 'kind: a class (knight|mage|rogue|barbarian|rogueHooded) or skeleton_warrior|skeleton_minion|skeleton_rogue|skeleton_mage.' },
   // --- props ---
-  spawnProp: { args: { id: 'str', model: 'str', '?at': 'pos', '?scale': 'any', '?rot': 'any', '?color': 'str', '?text': 'str' }, desc: "model: 'builtin:<box|sphere|cylinder|cone|plank|note|crown|rope|rock|lantern|bush|sign|ring>', 'scene:<name>' (a prop the scene registers in props), or an asset name from asset-manifest.js. text is drawn on builtin:note / builtin:sign." },
+  spawnProp: { args: { id: 'str', model: 'str', '?at': 'pos', '?scale': 'any', '?rot': 'any', '?color': 'str', '?text': 'str' }, desc: "model: 'builtin:<box|sphere|cylinder|cone|plank|note|crown|rope|rock|lantern|bush|sign|feather|ring>', 'scene:<name>' (a prop the scene registers in props), or an asset name from asset-manifest.js. text is drawn on builtin:note / builtin:sign." },
   attach:    { args: { prop: 'str', who: 'who', '?slot': 'str', '?offset': 'any' }, desc: 'Attach a prop to an actor bone slot (handslot.r, handslot.l, head).' },
   detach:    { args: { prop: 'str', '?at': 'pos' }, desc: 'Drop a prop into the world at its current (or given) spot.' },
   arc:       { args: { id: 'who', '?to': 'pos', '?by': 'any', dur: 'num', '?height': 'num', '?spin': 'num', '?stagger': 'num' }, desc: 'Physics-free ballistic arc for a prop or an actor (to an absolute to or relative by).' },

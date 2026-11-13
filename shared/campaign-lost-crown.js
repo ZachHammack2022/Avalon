@@ -13,10 +13,11 @@ import { validateQuestScripts } from './cutscene-ops.js';
 import { bridgeBeats } from './cutscenes/bridge.js';
 import { woodsBeats, woodsSceneIds } from './cutscenes/woods.js';
 import { vaultBeats, vaultSceneIds } from './cutscenes/vault.js';
+import { dragonBeats, dragonSceneIds } from './cutscenes/dragon.js';
 
 // Hand-authored choreography per quest id: (questMeta) => beats. Quests without an entry play the scaffold.
-const AUTHORED = { bridge: bridgeBeats, woods: woodsBeats, vault: vaultBeats };
-const SCENE_IDS = { woods: woodsSceneIds, vault: vaultSceneIds };
+const AUTHORED = { bridge: bridgeBeats, woods: woodsBeats, vault: vaultBeats, dragon: dragonBeats };
+const SCENE_IDS = { woods: woodsSceneIds, vault: vaultSceneIds, dragon: dragonSceneIds };
 
 const SEGMENT_DEFAULTS = { setup: 5, approach: 7, moment: 3, success: 5 };
 
