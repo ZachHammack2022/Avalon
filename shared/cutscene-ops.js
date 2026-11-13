@@ -17,6 +17,8 @@
 // Positions: [x,y,z] | [x,z] (y = ground) | 'markName' (marks defined by the scene) | an actor ref
 //   (position of that actor) | {at:ref, offset:[x,y,z]}
 
+import { ANIMS, PLAYER_ANIMS } from './anims.js';
+
 const CAMERA_SHOTS = ['wide', 'follow', 'closeUp', 'pushIn', 'lowAngle', 'overShoulder', 'orbit', 'shake', 'cut', 'crane'];
 const FX_KINDS = ['firePuff', 'smoke', 'coinBurst', 'dust', 'sparkle', 'splash'];
 const SFX = ['stinger', 'fanfare', 'wahwah', 'scratch', 'bonk', 'creak', 'clink', 'alarm', 'gasp', 'whoosh', 'thud', 'poof', 'splash', 'roar', 'rumble', 'ding', 'sneeze'];
@@ -108,6 +110,13 @@ export function validateBeat(b, ctx) {
   if (b.op === 'camera' && b.shot && !CAMERA_SHOTS.includes(b.shot)) errs.push(`${where}: unknown camera shot "${b.shot}"`);
   if (b.op === 'fx' && b.kind && !FX_KINDS.includes(b.kind)) errs.push(`${where}: unknown fx kind "${b.kind}"`);
   if (b.op === 'sfx' && b.name && !SFX.includes(b.name)) errs.push(`${where}: unknown sfx "${b.name}"`);
+  for (const k of ['anim', 'then']) {
+    if (!((b.op === 'play' || b.op === 'walkTo') && typeof b[k] === 'string')) continue;
+    // player avatars only have the 76 Adventurer clips; skeletons/custom actors have 95
+    const playerRef = typeof b.who === 'string' && (RESERVED.has(b.who) || b.who.startsWith('team:'));
+    const pool = playerRef ? PLAYER_ANIMS : ANIMS;
+    if (!pool.includes(b[k])) errs.push(`${where}: ${playerRef ? 'player avatars have no' : 'unknown'} animation "${b[k]}"`);
+  }
   if (b.op === 'tweenTo' && b.ease && !EASES.includes(b.ease)) errs.push(`${where}: unknown ease "${b.ease}"`);
   for (const k of ['target', 'target2', 'pos', 'at', 'to']) if (typeof b[k] === 'string' && ACTOR_REF.test(b[k]) && (RESERVED.has(b[k]) || b[k].startsWith('team:'))) refs.push(b[k]);
 

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saboteur Quests · TV</title>
+<link rel="stylesheet" href="/tv/tv.css">
+<script type="importmap">
+{ "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="hud">
+  <div id="fade"></div>
+  <div id="roombar"><span>ROOM</span> <b id="code">----</b> <span id="joinurl"></span></div>
+  <div id="track" hidden></div>
+  <div id="card" class="card" hidden></div>
+  <div id="caption"></div>
+  <div id="titlecard"></div>
+  <div id="freeze"></div>
+  
+  <div id="status" hidden>Reconnecting…</div>
+  <div id="fps" hidden></div>
+  <div id="settings">
+    <button id="btn-mute" type="button" title="Mute (M)">🔊</button>
+    <button id="btn-caps" type="button" title="Caption size (C)">Aa</button>
+    <button id="btn-full" type="button" title="Fullscreen (F)">⛶</button>
+  </div>
+  <div id="unlock">Click anywhere (or press any key) to enable sound</div>
+</div>
+<script type="module" src="/tv/main.js"></script>
+</body>
+</html>

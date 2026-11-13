@@ -8,6 +8,7 @@ import {
 import { QUESTS } from '../shared/campaign-lost-crown.js';
 import { cutsceneSeconds } from '../shared/cutscene.js';
 import { makeRng } from '../shared/rng.js';
+import { AVATAR_CLASSES, AVATAR_COLORS } from '../shared/avatars.js';
 import { assignRoles, knowledgeFor, resolveQuest, tally } from './rules.js';
 import { botAssassinate, botCard, botNames, botPick, botPropose, botVote } from './bots.js';
 
@@ -21,8 +22,8 @@ export const DEFAULT_TIMING = {
   cutscenePadMs: 800,
 };
 
-export const CLASSES = ['knight', 'mage', 'rogue', 'barbarian', 'rogueHooded'];
-export const COLORS = ['#e53935', '#1e88e5', '#43a047', '#fdd835', '#8e24aa', '#fb8c00', '#00acc1', '#ec407a', '#7cb342', '#f5f5f5'];
+export const CLASSES = AVATAR_CLASSES.map((c) => c.id);
+export const COLORS = AVATAR_COLORS;
 const NAME_MAX = 12;
 
 const real = { setTimeout: (f, ms) => setTimeout(f, ms), clearTimeout: (id) => clearTimeout(id), now: () => Date.now() };
@@ -59,7 +60,7 @@ export class Room {
 
   // ---------- timers ----------
   ms(x) { return Math.max(0, Math.round(x / this.timeScale)); }
-  _after(ms, fn) { return this.clock.setTimeout(fn, this.ms(ms)); }
+  _after(ms, fn) { return this.destroyed ? null : this.clock.setTimeout(fn, this.ms(ms)); }
   _setPhaseTimer(ms, fn) {
     this._clearPhaseTimer();
     const v = this.version;
@@ -121,7 +122,7 @@ export class Room {
 
   detachPhone(playerId, conn) {
     const p = this.player(playerId);
-    if (!p || p.conn !== conn) return;
+    if (!p || p.conn !== conn || this.destroyed) return;
     p.conn = null;
     p.connected = false;
     if (p.dcTimer != null) this.clock.clearTimeout(p.dcTimer);
@@ -599,6 +600,7 @@ export class Room {
   }
 
   destroy() {
+    this.destroyed = true;
     this._clearPhaseTimer();
     this._clearBotTimers();
     for (const p of this.players) if (p.dcTimer != null) this.clock.clearTimeout(p.dcTimer);

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saboteur Quests · Preview harness</title>
+<link rel="stylesheet" href="/tv/tv.css">
+<style>
+  #panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: rgba(10,8,6,.92); padding: 8px 12px; font: 14px system-ui, sans-serif; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; color: #eee; }
+  #panel label { display: flex; gap: 4px; align-items: center; } #panel select, #panel input, #panel button { font: inherit; padding: 3px 6px; }
+  #panel input[type=range] { width: 38vw; } #errors { color: #ff8a80; max-width: 40vw; max-height: 4.4em; overflow: auto; font: 12px monospace; }
+  body.hidepanel #panel { display: none; }
+  #hud #roombar, #hud #settings, #hud #unlock { display: none; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="hud">
+  <div id="fade"></div>
+  <div id="roombar"><b id="code"></b><span id="joinurl"></span></div>
+  <div id="track" hidden></div><div id="card" class="card" hidden></div>
+  <div id="caption"></div><div id="titlecard"></div><div id="freeze"></div>
+  <div id="status" hidden></div><div id="fps" hidden></div><div id="unlock"></div>
+</div>
+<div id="panel">
+  <label>Quest <select id="quest"></select></label>
+  <label>Outcome <select id="outcome"><option>fail</option><option>success</option></select></label>
+  <label>Gag <select id="gag"></select></label>
+  <label>Team <select id="team"><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+  <label>Seed <input id="seed" type="number" value="1" style="width:5em"></label>
+  <label>Previous <select id="prev"><option value="">none</option><option>success</option><option>fail</option></select></label>
+  <label>Scene <select id="special"><option value="">quest cutscene</option><option value="assassin-hit">assassination (hit)</option><option value="assassin-miss">assassination (miss)</option><option value="victory-good">victory: good</option><option value="victory-evil">victory: evil</option></select></label>
+  <button id="go">Load</button><button id="pp">Pause</button><button id="step">+1 frame</button>
+  <label>Speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option></select></label>
+  <input id="scrub" type="range" min="0" max="25" step="0.05" value="0"><span id="time">0.0 / 0.0</span>
+  <label><input id="sound" type="checkbox"> sound</label><span id="fpsread"></span><span id="errors"></span>
+  <span style="opacity:.6">H hides this panel</span>
+</div>
+<script type="module" src="/tv/preview.js"></script>
+</body>
+</html>

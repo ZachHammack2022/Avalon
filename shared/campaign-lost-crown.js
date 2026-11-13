@@ -19,7 +19,7 @@ function scaffold(q) {
     setup: [
       { t: 0, op: 'camera', shot: 'wide', dur: 5 },
       { t: 0.2, op: "caption", text: "{intro}", dur: 4.3 },
-      { t: 0.4, op: 'formation', name: 'line', center: 'start', walk: true, dur: 3.6 },
+      { t: 0.4, op: 'formation', name: 'line', center: 'start', facing: 0, spacing: 2.2, walk: true, dur: 3.6 },
       { t: 3.8, op: 'banner', who: 'team:all', dur: 1.2 },
     ],
     approach: [

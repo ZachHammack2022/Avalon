@@ -176,7 +176,7 @@ export function createGameServer({
       clearInterval(heartbeat); clearInterval(gc);
       for (const r of rooms.values()) r.destroy();
       for (const ws of wss.clients) ws.terminate();
-      return new Promise((resolve) => wss.close(() => server.close(() => resolve())));
+      return new Promise((resolve) => { wss.close(() => server.close(() => resolve())); server.closeAllConnections(); });
     },
   };
 }

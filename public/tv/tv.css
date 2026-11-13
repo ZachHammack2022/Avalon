@@ -1,0 +1,42 @@
+:root { --ink: #fff7ea; --gold: #f4b942; --good: #55d0a6; --bad: #ff6b57; --panel: rgba(18, 14, 12, .82); }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink); font-family: "Trebuchet MS", system-ui, "Segoe UI", sans-serif; }
+canvas#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#hud { position: fixed; inset: 0; pointer-events: none; text-shadow: 0 2px 8px rgba(0,0,0,.85); }
+#roombar { position: absolute; top: 2.2vh; left: 2.4vw; font-size: 2.6vh; letter-spacing: .14em; background: var(--panel); padding: 1vh 1.6vw; border-radius: 1.6vh; }
+#roombar b { color: var(--gold); font-size: 4.4vh; letter-spacing: .3em; margin: 0 .6em; }
+#roombar #joinurl { letter-spacing: .02em; opacity: .85; }
+#track { position: absolute; top: 2.2vh; right: 2.4vw; display: flex; gap: 1vw; }
+#track .q { width: 6.4vh; height: 6.4vh; border-radius: 50%; display: grid; place-items: center; font-size: 3.4vh; font-weight: 800; background: var(--panel); border: .5vh solid #5a4b3d; }
+#track .q.success { background: var(--good); color: #05261c; border-color: #fff; } #track .q.fail { background: var(--bad); color: #2a0904; border-color: #fff; }
+#track .q.current { border-color: var(--gold); box-shadow: 0 0 2vh var(--gold); }
+.card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); min-width: 46vw; max-width: 78vw; max-height: 80vh; overflow: hidden; text-align: center; background: var(--panel); border-radius: 3vh; padding: 3.4vh 3.4vw; border: .5vh solid rgba(255,255,255,.14); }
+.card h1 { margin: 0 0 1.6vh; font-size: 6.4vh; line-height: 1.1; }
+.card p { margin: .8vh 0; font-size: 3.6vh; line-height: 1.25; }
+.card .big { font-size: 15vh; font-weight: 900; letter-spacing: .26em; color: var(--gold); line-height: 1; margin: 1vh 0 2vh; padding-left: .26em; }
+.card .sub { font-size: 3.2vh; opacity: .8; margin-bottom: 1.2vh; }
+.card.good { border-color: var(--good); } .card.good h1 { color: var(--good); }
+.card.bad { border-color: var(--bad); } .card.bad h1 { color: var(--bad); }
+.card.gameover p { font-size: 2.8vh; margin: .3vh 0; }
+.card.result { top: 36%; } .card.lobby, .card.roleReveal { top: 54%; }
+.card.propose, .card.vote, .card.questPlay, .card.voteReveal { top: auto; bottom: 4vh; transform: translate(-50%, 0); }
+.card.voteReveal p { font-size: 3vh; margin: .2vh 0; }
+.card.assassination { top: 22%; }
+#caption { position: absolute; left: 50%; bottom: 6vh; transform: translate(-50%, 1vh); max-width: 82vw; text-align: center; font-size: calc(5.2vh * var(--cap, 1)); font-weight: 800; line-height: 1.2; padding: 1.2vh 2.4vw; border-radius: 2vh; background: var(--panel); opacity: 0; transition: opacity .25s, transform .25s; }
+#caption.show { opacity: 1; transform: translate(-50%, 0); }
+html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } html[data-caps="large"] { --cap: 1.3; }
+#titlecard { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12vh; font-weight: 900; background: rgba(0,0,0,.9); opacity: 0; transition: opacity .3s; text-align: center; padding: 0 6vw; }
+#titlecard.show { opacity: 1; }
+#freeze { position: absolute; inset: 0; display: grid; place-items: end center; padding-bottom: 14vh; font-size: 9vh; font-weight: 900; color: #fff; opacity: 0; background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.65) 100%); text-align: center; }
+#freeze.show { opacity: 1; }
+#fade { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity .5s; }
+#status { position: absolute; top: 12vh; left: 50%; transform: translateX(-50%); background: var(--bad); color: #fff; padding: 1vh 2vw; border-radius: 1vh; font-size: 3vh; }
+#fps { position: absolute; bottom: 1vh; left: 1vw; font: 2vh monospace; opacity: .7; }
+#settings { position: absolute; top: 12vh; right: 2.4vw; display: flex; gap: 1vh; pointer-events: auto; opacity: .35; transition: opacity .2s; }
+#settings:hover { opacity: 1; } #settings button { width: 5vh; height: 5vh; font-size: 2.4vh; border-radius: 1vh; border: 0; background: var(--panel); color: #fff; cursor: pointer; }
+#unlock { position: absolute; bottom: 1.4vh; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.6); padding: .8vh 1.6vw; border-radius: 1vh; font-size: 2.2vh; opacity: .85; }
+#unlock[hidden] { display: none; }
+
+.card.propose, .card.vote, .card.questPlay { min-width: 38vw; padding: 1.6vh 2.4vw; }
+.card.propose h1, .card.vote h1, .card.questPlay h1 { font-size: 4.4vh; margin-bottom: .6vh; }
+.card.propose p, .card.vote p, .card.questPlay p { font-size: 3vh; margin: .3vh 0; }
