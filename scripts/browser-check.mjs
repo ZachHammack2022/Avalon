@@ -132,8 +132,14 @@ if (!process.argv.includes('--live-only')) {
   await phone.waitForFunction(() => !document.getElementById('secret').hidden);
   await phone.mouse.up();
   await phone.waitForFunction(() => document.getElementById('secret').hidden);
-  await phone.click("text=I'm ready");
-  await tv.waitForFunction(() => window.__tv.app.pub.phase === 'propose', null, { timeout: 60000 });
+  // the phone re-renders on every state push, so a tap can land on a button that is being replaced: retry until it registers
+  for (let i = 0; i < 6; i++) {
+    await phone.click("text=I'm ready", { timeout: 2000 }).catch(() => {});
+    await phone.waitForTimeout(300);
+    if (await phone.evaluate(() => { const s = window.__sq.state; return s.pub.phase !== 'roleReveal' || (s.me.legal && s.me.legal.done); })) break;
+  }
+  // a bot leader can propose within milliseconds, so accept any phase past the role reveal
+  await tv.waitForFunction(() => !['lobby', 'roleReveal'].includes(window.__tv.app.pub.phase), null, { timeout: 60000 });
   await tv.waitForTimeout(2500);
   if (shots) await tv.screenshot({ path: '.shots/tv-propose.png' });
   console.log('ok   phone + TV lobby, role reveal, hold-to-reveal');

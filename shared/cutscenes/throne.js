@@ -158,7 +158,7 @@ export function throneBeats(q) {
     b(2.5, 'tweenTo', { who: 'crown', pos: [12.3, 0.45, 0], rot: [90, 3500, 0], dur: 1.45, ease: 'linear' }),
     crowd(2.6, 'lookAt', { at: 'dais', dur: 1.2 }, 0.03),
     b(3.45, 'hop', { who: 'team:all', count: 1, height: 0.7, dur: 0.4, stagger: -0.06 }),
-    cam(3.7, 'cut', { pos: [8.2, 3.0, 8.0], target: [13.4, 2.4, -0.2], snap: true }),
+    cam(3.7, 'cut', { pos: [4.6, 3.6, 11.5], target: [11, 1.7, 0], snap: true }),
     b(3.96, 'arc', { id: 'crown', to: { at: 'usurper', offset: [-0.6, 1.7, 0.3] }, dur: 0.35, height: 1.2 }),
     b(4.32, 'attach', { prop: 'crown', who: 'usurper', slot: 'handslot.r', offset: [0, 0.1, 0] }),
     sfx(4.32, 'ding'),
