@@ -52,3 +52,40 @@ export function flicker(f, t, base = 40) {
   const k = 1 + Math.sin(t * 17) * 0.06 + Math.sin(t * 29 + 1) * 0.05;
   cone.scale.set(1, k, 1); inner.scale.set(1, 1 + Math.sin(t * 23) * 0.08, 1); light.intensity = base * (0.9 + (k - 1) * 2);
 }
+
+/** Gradient sky dome. `stops` = [[0..1 from horizon up, '#css'], ...]. Dims with the `lights` op (userData.dim). */
+export function sky(stops, radius = 180) {
+  const cv = document.createElement('canvas'); cv.width = 4; cv.height = 256;
+  const g = cv.getContext('2d'); const grd = g.createLinearGradient(0, 256, 0, 0);
+  for (const [k, c] of stops) grd.addColorStop(k, c);
+  g.fillStyle = grd; g.fillRect(0, 0, 4, 256);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  // only the upper hemisphere is textured bottom->top, so the horizon colour is stops[0]
+  const m = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.62), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false, depthWrite: false }));
+  m.userData.dim = true; m.renderOrder = -10;
+  return m;
+}
+
+/** Unlit glowing disc (sun / moon), always facing +Z-ish cameras. */
+export function disc(radius, color, pos) {
+  const m = new THREE.Mesh(new THREE.CircleGeometry(radius, 40), new THREE.MeshBasicMaterial({ color, fog: false }));
+  m.position.set(...pos); m.lookAt(0, 4, 0); m.userData.dim = true; return m;
+}
+
+/** A thin beam between two points (ropes, chains, poles). */
+export function beam(a, b, r, color, o = {}) {
+  const A = new THREE.Vector3(...a); const B = new THREE.Vector3(...b);
+  const m = mesh(new THREE.CylinderGeometry(r, r, A.distanceTo(B), 6), color, o);
+  m.position.copy(A).add(B).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize());
+  return m;
+}
+
+/** Soft radial light pool on the floor (fake bounce light / spotlight), additive. */
+export function glowDisc(radius, color, opacity = 0.5) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d');
+  const grd = g.createRadialGradient(64, 64, 0, 64, 64, 64); grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(radius * 2, radius * 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; return m;
+}

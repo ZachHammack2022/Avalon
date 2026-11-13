@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 
 const CLASS_HEIGHT = 2.0;
+const GEAR = /^(1H_|2H_|Knife|Throwable|Mug$|Spellbook|.*Shield)/;
 
 function textColorFor(hex) {
   const c = new THREE.Color(hex);
@@ -18,7 +19,7 @@ export function makeBanner(text, color) {
   g.fillText(text, 256, 68);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
   const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
-  spr.scale.set(3.4, 0.85, 1); spr.renderOrder = 999;
+  spr.scale.set(2.3, 0.575, 1); spr.renderOrder = 999;
   return spr;
 }
 
@@ -98,6 +99,8 @@ export class Actor {
 export function createActor(assets, { id, kind, name, color, withBanner = true, withRing = true }) {
   let model = assets.instance(kind);
   if (!model) { model = new THREE.Group(); const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 1, 4, 8), new THREE.MeshStandardMaterial({ color: 0xff00ff })); b.position.y = 1; model.add(b); }
+  // KayKit rigs ship with every weapon and shield visible at once: stash them so hands are free for cutscene props.
+  model.traverse((o) => { if (GEAR.test(o.name)) o.visible = false; });
   const a = new Actor({ id, kind, model, name, color });
   if (color && !kind.startsWith('skeleton')) a.tint(color);
   if (color && withRing) a.addRing(color);

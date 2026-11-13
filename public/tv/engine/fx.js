@@ -17,6 +17,12 @@ const KINDS = {
   dust:     { colors: [0xc9b79c, 0xb8a58a], size: [0.5, 0.9], grow: 2.1, life: [0.6, 1.0], speed: [0.8, 2.4], up: 0.7, gravity: 0, additive: false },
   sparkle:  { colors: [0xffffff, 0xfff3b0, 0xffe066], size: [0.18, 0.34], grow: 0.4, life: [0.7, 1.3], speed: [0.5, 2.2], up: 2.2, gravity: -1.5, additive: true },
   splash:   { colors: [0xbfe6ff, 0x7cc4ff, 0xffffff], size: [0.25, 0.5], grow: 1.2, life: [0.6, 1.0], speed: [1.5, 4], up: 5, gravity: -12, additive: false },
+  stars:    { colors: [0xffe066, 0xffffff, 0xffb300], size: [0.28, 0.5], grow: 0.5, life: [0.5, 0.9], speed: [2.5, 5], up: 2.5, gravity: -3, additive: true },
+  leaves:   { colors: [0x4f9d3a, 0x6fbf4a, 0x2f6f2a], size: [0.18, 0.34], grow: 1, life: [1.0, 1.8], speed: [1, 3], up: 2.4, gravity: -4, additive: false },
+  embers:   { colors: [0xff9a2a, 0xffd36a, 0xff5a1a], size: [0.1, 0.22], grow: 0.6, life: [0.9, 1.8], speed: [0.4, 1.6], up: 3.2, gravity: 0.6, additive: true },
+  soot:     { colors: [0x1c1a1a, 0x2a2626, 0x111111], size: [0.6, 1.2], grow: 2.2, life: [0.9, 1.6], speed: [0.5, 2], up: 1.6, gravity: 0, additive: false },
+  bones:    { colors: [0xf2ead8, 0xe0d6bf, 0xffffff], size: [0.2, 0.36], grow: 1, life: [0.8, 1.3], speed: [2, 5], up: 4.5, gravity: -12, additive: false },
+  confetti: { colors: [0xff5a5a, 0x5ab0ff, 0xffe066, 0x7ae07a, 0xd58aff], size: [0.16, 0.28], grow: 1, life: [1.4, 2.4], speed: [1.5, 4.5], up: 6, gravity: -6, additive: false },
 };
 export const FX_NAMES = Object.keys(KINDS);
 

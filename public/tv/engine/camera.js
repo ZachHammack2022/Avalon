@@ -75,8 +75,12 @@ export function shotPose(spec, ctx, k = 0) {
       const from = add(t, rotY([0, 1.2, 6], angle)); const to = add(ctx.center, rotY([0, 12, 16], angle));
       return { pos: lerp3(from, to, e), look: lerp3(add(t, [0, 1.8, 0]), add(ctx.center, [0, 1, 0]), e), fov: 38 };
     }
+    case 'frame': { // fit a group: distance from the spread of the targets
+      const r = ctx.radius || 0; const d = spec.dist || Math.max(4.5, r * 2.3 + 4);
+      return { pos: add(t, rotY([0, spec.height ?? 2.4, d], angle)), look: add(t, [0, 1.25, 0]), fov: 38 };
+    }
     case 'cut':
-      return { pos: spec.pos, look: ctx.target || add(spec.pos, [0, 0, -1]), fov: 40 };
+      return { pos: spec.pos, look: ctx.target ? add(ctx.target, [0, spec.height ?? 0, 0]) : add(spec.pos, [0, 0, -1]), fov: 40 };
     default:
       throw new Error(`unknown camera shot "${spec.shot}"`);
   }

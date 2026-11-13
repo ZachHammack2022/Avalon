@@ -19,14 +19,14 @@
 
 import { ANIMS, PLAYER_ANIMS } from './anims.js';
 
-const CAMERA_SHOTS = ['wide', 'follow', 'closeUp', 'pushIn', 'lowAngle', 'overShoulder', 'orbit', 'shake', 'cut', 'crane'];
-const FX_KINDS = ['firePuff', 'smoke', 'coinBurst', 'dust', 'sparkle', 'splash'];
-const SFX = ['stinger', 'fanfare', 'wahwah', 'scratch', 'bonk', 'creak', 'clink', 'alarm', 'gasp', 'whoosh', 'thud', 'poof', 'splash', 'roar', 'rumble', 'ding', 'sneeze'];
+const CAMERA_SHOTS = ['wide', 'follow', 'closeUp', 'pushIn', 'lowAngle', 'overShoulder', 'orbit', 'shake', 'cut', 'crane', 'frame'];
+const FX_KINDS = ['firePuff', 'smoke', 'coinBurst', 'dust', 'sparkle', 'splash', 'stars', 'leaves', 'embers', 'soot', 'bones', 'confetti'];
+const SFX = ['stinger', 'fanfare', 'wahwah', 'scratch', 'bonk', 'creak', 'clink', 'alarm', 'gasp', 'whoosh', 'thud', 'poof', 'splash', 'roar', 'rumble', 'ding', 'sneeze', 'snap', 'boing', 'pop', 'slide', 'purr', 'snore', 'crowd', 'tick', 'fwoosh', 'rattle', 'knock', 'tiptoe', 'cheer', 'bell'];
 const EASES = ['linear', 'in', 'out', 'inOut', 'bounce', 'back'];
 
 export const OPS = {
   // --- actors ---
-  formation: { args: { name: 'str', '?center': 'pos', '?facing': 'num', '?spacing': 'num', '?walk': 'bool', '?dur': 'num' },
+  formation: { args: { name: 'str', '?center': 'pos', '?facing': 'num', '?spacing': 'num', '?walk': 'bool', '?dur': 'num', '?y': 'num', '?anim': 'str', '?run': 'bool' },
     desc: "Arrange the whole team (sizes 2-5). name: line | column | arc | huddle | row. walk:true walks them there." },
   place:     { args: { who: 'who', at: 'pos', '?face': 'any' }, desc: 'Teleport an actor. face = degrees or a pos to look at.' },
   walkTo:    { args: { who: 'who', to: 'pos', '?speed': 'num', '?dur': 'num', '?anim': 'str' }, desc: 'Walk (Walking_A) then idle.' },
@@ -36,19 +36,23 @@ export const OPS = {
   face:      { args: { who: 'who', at: 'any', '?dur': 'num' }, desc: 'Turn body to face a position/actor/degrees.' },
   hide:      { args: { who: 'who' }, desc: 'Make an actor or prop invisible.' },
   show:      { args: { who: 'who' }, desc: 'Make an actor or prop visible.' },
-  tweenTo:   { args: { who: 'who', '?pos': 'pos', '?rot': 'any', '?scale': 'any', dur: 'num', '?ease': 'str' }, desc: 'Cartoony motion for actors or props: position, rotation (deg [x,y,z]), scale (num or [x,y,z]).' },
+  tweenTo:   { args: { who: 'who', '?pos': 'pos', '?by': 'any', '?rot': 'any', '?scale': 'any', dur: 'num', '?ease': 'str', '?stagger': 'num', '?key': 'str' }, desc: 'Cartoony motion for actors or props: position (absolute pos or relative by:[x,y,z]), rotation (deg [x,y,z]), scale (num or [x,y,z]). stagger delays each successive target. Tweens with different keys on one object run in parallel.' },
+  hop:       { args: { who: 'who', '?height': 'num', '?count': 'num', '?dur': 'num', '?stagger': 'num' }, desc: 'Bounce in place count times.' },
+  tremble:   { args: { who: 'who', '?dur': 'num', '?amount': 'num' }, desc: 'Shiver in place (fear, strain, incoming sneeze).' },
+  say:       { args: { text: 'str', '?who': 'who', '?at': 'pos', '?dur': 'num', '?style': 'str', '?height': 'num' }, desc: "Speech bubble over an actor (or at a position). style: shout | whisper. Slots allowed." },
+  emote:     { args: { text: 'str', '?who': 'who', '?at': 'pos', '?dur': 'num', '?color': 'str', '?height': 'num' }, desc: 'Big glyph over a head: ! ? … ♥ ★ Zzz ♪' },
   spawnActor:{ args: { id: 'str', kind: 'str', at: 'pos', '?face': 'any', '?scale': 'num', '?color': 'str' }, desc: 'kind: a class (knight|mage|rogue|barbarian|rogueHooded) or skeleton_warrior|skeleton_minion|skeleton_rogue|skeleton_mage.' },
   // --- props ---
-  spawnProp: { args: { id: 'str', model: 'str', '?at': 'pos', '?scale': 'any', '?rot': 'any', '?color': 'str' }, desc: "model: 'builtin:<box|sphere|cylinder|cone|plank|note|crown|rope>' or an asset name from asset-manifest.js." },
+  spawnProp: { args: { id: 'str', model: 'str', '?at': 'pos', '?scale': 'any', '?rot': 'any', '?color': 'str', '?text': 'str' }, desc: "model: 'builtin:<box|sphere|cylinder|cone|plank|note|crown|rope|rock|lantern|bush|sign|ring>', 'scene:<name>' (a prop the scene registers in props), or an asset name from asset-manifest.js. text is drawn on builtin:note / builtin:sign." },
   attach:    { args: { prop: 'str', who: 'who', '?slot': 'str', '?offset': 'any' }, desc: 'Attach a prop to an actor bone slot (handslot.r, handslot.l, head).' },
   detach:    { args: { prop: 'str', '?at': 'pos' }, desc: 'Drop a prop into the world at its current (or given) spot.' },
-  arc:       { args: { id: 'str', to: 'pos', dur: 'num', '?height': 'num', '?spin': 'num' }, desc: 'Physics-free ballistic arc for a prop.' },
+  arc:       { args: { id: 'who', '?to': 'pos', '?by': 'any', dur: 'num', '?height': 'num', '?spin': 'num', '?stagger': 'num' }, desc: 'Physics-free ballistic arc for a prop or an actor (to an absolute to or relative by).' },
   removeProp:{ args: { id: 'str' }, desc: 'Delete a prop.' },
   fx:        { args: { kind: 'str', at: 'pos', '?count': 'num', '?scale': 'num' }, desc: `Particle burst. kind: ${FX_KINDS.join(' | ')}` },
   rig:       { args: { name: 'str', action: 'str', '?dur': 'num', '?args': 'obj' }, desc: "Call a scene-defined animation, e.g. {name:'bridge', action:'unravel', dur:3}. Rigs are registered by the scene (public/tv/scenes/*.js `rigs`)." },
   // --- camera ---
-  camera:    { args: { shot: 'str', '?target': 'pos', '?target2': 'pos', '?dur': 'num', '?dist': 'num', '?height': 'num', '?angle': 'num', '?intensity': 'num', '?pos': 'pos', '?ease': 'str' },
-    desc: `shot: ${CAMERA_SHOTS.join(' | ')}. shake uses intensity (0-1) for dur seconds; cut uses pos+target.` },
+  camera:    { args: { shot: 'str', '?target': 'pos', '?target2': 'pos', '?dur': 'num', '?dist': 'num', '?height': 'num', '?angle': 'num', '?intensity': 'num', '?pos': 'pos', '?ease': 'str', '?snap': 'bool', '?rel': 'bool', '?fov': 'num', '?lag': 'num' },
+    desc: `shot: ${CAMERA_SHOTS.join(' | ')}. shake uses intensity (0-1) for dur seconds; cut uses pos+target. snap:true hard-cuts (no glide); rel:true measures angle from the way the target faces (0 = face-on); frame fits a group; lag = glide time constant.` },
   // --- UI / audio / time ---
   caption:   { args: { text: 'str', '?dur': 'num', '?style': 'str' }, desc: 'Bottom caption (run through narrate()). Slots: {culprit} {hero} {team}.' },
   banner:    { args: { who: 'who', '?text': 'str', '?dur': 'num' }, desc: 'Name banner over an actor (default: their name).' },
@@ -57,6 +61,8 @@ export const OPS = {
   sfx:       { args: { name: 'str', '?volume': 'num' }, desc: `One-shot sound. name: ${SFX.join(' | ')}` },
   music:     { args: { track: 'str' }, desc: "'scene' loop, or 'stop' (the beat of silence)." },
   slowmo:    { args: { scale: 'num', dur: 'num' }, desc: 'Scale time for dur real seconds. (Segment timing is NOT stretched; keep `at` times consistent.)' },
+  flash:     { args: { '?color': 'str', '?dur': 'num' }, desc: 'Full-screen colour flash (impact, lightning, fire).' },
+  lights:    { args: { level: 'num', '?dur': 'num' }, desc: 'Dim/brighten the ambient + sun light (1 = normal, 0.1 = dark). Point lights (lanterns, torches) are unaffected.' },
   fade:      { args: { to: 'str', '?dur': 'num' }, desc: "to: 'black' | 'clear'." },
 };
 
@@ -111,9 +117,9 @@ export function validateBeat(b, ctx) {
   if (b.op === 'fx' && b.kind && !FX_KINDS.includes(b.kind)) errs.push(`${where}: unknown fx kind "${b.kind}"`);
   if (b.op === 'sfx' && b.name && !SFX.includes(b.name)) errs.push(`${where}: unknown sfx "${b.name}"`);
   for (const k of ['anim', 'then']) {
-    if (!((b.op === 'play' || b.op === 'walkTo') && typeof b[k] === 'string')) continue;
+    if (!((b.op === 'play' || b.op === 'walkTo' || b.op === 'formation') && typeof b[k] === 'string')) continue;
     // player avatars only have the 76 Adventurer clips; skeletons/custom actors have 95
-    const playerRef = typeof b.who === 'string' && (RESERVED.has(b.who) || b.who.startsWith('team:'));
+    const playerRef = b.op === 'formation' || (typeof b.who === 'string' && (RESERVED.has(b.who) || b.who.startsWith('team:')));
     const pool = playerRef ? PLAYER_ANIMS : ANIMS;
     if (!pool.includes(b[k])) errs.push(`${where}: ${playerRef ? 'player avatars have no' : 'unknown'} animation "${b[k]}"`);
   }

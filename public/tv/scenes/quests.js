@@ -6,42 +6,6 @@ import { box, cyl, flame, flicker, ground, mat, mesh, put, scatter } from './kit
 
 const common = { forward: 90, wideDist: 16, wideHeight: 7, wideAngle: 0 };
 
-export function bridgeScene() {
-  const planks = [];
-  return {
-    ...common, name: 'bridge', music: 'bridge', center: [0, 0, 0],
-    bg: 0xf2a65a, fog: { color: 0xd98a6a, near: 25, far: 90 },
-    hemi: { sky: 0xffc98a, ground: 0x5a3a46, i: 1.1 }, sun: { color: 0xffb066, i: 2.0, pos: [-14, 10, 12] },
-    marks: { spawn: [-22, 0], start: [-12, 0], mid: [0, 0], goal: [12, 0], spot: [0, 0], river: [0, -9] },
-    preload: ['knight', 'mage', 'rogue', 'barbarian', 'rogueHooded', 'hex:rock_single_A', 'hex:mountain_A', 'hex:trees_A_small'],
-    build(stage) {
-      const g = new THREE.Group();
-      for (const s of [-1, 1]) {
-        g.add(box(22, 14, 40, 0x7a5a45, { pos: [s * 20, -7, 0] }));
-        g.add(box(22, 0.4, 40, 0x4f7d3a, { pos: [s * 20, 0.2, 0] }));
-      }
-      const river = new THREE.Mesh(new THREE.PlaneGeometry(120, 60), mat(0x2f8fd8, { roughness: 0.3, transparent: true, opacity: 0.9 }));
-      river.rotation.x = -Math.PI / 2; river.position.y = -9; g.add(river);
-      for (let i = 0; i < 12; i++) { const p = box(1.5, 0.18, 2.6, 0x8a5a2b, { pos: [-8.25 + i * 1.5, -0.05, 0] }); planks.push(p); g.add(p); }
-      for (const z of [-1.3, 1.3]) g.add(box(18, 0.08, 0.08, 0xb59a6a, { pos: [0, 1.0, z], cast: false }));
-      for (const x of [-9, 9]) for (const z of [-1.3, 1.3]) g.add(box(0.14, 1.1, 0.14, 0x6b4a2a, { pos: [x, 0.5, z] }));
-      for (const [x, z, s] of [[-24, -10, 4], [26, 8, 5], [-28, 12, 3.5]]) { const m = put(stage, 'hex:mountain_A', { pos: [x, -1, z - 22], scale: s * 2 }); if (m) g.add(m); }
-      scatter(stage, g, ['hex:trees_A_small', 'hex:rock_single_A'], 16, { inner: 16, outer: 34, scale: [2.2, 3.4], seed: 21, avoid: (x, z) => Math.abs(x) < 10 });
-      return g;
-    },
-    rigs: {
-      bridge: {
-        collapse(stage, { dur }) { planks.forEach((p, i) => stage.tween({ dur: dur * 0.6, delay: i * 0.05, ease: 'in', update: (k) => { if (k === 0) return; p.position.y = -0.05 - k * 9; p.rotation.z = k * (i % 2 ? 1.4 : -1.2); }, owner: p, key: 'collapse' })); },
-        // planks drop one by one from the far end toward the camera side, like a sweater coming apart
-        unravel(stage, { dur }) {
-          planks.slice().reverse().forEach((p, i) => stage.tween({ dur: 0.45, delay: (i * dur) / planks.length, ease: 'in', owner: p, key: 'unravel',
-            update: (k) => { p.position.y = -0.05 - k * 9; p.rotation.x = k * 2.2; } }));
-        },
-      },
-    },
-  };
-}
-
 export function woodsScene() {
   return {
     ...common, name: 'woods', music: 'woods', center: [0, 0, 0],

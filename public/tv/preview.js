@@ -80,7 +80,7 @@ window.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') 
 audio.setMuted(true);
 
 window.__preview = {
-  errors, stage, player, load,
+  errors, stage, player, load, lastCaption: () => stage.lastCaption,
   async seek(t) { seeking = true; await player.seek(t); seeking = false; stage.render(0); },
   pause() { paused = true; }, play() { paused = false; },
   get info() { return { cam: stage.camera.position.toArray().map((v) => +v.toFixed(1)), time: player.time, duration: player.duration, actors: stage.actors.size, props: stage.props.size, fps: stage.stats.fps, scene: stage.sceneName }; },

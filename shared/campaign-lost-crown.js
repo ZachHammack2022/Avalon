@@ -10,6 +10,10 @@
 // replaces it per segment or per gag: add `beats: { setup: [...], fail: { sweater: [...] } }` to a quest entry.
 // See docs/CUTSCENES.md for the authoring guide.
 import { validateQuestScripts } from './cutscene-ops.js';
+import { bridgeBeats } from './cutscenes/bridge.js';
+
+// Hand-authored choreography per quest id: (questMeta) => beats. Quests without an entry play the scaffold.
+const AUTHORED = { bridge: bridgeBeats };
 
 const SEGMENT_DEFAULTS = { setup: 5, approach: 7, moment: 3, success: 5 };
 
@@ -68,7 +72,7 @@ function scaffold(q) {
   return beats;
 }
 
-const gag = (id, name, caption, extra = {}) => ({ id, name, caption, duration: 7, ...extra });
+const gag = (id, name, caption, extra = {}) => ({ id, name, caption, duration: 8, ...extra });
 
 const RAW = [
   {
@@ -153,7 +157,7 @@ export const QUESTS = RAW.map((q, index) => {
   // Hand-authored beats win; anything not authored yet falls back to the placeholder choreography. So you can set
   // just `beats: { moment: [...], fail: { sweater: [...] } }` on a quest and the rest keeps playing.
   const generated = scaffold(quest);
-  const authored = quest.beats || {};
+  const authored = AUTHORED[quest.id] ? AUTHORED[quest.id](quest) : quest.beats || {};
   quest.beats = { ...generated, ...authored, fail: { ...generated.fail, ...(authored.fail || {}) } };
   return quest;
 });
