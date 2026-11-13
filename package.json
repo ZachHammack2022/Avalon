@@ -7,7 +7,7 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node server/index.js --dev",
+    "dev": "node --watch server/index.js",
     "test": "node --test",
     "test:browser": "node scripts/browser-check.mjs",
     "assets": "node scripts/fetch-assets.mjs",

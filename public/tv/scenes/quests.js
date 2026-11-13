@@ -114,12 +114,13 @@ export function dragonScene() {
   return {
     ...common, name: 'dragon', music: 'dragon', center: [0, 0, 0],
     bg: 0x0b0806, fog: { color: 0x0b0806, near: 16, far: 60 },
-    hemi: { sky: 0x7a5a3a, ground: 0x1c1208, i: 0.8 }, sun: { color: 0xffc680, i: 1.0, pos: [-6, 16, 10] },
+    hemi: { sky: 0xb08a5a, ground: 0x2c1c0e, i: 1.6 }, sun: { color: 0xffc680, i: 1.8, pos: [-6, 16, 10] },
     marks: { spawn: [-20, 4], start: [-11, 4], mid: [-2, 4], goal: [6, 4], spot: [3, 4], dragon: [8, 0], crown: [8, 7.5] },
     preload: ['knight', 'mage', 'rogue', 'barbarian', 'rogueHooded', 'dungeon:coin_stack_large', 'dungeon:coin_stack_medium', 'dungeon:chest_gold'],
     build(stage) {
       const g = new THREE.Group();
       g.add(ground(0x3b2c20, 90));
+      const glow = new THREE.PointLight(0xffa860, 160, 45, 1.4); glow.position.set(-2, 7, 6); g.add(glow); // warm light from the hoard
       const gold = mat(0xf0b92b, { metalness: 0.7, roughness: 0.35 });
       const heap = mesh(new THREE.ConeGeometry(8.5, 5, 24), 0, { m: gold, pos: [9, 2.5, 0] }); g.add(heap);
       for (let i = 0; i < 14; i++) { const c = put(stage, 'dungeon:coin_stack_large', { pos: [-4 + (i % 7) * 1.6, 0, -6 + Math.floor(i / 7) * 9], rot: i * 40, scale: 1.1 }); if (c) g.add(c); }
@@ -151,7 +152,8 @@ export function throneScene() {
       const g = new THREE.Group();
       for (let x = -7; x <= 5; x++) for (let z = -3; z <= 3; z++) { const t = put(stage, 'dungeon:floor_tile_large', { pos: [x * 4, 0, z * 4] }); if (t) g.add(t); else g.add(box(4, 0.1, 4, 0x6a5f58, { pos: [x * 4, -0.05, z * 4] })); }
       g.add(box(36, 0.06, 3.2, 0xa31f2f, { pos: [-2, 0.05, 0], cast: false }));
-      for (let x = -6; x <= 3; x++) for (const z of [-8, 8]) { const p = put(stage, 'dungeon:pillar', { pos: [x * 4, 0, z] }); if (p) g.add(p); const b = put(stage, 'dungeon:banner_red', { pos: [x * 4 + 2, 1.5, z * 0.98], rot: z > 0 ? 180 : 0, scale: 1.2 }); if (b) g.add(b); }
+      // far side only: near-side pillars would block the camera
+      for (let x = -6; x <= 3; x++) for (const z of [-8]) { const p = put(stage, 'dungeon:pillar', { pos: [x * 4, 0, z] }); if (p) g.add(p); const b = put(stage, 'dungeon:banner_red', { pos: [x * 4 + 2, 1.5, z * 0.98], rot: z > 0 ? 180 : 0, scale: 1.2 }); if (b) g.add(b); }
       for (let x = -6; x <= 4; x++) { const w = put(stage, 'dungeon:wall', { pos: [x * 4, 0, -12] }); if (w) g.add(w); }
       const th = new THREE.Group(); th.position.set(16, 0, 0);
       th.add(box(5, 0.8, 5, 0x6a5f58, { pos: [0, 0.4, 0] })); th.add(box(1.8, 2.4, 2.2, 0xa31f2f, { pos: [1.2, 1.9, 0] })); th.add(box(0.5, 4.2, 2.6, 0xd6a82b, { pos: [2.1, 3.1, 0] }));

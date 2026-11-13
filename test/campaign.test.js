@@ -144,3 +144,11 @@ test('core assets resolve and exist on disk (run `npm run assets` if this fails)
   }
   assert.equal(resolveAsset('nonsense'), null);
 });
+
+test('hand-authored beats override the placeholder per segment/gag, the rest stays valid', async () => {
+  // re-import with a fresh module graph is not possible, so verify the contract on the exported structure:
+  for (const q of QUESTS) {
+    assert.ok(q.beats.setup && q.beats.approach && q.beats.moment && q.beats.success);
+    assert.deepEqual(Object.keys(q.beats.fail).sort(), q.gags.map((g) => g.id).sort());
+  }
+});

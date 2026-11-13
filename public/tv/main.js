@@ -55,8 +55,12 @@ class App {
     this.players = new Map(pub.players.map((p) => [p.id, p]));
     hud.setRoom(pub.room, this.joinUrl);
     hud.setTrack(trackFor(pub));
+    if (pub.phase === 'lobby') { this.endingsDone = false; this.cutsceneActive = false; }
+    // The result card would spoil the outcome, so never show it for a cutscene we are about to play (state can in
+    // principle land just before the `cutscene` message). It is only shown on a refresh mid-cutscene (prev === null).
+    const aboutToPlay = pub.phase === 'cutscene' && prev && prev.phase === 'questPlay';
     // cards (plain-text view): hidden while a cutscene plays, otherwise always up to date
-    if (pub.phase === 'cutscene' && this.cutsceneActive) hud.showCard(null);
+    if (pub.phase === 'cutscene' && (this.cutsceneActive || (use3d && aboutToPlay))) hud.showCard(null);
     else if (pub.phase === 'gameover' && use3d && !first && prev && prev.phase !== 'gameover' && !this.endingsDone) hud.showCard(null);
     else hud.showCard(cardFor(pub, { joinUrl: this.joinUrl }));
     if (pub.phase !== 'cutscene' && pub.phase !== 'questResult') hud.clearCaption();
