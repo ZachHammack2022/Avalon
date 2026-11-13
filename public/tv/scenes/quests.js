@@ -6,37 +6,6 @@ import { box, cyl, flame, flicker, ground, mat, mesh, put, scatter } from './kit
 
 const common = { forward: 90, wideDist: 16, wideHeight: 7, wideAngle: 0 };
 
-export function vaultScene() {
-  let torches = []; let door; let alarm;
-  return {
-    ...common, name: 'vault', music: 'vault', center: [0, 0, 0],
-    bg: 0x120e0c, fog: { color: 0x120e0c, near: 18, far: 50 },
-    hemi: { sky: 0x6a5a4a, ground: 0x1a120c, i: 0.9 }, sun: { color: 0xffd9a8, i: 0.8, pos: [0, 16, 10] },
-    marks: { spawn: [-18, 3], start: [-9, 3], mid: [2, 3], goal: [8, 3], spot: [6, 3], door: [11, 0], lever: [5, -3] },
-    preload: ['knight', 'mage', 'rogue', 'barbarian', 'rogueHooded', 'skeleton_warrior', 'dungeon:floor_tile_large', 'dungeon:wall', 'dungeon:torch_lit', 'dungeon:pillar', 'dungeon:banner_red', 'dungeon:chest_gold', 'dungeon:key'],
-    build(stage) {
-      const g = new THREE.Group();
-      for (let x = -5; x <= 5; x++) for (let z = -3; z <= 3; z++) { const t = put(stage, 'dungeon:floor_tile_large', { pos: [x * 4, 0, z * 4] }); if (t) g.add(t); else g.add(box(4, 0.1, 4, 0x4a4038, { pos: [x * 4, -0.05, z * 4] })); }
-      for (let x = -4; x <= 3; x++) { const w = put(stage, 'dungeon:wall', { pos: [x * 4, 0, -6] }); if (w) g.add(w); }
-      door = new THREE.Group(); door.position.set(11, 3.2, -0.6);
-      const slab = cyl(3.4, 3.4, 0.7, 0x888a92, { rot: [90, 0, 0], m: mat(0x8a8d96, { metalness: 0.7, roughness: 0.4 }) }, 40); door.add(slab);
-      door.add(cyl(0.9, 0.9, 0.9, 0xb08a2a, { rot: [90, 0, 0], m: mat(0xb08a2a, { metalness: 0.8, roughness: 0.3 }) }, 20));
-      g.add(door);
-      g.add(box(1.2, 8, 8, 0x2b2420, { pos: [12.2, 4, -0.6] }));
-      for (const [x, z] of [[8.5, -5], [8.5, 4.5], [-4, -5.2]]) { const t = put(stage, 'dungeon:torch_lit', { pos: [x, 2.2, z], scale: 1.6 }); if (t) g.add(t); const f = flame(); f.scale.setScalar(0.6); f.position.set(x, 2.6, z); f.userData.light.intensity = 30; torches.push(f); g.add(f); }
-      alarm = new THREE.PointLight(0xff2020, 0, 40); alarm.position.set(0, 7, 2); g.add(alarm);
-      return g;
-    },
-    update(dt, stage) { torches.forEach((f, i) => flicker(f, stage.time + i, 30)); if (alarm && alarm.userData.on) alarm.intensity = 90 * (0.5 + 0.5 * Math.sin(stage.time * 14)); },
-    rigs: {
-      vault: {
-        openDoor(stage, { dur }) { stage.tween({ dur, ease: 'inOut', update: (k) => { door.rotation.y = -k * 1.4; }, owner: door, key: 'door' }); },
-        alarm(stage) { alarm.userData.on = true; },
-      },
-    },
-  };
-}
-
 export function dragonScene() {
   const parts = {};
   function buildDragon(stage) {

@@ -141,6 +141,9 @@ export class Stage {
     }
   }
 
+  /** Cancel in-flight motion on an actor (before a teleport). */
+  stopMotion(actor) { this.tweens = this.tweens.filter((t) => !((t.owner === actor && t.key === 'move') || (t.owner === actor.root && ['tween', 'arc', 'move', 'hop'].includes(t.key)))); }
+
   moveActor(actor, to, { dur, speed = WALK_SPEED, anim = 'Walking_A', endYaw = null } = {}) {
     const from = actor.root.position.clone();
     const dist = from.distanceTo(to);
@@ -173,12 +176,13 @@ export class Stage {
     const slots = formationSlots(b.name, team.length, { center: [center.x, center.z], facing: b.facing ?? (this.sceneDef.forward ?? 90), spacing: b.spacing ?? 1.7 });
     team.forEach((a, i) => {
       const s = slots[i]; const to = new THREE.Vector3(s.x, b.y ?? 0, s.z);
-      if (b.walk || b.run) this.moveActor(a, to, { dur: b.dur, endYaw: s.yaw, anim: b.anim || (b.run ? 'Running_A' : 'Walking_A') }); else { a.root.position.copy(to); a.setYaw(s.yaw); }
+      if (b.walk || b.run) this.moveActor(a, to, { dur: b.dur, endYaw: s.yaw, anim: b.anim || (b.run ? 'Running_A' : 'Walking_A') }); else { this.stopMotion(a); a.root.position.copy(to); a.setYaw(s.yaw); }
     });
   }
   _op_place(b) {
     const to = this.pos(b.at);
     for (const { actor, obj } of this.objs(b.who)) {
+      if (actor) this.stopMotion(actor);
       obj.position.copy(to);
       if (actor && b.face !== undefined) actor.setYaw(typeof b.face === 'number' ? b.face : yawToward([to.x, 0, to.z], this._xz(b.face)));
     }
