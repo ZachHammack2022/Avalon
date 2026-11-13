@@ -82,6 +82,12 @@ audio.setMuted(true);
 window.__preview = {
   errors, stage, player, load, lastCaption: () => stage.lastCaption,
   async seek(t) { seeking = true; await player.seek(t); seeking = false; stage.render(0); },
+  /** Where an actor's head is on screen (NDC, -1..1) for QA: {x, y, visible}. */
+  onScreen(ref) {
+    const o = stage.objs(ref)[0]; if (!o) return null;
+    const v = o.obj.getWorldPosition(stage.camera.position.clone()); v.y += 1.5 * o.obj.scale.y; stage.camera.updateMatrixWorld(); v.project(stage.camera);
+    return { x: +v.x.toFixed(2), y: +v.y.toFixed(2), visible: v.z < 1 && Math.abs(v.x) < 0.98 && Math.abs(v.y) < 0.98 };
+  },
   pause() { paused = true; }, play() { paused = false; },
   get info() { return { cam: stage.camera.position.toArray().map((v) => +v.toFixed(1)), time: player.time, duration: player.duration, actors: stage.actors.size, props: stage.props.size, fps: stage.stats.fps, scene: stage.sceneName }; },
 };

@@ -2,22 +2,20 @@
 
 ## Status
 
-Done: **A1-A5** (all five quests: sets, rigs, shared segments, success, 4 gags each), the parts of **B1-B3 and B5**
-they needed (hard cuts, group framing, bubbles/emotes, relative tweens, light dimming, new FX kinds, skeleton patrols,
-guards, crowd), new synthesized SFX for **C1**, and the victory endings on the new throne set (**D3**, partly).
-`scripts/shot.mjs` covers the authoring half of **F1/F3**.
+Done:
+- **A1-A5:** all five quests (sets, rigs, shared segments, success, 4 gags each).
+- **B1-B3, B5 (as far as the quests needed):** hard cuts, group framing, bubbles/emotes, relative tweens, light dimming,
+  new FX kinds, skeleton patrols, guards, crowd.
+- **C1 (synth only):** new one-shot effects; bass and percussion under every music loop.
+- **D1:** campfire rebuilt (open seating arc, tents, sky, embers, fireflies); the proposed team stands facing the TV.
+- **D2:** ready ticks during role reveal; vote tokens flip one at a time with a verdict sting.
+- **D3:** assassination scene with fire-side close-ups; victory endings on the throne set; game-over awards
+  (hero of the realm, scapegoat, walking disaster).
+- **F1/F3:** `scripts/shot.mjs` contact sheets; the browser check asserts the culprit is on screen at every freeze-frame
+  and the hero during their hero beat.
 
-Still open: real audio samples and music (C1), narration tuning (C2), campfire/lobby and reveal polish (D1, D2),
-assassination scene polish and the who-framed-whom recap (D3), phone polish (D4), gag variety and second campaign (E),
-automated off-screen-culprit checks and performance budgets on real hardware (F1, F2).
-
-Read `docs/CUTSCENES.md` first (beat format, ops, rules). Preview any cutscene at `/preview.html`
-(`window.__preview` API; `npm run test:browser -- --shots` for screenshots). Gate for every task:
-`npm test` and `npm run assets:check` pass, and the cutscene validator accepts the script.
-
-Tasks are independent unless a **Needs** line says otherwise, so they can run in parallel sessions.
-Each task touches its own files; shared files (`cutscene-ops.js`, `engine/*`) are touched only by the
-"Engine" tasks, to avoid merge conflicts.
+Still open: real audio samples and music (C1), narration tuning (C2), phone polish (D4), gag variety and a second
+campaign (E), performance budgets on real hardware (F2).
 
 ## A. Cutscenes (the main event)
 
