@@ -9,6 +9,7 @@ import { formationSlots, angleDelta, yawToward } from './formation.js';
 import { buildScene } from '../scenes/index.js';
 import { CHARACTER_FILES } from './asset-manifest.js';
 import { narrate } from './narrate.js';
+import { makeBubble, makeEmote, makeSign } from './bubbles.js';
 
 const LOOPING = /(Idle|Walking|Running|Pose|Blocking|Aiming|Spellcasting|Taunt|Cheer_Loop)/;
 const WALK_SPEED = 1.8; const RUN_SPEED = 5;
@@ -33,7 +34,8 @@ export class Stage {
     this.sun.shadow.bias = -0.0005; this.scene.add(this.sun, this.sun.target);
     this.fx = new Fx(this.scene);
     this.actors = new Map(); this.props = new Map(); this.cast = new Map();
-    this.tweens = []; this.pendingSpawns = [];
+    this.tweens = []; this.pendingSpawns = []; this.bubbles = []; this.lastCaption = '';
+    this.lightLevel = 1; this.lightBase = null;
     this.sceneDef = null; this.sceneName = '';
     this.rt = null; // runtime context from the cutscene player: {resolver, payload, fill}
     this.time = 0; this.timeScale = 1; this.slow = null; this.frozenLeft = 0;
@@ -57,6 +59,8 @@ export class Stage {
     for (const p of this.props.values()) p.removeFromParent();
     this.actors.clear(); this.props.clear(); this.cast.clear();
     this.tweens.length = 0; this.pendingSpawns.length = 0; this.fx.clear();
+    for (const b of this.bubbles) b.spr.removeFromParent(); this.bubbles.length = 0; this.lastCaption = '';
+    this.hud && this.hud.flash && this.hud.flash(null);
     this.timeScale = 1; this.slow = null; this.frozenLeft = 0; this.shake = null;
     if (this.sceneDef && this.sceneDef.root) { this.world.remove(this.sceneDef.root); this.sceneDef.dispose && this.sceneDef.dispose(); }
     this.sceneDef = null;
@@ -76,6 +80,8 @@ export class Stage {
     const sn = def.sun || { color: 0xffffff, i: 1.5, pos: [8, 14, 6] };
     this.sun.color.set(sn.color); this.sun.intensity = sn.i; this.sun.position.set(...sn.pos);
     this.sun.target.position.set(...(def.center || [0, 0, 0]));
+    this.dimmables = []; def.root.traverse((o) => { if (o.userData.dim && o.material) this.dimmables.push({ m: o.material, base: o.material.color.clone() }); });
+    this.lightBase = { hemi: hm.i, sun: sn.i, bg: this.scene.background.clone(), fog: this.scene.fog ? this.scene.fog.color.clone() : null }; this.lightLevel = 1;
     this.camSpec = { shot: 'wide' }; this.camState = null;
     return def;
   }
@@ -135,6 +141,9 @@ export class Stage {
     }
   }
 
+  /** Cancel in-flight motion on an actor (before a teleport). */
+  stopMotion(actor) { this.tweens = this.tweens.filter((t) => !((t.owner === actor && t.key === 'move') || (t.owner === actor.root && ['tween', 'arc', 'move', 'hop'].includes(t.key)))); }
+
   moveActor(actor, to, { dur, speed = WALK_SPEED, anim = 'Walking_A', endYaw = null } = {}) {
     const from = actor.root.position.clone();
     const dist = from.distanceTo(to);
@@ -166,13 +175,14 @@ export class Stage {
     const center = b.center !== undefined ? this.pos(b.center) : this.pos('start');
     const slots = formationSlots(b.name, team.length, { center: [center.x, center.z], facing: b.facing ?? (this.sceneDef.forward ?? 90), spacing: b.spacing ?? 1.7 });
     team.forEach((a, i) => {
-      const s = slots[i]; const to = new THREE.Vector3(s.x, 0, s.z);
-      if (b.walk) this.moveActor(a, to, { dur: b.dur, endYaw: s.yaw }); else { a.root.position.copy(to); a.setYaw(s.yaw); }
+      const s = slots[i]; const to = new THREE.Vector3(s.x, b.y ?? 0, s.z);
+      if (b.walk || b.run) this.moveActor(a, to, { dur: b.dur, endYaw: s.yaw, anim: b.anim || (b.run ? 'Running_A' : 'Walking_A') }); else { this.stopMotion(a); a.root.position.copy(to); a.setYaw(s.yaw); }
     });
   }
   _op_place(b) {
     const to = this.pos(b.at);
     for (const { actor, obj } of this.objs(b.who)) {
+      if (actor) this.stopMotion(actor);
       obj.position.copy(to);
       if (actor && b.face !== undefined) actor.setYaw(typeof b.face === 'number' ? b.face : yawToward([to.x, 0, to.z], this._xz(b.face)));
     }
@@ -181,7 +191,7 @@ export class Stage {
   _op_walkTo(b) { for (const { actor } of this.objs(b.who)) if (actor) this.moveActor(actor, this.pos(b.to), { dur: b.dur, speed: b.speed ?? WALK_SPEED, anim: b.anim || 'Walking_A' }); }
   _op_runTo(b) { for (const { actor } of this.objs(b.who)) if (actor) this.moveActor(actor, this.pos(b.to), { dur: b.dur, speed: b.speed ?? RUN_SPEED, anim: 'Running_A' }); }
   _op_play(b) {
-    for (const { actor } of this.objs(b.who)) if (actor) actor.play(b.anim, { loop: b.loop ?? LOOPING.test(b.anim), fade: b.fade ?? 0.15, speed: b.speed ?? 1, then: b.then ?? 'Idle' });
+    for (const { actor } of this.objs(b.who)) if (actor) actor.play(b.anim, { loop: b.loop ?? LOOPING.test(b.anim), fade: b.fade ?? 0.15, speed: b.speed ?? 1, then: b.then === 'hold' ? null : b.then ?? 'Idle' });
   }
   _op_lookAt(b) { this._op_face({ ...b, dur: b.dur ?? 0.35 }); }
   _op_face(b) {
@@ -195,18 +205,45 @@ export class Stage {
   _op_hide(b) { for (const { actor, obj } of this.objs(b.who)) { if (actor) actor.setHidden(true); else obj.visible = false; } }
   _op_show(b) { for (const { actor, obj } of this.objs(b.who)) { if (actor) actor.setHidden(false); else obj.visible = true; } }
   _op_tweenTo(b) {
-    for (const { actor, obj } of this.objs(b.who)) {
-      const p0 = obj.position.clone(); const r0 = obj.rotation.clone(); const s0 = obj.scale.clone();
-      const p1 = b.pos !== undefined ? this.pos(b.pos) : null;
-      const r1 = b.rot ? new THREE.Euler(...b.rot.map((d) => (d * Math.PI) / 180)) : null;
-      const s1 = b.scale !== undefined ? (Array.isArray(b.scale) ? new THREE.Vector3(...b.scale) : new THREE.Vector3(b.scale, b.scale, b.scale)) : null;
-      this.tween({ dur: b.dur, ease: b.ease || 'inOut', owner: obj, key: 'tween',
+    this.objs(b.who).forEach(({ actor, obj }, i) => {
+      let p0; let r0; let s0; let p1; let r1; let s1;
+      const init = () => {
+        p0 = obj.position.clone(); r0 = obj.rotation.clone(); s0 = obj.scale.clone();
+        p1 = b.pos !== undefined ? this.pos(b.pos) : b.by ? p0.clone().add(toV3(b.by.length === 2 ? [b.by[0], 0, b.by[1]] : b.by)) : null;
+        r1 = b.rot ? new THREE.Euler(...b.rot.map((d) => (d * Math.PI) / 180)) : null;
+        s1 = b.scale !== undefined ? (Array.isArray(b.scale) ? new THREE.Vector3(...b.scale) : new THREE.Vector3(b.scale, b.scale, b.scale)) : null;
+      };
+      this.tween({ dur: b.dur, delay: (b.stagger || 0) * i, ease: b.ease || 'inOut', owner: obj, key: b.key || 'tween',
         update: (k) => {
+          if (!p0) init();
           if (p1) obj.position.lerpVectors(p0, p1, k);
           if (r1) { obj.rotation.set(r0.x + (r1.x - r0.x) * k, r0.y + (r1.y - r0.y) * k, r0.z + (r1.z - r0.z) * k); if (actor) actor.yaw = (obj.rotation.y * 180) / Math.PI; }
           if (s1) obj.scale.lerpVectors(s0, s1, k);
         } });
-    }
+    });
+  }
+  /** Bounce in place `count` times (adds to y, so it composes with walking). */
+  _op_hop(b) {
+    this.objs(b.who).forEach(({ obj }, i) => {
+      const n = b.count ?? 1; const h = b.height ?? 0.8; let base = null;
+      this.tween({ dur: b.dur ?? 0.45 * n, delay: (b.stagger || 0) * i, ease: 'linear', owner: obj, key: 'hop',
+        update: (k) => { if (base === null) base = obj.position.y; const f = (k * n) % 1; obj.position.y = k >= 1 ? base : base + h * 4 * f * (1 - f); } });
+    });
+  }
+  /** Lean sideways (a whole-body head-tilt). Keeps the actor's facing. */
+  _op_tilt(b) {
+    this.objs(b.who).forEach(({ obj }, i) => {
+      let from = null; const to = ((b.deg ?? 20) * Math.PI) / 180;
+      this.tween({ dur: b.dur ?? 0.3, delay: (b.stagger || 0) * i, ease: b.ease || 'out', owner: obj, key: 'tilt', update: (k) => { if (from === null) from = obj.rotation.z; obj.rotation.z = from + (to - from) * k; } });
+    });
+  }
+  /** Quick tremble (scared / straining / about to sneeze). */
+  _op_tremble(b) {
+    this.objs(b.who).forEach(({ obj }) => {
+      const amp = b.amount ?? 0.05; let base = null;
+      this.tween({ dur: b.dur ?? 1, ease: 'linear', owner: obj, key: 'tremble',
+        update: (k) => { if (base === null) base = obj.position.clone(); const t = k * (b.dur ?? 1); obj.position.x = base.x + (k >= 1 ? 0 : Math.sin(t * 61) * amp); obj.position.z = base.z + (k >= 1 ? 0 : Math.sin(t * 47 + 1) * amp); } });
+    });
   }
   _op_spawnActor(b) {
     const kind = b.kind;
@@ -220,6 +257,7 @@ export class Stage {
   }
   _makeProp(model) {
     if (model.startsWith('builtin:')) return this._builtin(model.slice(8));
+    if (model.startsWith('scene:')) { const f = this.sceneDef.props && this.sceneDef.props[model.slice(6)]; if (!f) throw new Error(`scene ${this.sceneName} has no prop "${model.slice(6)}"`); return f(this); }
     return this.assets.instance(model) || (console.warn(`[stage] prop asset "${model}" not preloaded; add it to the scene's preload list`), placeholder(0.6));
   }
   _builtin(kind) {
@@ -240,6 +278,33 @@ export class Stage {
         for (let i = 0; i < 5; i++) { const t = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 6), band.material); const a = (i / 5) * Math.PI * 2; t.position.set(Math.cos(a) * 0.27, 0.16, Math.sin(a) * 0.27); m.add(t); }
         m.position.y = 0.15; break;
       }
+      case 'rock': m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.22, 0), mat(0x8a8f98)); break;
+      case 'lantern': {
+        m = new THREE.Group();
+        const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.3, 8), new THREE.MeshBasicMaterial({ color: 0xffd98a }));
+        const top = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.16, 8), mat(0x3a2f28)); top.position.y = 0.23;
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 8), mat(0x3a2f28)); base.position.y = -0.18;
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.02, 6, 12), mat(0x3a2f28)); ring.position.y = 0.38;
+        const light = new THREE.PointLight(0xffc266, 9, 14, 1.4); light.name = 'lanternLight';
+        m.add(glow, top, base, ring, light); m.position.y = 0.2; break;
+      }
+      case 'bush': {
+        m = new THREE.Group(); const bm = mat(0x3f8f3a, { flatShading: true });
+        for (const [x, y, z, r] of [[0, 0.75, 0, 0.85], [0.5, 0.55, 0.2, 0.6], [-0.5, 0.6, -0.1, 0.62], [0.1, 1.2, -0.2, 0.55], [-0.15, 0.5, 0.5, 0.5]]) { const b2 = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), bm); b2.position.set(x, y, z); m.add(b2); }
+        break;
+      }
+      case 'sign': {
+        m = new THREE.Group();
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.5, 0.12), mat(0x6b4a2a)); post.position.y = 0.75;
+        const board = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.8, 0.08), mat(0xd9b77a)); board.position.y = 1.6; board.name = 'board';
+        m.add(post, board); break;
+      }
+      case 'feather': {
+        m = new THREE.Group(); const fm = mat(0xe0303a);
+        for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(0.16 - i * 0.025, 0.42, 6), fm); f.position.set(-i * 0.09 - i * i * 0.03, 0.2 + i * 0.3, 0); f.rotation.z = 0.25 + i * 0.22; m.add(f); }
+        break;
+      }
+      case 'ring': m = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.07, 8, 24), mat(0xffffff)); m.rotation.x = Math.PI / 2; break;
       default: throw new Error(`unknown builtin prop "${kind}"`);
     }
     m.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
@@ -248,6 +313,7 @@ export class Stage {
   _op_spawnProp(b) {
     const o = this._makeProp(b.model);
     if (b.color) o.traverse((c) => { if (c.isMesh) { c.material = c.material.clone(); c.material.color.set(b.color); } });
+    if (b.text) { const sg = makeSign(this._text(b.text), b.model === 'builtin:sign' ? { w: 1.4, h: 0.7 } : { w: 0.64, h: 0.84, paper: true }); const host = o.getObjectByName('board'); if (host) { sg.position.z = 0.045; host.add(sg); } else { sg.position.set(0, 0.5, 0.012); o.add(sg); } }
     if (b.at !== undefined) o.position.copy(this.pos(b.at));
     if (b.scale !== undefined) { if (Array.isArray(b.scale)) o.scale.set(...b.scale); else o.scale.setScalar(b.scale); }
     if (b.rot) o.rotation.set(...b.rot.map((d) => (d * Math.PI) / 180));
@@ -268,13 +334,15 @@ export class Stage {
     if (b.at !== undefined) prop.position.copy(this.pos(b.at));
   }
   _op_arc(b) {
-    const prop = this.props.get(b.id); if (!prop) return;
-    this.world.attach(prop);
-    const from = prop.position.clone(); const to = this.pos(b.to); const h = b.height ?? 2;
-    this.tween({ dur: b.dur, ease: 'linear', owner: prop, key: 'arc', update: (k) => {
-      prop.position.lerpVectors(from, to, k); prop.position.y += h * 4 * k * (1 - k);
-      if (b.spin) prop.rotation.z = ((b.spin * Math.PI) / 180) * k * b.dur;
-    } });
+    this.objs(b.id).forEach(({ actor, obj }, i) => {
+      if (!actor) this.world.attach(obj);
+      let from = null; let to = null; const h = b.height ?? 2;
+      this.tween({ dur: b.dur, delay: (b.stagger || 0) * i, ease: 'linear', owner: obj, key: actor ? 'move' : 'arc', update: (k) => {
+        if (!from) { from = obj.position.clone(); to = b.to !== undefined ? this.pos(b.to) : from.clone().add(toV3(b.by || [0, 0, 0])); }
+        obj.position.lerpVectors(from, to, k); obj.position.y += h * 4 * k * (1 - k);
+        if (b.spin) obj.rotation.z = ((b.spin * Math.PI) / 180) * k * b.dur;
+      } });
+    });
   }
   _op_removeProp(b) { const p = this.props.get(b.id); if (p) { p.removeFromParent(); this.props.delete(b.id); } }
   _op_fx(b) { this.fx.burst(b.kind, this.pos(b.at), b.count ?? 16, b.scale ?? 1); }
@@ -286,11 +354,11 @@ export class Stage {
   }
   _op_camera(b) {
     if (b.shot === 'shake') { this.shake = { i: b.intensity ?? 0.5, until: this.time + (b.dur ?? 0.6) }; return; }
-    this.camSpec = { ...b, start: this.time }; if (b.shot === 'cut') this.camState = null;
+    this.camSpec = { ...b, start: this.time }; if (b.shot === 'cut' || b.snap) this.camState = null;
   }
   // every caption goes through narrate() so a spoken narrator can be added later (see narrate.js)
-  _op_caption(b) { this._say(() => narrate(this._text(b.text), { dur: b.dur ?? 3, style: b.style })); }
-  _op_banner(b) { for (const { actor } of this.objs(b.who)) if (actor) actor.showBanner(b.dur ?? 2, b.text ? this._text(b.text) : undefined); }
+  _op_caption(b) { this.lastCaption = this._text(b.text); this._say(() => narrate(this._text(b.text), { dur: b.dur ?? 3, style: b.style })); }
+  _op_banner(b) { this.objs(b.who).forEach(({ actor }, i, list) => { if (actor) actor.showBanner(b.dur ?? 2, b.text ? this._text(b.text) : undefined, list.length > 2 && i % 2 ? 0.62 : 0); }); } // alternate heights so neighbours do not overlap
   _op_title(b) { this._say(() => this.hud && this.hud.title(this._text(b.text), b.dur ?? 2)); }
   _op_freeze(b) {
     const dur = b.dur ?? 1.2;
@@ -300,6 +368,52 @@ export class Stage {
   _op_sfx(b) { this._say(() => this.audio && this.audio.sfx(b.name, b.volume ?? 1)); }
   _op_music(b) { this._say(() => this.audio && this.audio.music(b.track === 'scene' ? (this.sceneDef && this.sceneDef.music) : b.track)); }
   _op_slowmo(b) { this.slow = { scale: b.scale, left: b.dur }; }
+  _op_flash(b) { this._say(() => this.hud && this.hud.flash && this.hud.flash(b.color || '#ffffff', b.dur ?? 0.35)); }
+  _op_lights(b) {
+    const from = this.lightLevel; const to = b.level;
+    this.tween({ dur: b.dur ?? 0.5, ease: 'inOut', owner: this, key: 'lights', update: (k) => { this.lightLevel = from + (to - from) * k; this._applyLights(); } });
+  }
+  _applyLights() {
+    const L = this.lightBase; if (!L) return; const k = this.lightLevel;
+    this.hemi.intensity = L.hemi * k; this.sun.intensity = L.sun * k;
+    this.scene.background.copy(L.bg).multiplyScalar(Math.min(1.5, k)); if (L.fog) this.scene.fog.color.copy(L.fog).multiplyScalar(Math.min(1.5, k));
+    for (const d of this.dimmables || []) d.m.color.copy(d.base).multiplyScalar(Math.min(1.2, k));
+    if (this.sceneDef && this.sceneDef.onLights) this.sceneDef.onLights(k, this);
+  }
+  _bubble(spr, b, lift, target) {
+    const t = target !== undefined ? target : b.who !== undefined ? this.objs(b.who)[0] : null;
+    const anchor = t ? t.obj : null; const at = anchor ? null : this.pos(b.at ?? 'mid');
+    const h = b.height ?? (t && t.actor ? t.actor.height + lift : lift);
+    this.scene.add(spr);
+    this.bubbles.push({ spr, anchor, at, h, age: 0, dur: b.dur ?? 1.6, base: spr.scale.clone() });
+  }
+  _op_say(b) { this._bubble(makeBubble(this._text(b.text), b.style), b, 0.9); }
+  _op_emote(b) {
+    const targets = b.who !== undefined ? this.objs(b.who) : [null];
+    targets.forEach((t, i) => { const e = makeEmote(b.text, b.color); if (targets.length > 1) e.scale.multiplyScalar(0.7); this._bubble(e, b, 0.8, t); this.bubbles[this.bubbles.length - 1].age = -i * 0.06; });
+  }
+  _updateBubbles(dt, frozen = false) {
+    for (let i = this.bubbles.length - 1; i >= 0; i--) {
+      const u = this.bubbles[i]; u.age += dt; u.spr.visible = u.age >= 0; if (u.age < 0) continue;
+      if (u.age >= u.dur) { u.spr.removeFromParent(); this.bubbles.splice(i, 1); continue; }
+      const p = u.spr.position;
+      if (u.anchor) { u.anchor.getWorldPosition(p); p.y += u.h * u.anchor.scale.y; } else { p.copy(u.at); p.y += u.h; }
+      // keep bubbles readable from the couch: roughly constant on-screen size, popped in with a little overshoot
+      const d = Math.min(26, Math.max(4, p.distanceTo(this.camera.position))) / 7 * (this.camera.fov / 38);
+      const pop = u.age < 0.18 ? ease('back', u.age / 0.18) : u.dur - u.age < 0.12 && !frozen ? (u.dur - u.age) / 0.12 : 1; // stay full-size through a freeze-frame
+      u.spr.scale.copy(u.base).multiplyScalar(d * pop);
+      // keep the whole bubble on screen (close-ups would otherwise crop it)
+      const v = p.clone().project(this.camera);
+      if (v.z < 1) {
+        const halfH = Math.tan((this.camera.fov * Math.PI) / 360) * p.distanceTo(this.camera.position); const halfW = halfH * this.camera.aspect;
+        const top = v.y + u.spr.scale.y / halfH; const hw = u.spr.scale.x / 2 / halfW;
+        let moved = false;
+        if (top > 0.95) { v.y -= top - 0.95; moved = true; }
+        if (v.x + hw > 0.97) { v.x = 0.97 - hw; moved = true; } else if (v.x - hw < -0.97) { v.x = -0.97 + hw; moved = true; }
+        if (moved) p.copy(v.unproject(this.camera));
+      }
+    }
+  }
   _op_fade(b) { this._say(() => this.hud && this.hud.fade(b.to, b.dur ?? 0.6)); }
 
   // ---------- frame ----------
@@ -308,6 +422,11 @@ export class Stage {
     const ctx = { center: center.toArray() };
     if (spec.target !== undefined) ctx.target = this.pos(spec.target).toArray();
     if (spec.target2 !== undefined) ctx.target2 = this.pos(spec.target2).toArray();
+    if (typeof spec.target === 'string') {
+      const os = this.objs(spec.target);
+      if (os.length === 1 && os[0].actor) ctx.yaw = os[0].actor.yaw;
+      if (os.length > 1) { const c = new THREE.Vector3(...ctx.target); ctx.radius = Math.max(...os.map((o) => o.obj.position.distanceTo(c))); }
+    }
     if (spec.shot === 'cut' && spec.pos) spec.pos = Array.isArray(spec.pos) ? spec.pos : this.pos(spec.pos).toArray();
     return ctx;
   }
@@ -318,21 +437,25 @@ export class Stage {
       const k = spec.dur ? Math.min(1, (this.time - spec.start) / spec.dur) : 0;
       const sd = this.sceneDef;
       const withDefaults = { ...spec, dist: spec.dist ?? (spec.shot === 'wide' ? sd && sd.wideDist : undefined), height: spec.height ?? (spec.shot === 'wide' ? sd && sd.wideHeight : undefined), angle: spec.angle ?? (spec.shot === 'wide' && sd ? sd.wideAngle : 0) };
-      pose = shotPose(withDefaults, this._camTargets(spec), k);
+      const ctx = this._camTargets(spec);
+      withDefaults.pos = spec.pos; // resolved (and latched) by _camTargets
+      if (spec.rel && ctx.yaw !== undefined) { if (spec._yaw === undefined) spec._yaw = ctx.yaw; withDefaults.angle = (withDefaults.angle || 0) + spec._yaw; } // latched when the shot starts
+      pose = shotPose(withDefaults, ctx, k);
+      if (spec.fov) pose.fov = spec.fov;
     } catch (e) { return; } // transient while a scene is loading / a target does not exist yet
     const pos = new THREE.Vector3(...pose.pos); const look = new THREE.Vector3(...pose.look);
     if (!this.camState) this.camState = { pos: pos.clone(), look: look.clone(), fov: pose.fov };
-    const a = 1 - Math.exp(-dt * 7); // smooth transitions between shots (~0.4s)
+    const a = 1 - Math.exp(-dt * (spec.lag ? 1 / spec.lag : 7)); // smooth transitions between shots (~0.4s)
     this.camState.pos.lerp(pos, a); this.camState.look.lerp(look, a); this.camState.fov += (pose.fov - this.camState.fov) * a;
     this.camera.position.copy(this.camState.pos);
     if (this.shake && this.time < this.shake.until) { const o = shakeOffset(this.shake.i, this.time); this.camera.position.x += o[0]; this.camera.position.y += o[1]; this.camera.position.z += o[2]; } else this.shake = null;
-    this.camera.lookAt(this.camState.look);
+    this.camera.lookAt(this.camState.look); this.camera.updateMatrixWorld();
     if (Math.abs(this.camera.fov - this.camState.fov) > 0.01) { this.camera.fov = this.camState.fov; this.camera.updateProjectionMatrix(); }
   }
 
   update(dt) {
     this.time += dt;
-    if (this.frozenLeft > 0) { this.frozenLeft -= dt; return; }
+    if (this.frozenLeft > 0) { this.frozenLeft -= dt; this._updateBubbles(0, true); return; }
     if (this.slow) { this.slow.left -= dt; if (this.slow.left <= 0) this.slow = null; }
     const w = dt * (this.slow ? this.slow.scale : 1);
     this._updateTweens(w);
@@ -340,6 +463,7 @@ export class Stage {
     this.fx.update(w);
     if (this.sceneDef && this.sceneDef.update) this.sceneDef.update(w, this);
     this._updateCamera(dt);
+    this._updateBubbles(w);
   }
 
   render(dtReal = 0) {

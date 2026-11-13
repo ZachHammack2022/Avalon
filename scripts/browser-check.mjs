@@ -70,6 +70,16 @@ if (!process.argv.includes('--live-only')) {
         if (info.actors < team) fail(`${label}: only ${info.actors} actors`);
         if (shots && (t === times[4] || t === times[0])) await page.screenshot({ path: `.shots/${q.id}-${outcome}-${gag || 'win'}-${t.toFixed(0)}.png` });
       }
+      // the punchline must frame its star: culprit on screen at the freeze-frame, hero on screen at their banner
+      if (outcome === 'fail') {
+        const fz = segs[3].beats.find((b) => b.op === 'freeze');
+        await page.evaluate((t) => __preview.seek(t), segs[3].start + fz.t + 0.1);
+        const at = await page.evaluate(() => __preview.onScreen('culprit'));
+        if (!at || !at.visible) fail(`${label}: culprit is off screen at the freeze-frame (${JSON.stringify(at)})`);
+      } else {
+        const bn = segs[3].beats.find((b) => b.op === 'banner' && b.who === 'hero');
+        if (bn) { await page.evaluate((t) => __preview.seek(t), segs[3].start + bn.t + 0.4); const at = await page.evaluate(() => __preview.onScreen('hero')); if (!at || !at.visible) fail(`${label}: hero is off screen during their hero beat (${JSON.stringify(at)})`); }
+      }
       const errs = await page.evaluate(() => __preview.errors.filter((e) => !/GPU stall|GL Driver/.test(e)));
       if (errs.length) fail(`${label}: ${[...new Set(errs)].slice(0, 3).join(' | ')}`);
       console.log(`${failures === before ? 'ok  ' : 'FAIL'} ${label} (${dur}s)`);
@@ -122,8 +132,14 @@ if (!process.argv.includes('--live-only')) {
   await phone.waitForFunction(() => !document.getElementById('secret').hidden);
   await phone.mouse.up();
   await phone.waitForFunction(() => document.getElementById('secret').hidden);
-  await phone.click("text=I'm ready");
-  await tv.waitForFunction(() => window.__tv.app.pub.phase === 'propose', null, { timeout: 60000 });
+  // the phone re-renders on every state push, so a tap can land on a button that is being replaced: retry until it registers
+  for (let i = 0; i < 6; i++) {
+    await phone.click("text=I'm ready", { timeout: 2000 }).catch(() => {});
+    await phone.waitForTimeout(300);
+    if (await phone.evaluate(() => { const s = window.__sq.state; return s.pub.phase !== 'roleReveal' || (s.me.legal && s.me.legal.done); })) break;
+  }
+  // a bot leader can propose within milliseconds, so accept any phase past the role reveal
+  await tv.waitForFunction(() => !['lobby', 'roleReveal'].includes(window.__tv.app.pub.phase), null, { timeout: 60000 });
   await tv.waitForTimeout(2500);
   if (shots) await tv.screenshot({ path: '.shots/tv-propose.png' });
   console.log('ok   phone + TV lobby, role reveal, hold-to-reveal');

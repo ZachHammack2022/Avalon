@@ -70,6 +70,20 @@ export class GameAudio {
       case 'rumble': this.noise({ d: 1.4, vol: 0.25 * v, type: 'lowpass', f: 140, q: 0.5 }); break;
       case 'ding': this.tone({ f: 1320, d: 1.0, vol: 0.14 * v }); this.tone({ f: 1980, d: 0.7, vol: 0.05 * v }); break;
       case 'sneeze': this.noise({ d: 0.45, vol: 0.12 * v, f: 500, f2: 2200, q: 3 }); this.noise({ t: 0.45, d: 0.25, vol: 0.3 * v, f: 1800, q: 0.7 }); break;
+      case 'snap': this.noise({ d: 0.06, vol: 0.35 * v, f: 3000, q: 0.6 }); this.tone({ f: 500, f2: 120, type: 'triangle', d: 0.12, vol: 0.25 * v }); break;
+      case 'boing': this.tone({ f: 160, f2: 420, type: 'triangle', d: 0.32, vol: 0.25 * v }); this.tone({ f: 320, f2: 840, type: 'sine', d: 0.3, vol: 0.08 * v }); break;
+      case 'pop': this.tone({ f: 500, f2: 1400, d: 0.07, vol: 0.3 * v }); break;
+      case 'slide': this.tone({ f: 1500, f2: 180, type: 'sine', a: 0.02, d: 1.1, vol: 0.16 * v }); break; // falling slide-whistle
+      case 'purr': for (let i = 0; i < 14; i++) this.tone({ f: 55 + (i % 2) * 6, type: 'sawtooth', t: i * 0.085, d: 0.07, vol: 0.14 * v, filter: 300 }); break;
+      case 'snore': this.noise({ d: 0.9, vol: 0.14 * v, type: 'lowpass', f: 260, f2: 120, q: 3 }); this.tone({ f: 620, f2: 880, t: 1.0, a: 0.2, d: 0.5, vol: 0.03 * v }); break;
+      case 'crowd': for (let i = 0; i < 5; i++) this.noise({ t: i * 0.05, d: 0.5, vol: 0.07 * v, f: 500 + i * 260, f2: 1600 + i * 300, q: 2.5 }); break;
+      case 'tick': this.tone({ f: 1800, d: 0.04, vol: 0.14 * v }); this.tone({ f: 1200, t: 0.25, d: 0.04, vol: 0.12 * v }); break;
+      case 'fwoosh': this.noise({ d: 0.9, vol: 0.3 * v, type: 'lowpass', f: 200, f2: 2400, q: 0.7 }); this.tone({ f: 70, f2: 140, type: 'sawtooth', d: 0.8, vol: 0.12 * v, filter: 400 }); break;
+      case 'rattle': for (let i = 0; i < 9; i++) this.tone({ f: 700 + ((i * 371) % 900), type: 'square', t: i * 0.05, d: 0.035, vol: 0.09 * v, filter: 3000 }); break;
+      case 'knock': [0, 0.16, 0.32].forEach((t) => { this.tone({ f: 190, f2: 120, t, d: 0.07, vol: 0.4 * v }); this.noise({ t, d: 0.03, vol: 0.12 * v, f: 1500 }); }); break;
+      case 'tiptoe': [0, 0.14, 0.28, 0.42].forEach((t, i) => this.tone({ f: 660 + i * 110, type: 'triangle', t, d: 0.07, vol: 0.1 * v })); break; // pizzicato
+      case 'cheer': for (let i = 0; i < 6; i++) this.noise({ t: i * 0.07, d: 1.0, vol: 0.06 * v, f: 900 + i * 320, q: 1.2 }); [523, 659, 784].forEach((f, i) => this.tone({ f, type: 'triangle', t: i * 0.08, d: 0.5, vol: 0.05 * v })); break;
+      case 'bell': [0, 0.5].forEach((t) => { this.tone({ f: 440, t, d: 1.2, vol: 0.14 * v }); this.tone({ f: 1108, t, d: 0.8, vol: 0.06 * v }); this.tone({ f: 1760, t, d: 0.5, vol: 0.03 * v }); }); break;
       default: console.warn(`[audio] unknown sfx ${name}`);
     }
   }
@@ -96,6 +110,15 @@ export class GameAudio {
       const t = this.nextTime; const d = beat * tr.len * 2;
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(tr.vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
       o.connect(lp); lp.connect(g); g.connect(this.master); o.start(t); o.stop(t + d + 0.05);
+      // a simple bed under the melody: root/fifth bass every half bar, and a soft tick on the quicker tracks
+      const k = this.step % 8;
+      if (k === 0 || k === 4) {
+        const bo = this.ctx.createOscillator(); const bg = this.ctx.createGain(); const bd = beat * tr.len * 3.6;
+        bo.type = 'triangle'; bo.frequency.value = SEMI(tr.root / 2, k === 0 ? 0 : 7);
+        bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(tr.vol * 1.5, t + 0.03); bg.gain.exponentialRampToValueAtTime(0.0001, t + bd);
+        bo.connect(bg); bg.connect(this.master); bo.start(t); bo.stop(t + bd + 0.05);
+      }
+      if (tr.bpm >= 88 && k % 2 === 1) this.noise({ t: Math.max(0, t - this.ctx.currentTime), d: 0.03, vol: tr.vol * 0.5, type: 'highpass', f: 6000 });
       this.nextTime += beat * tr.len; this.step++;
     }
   }

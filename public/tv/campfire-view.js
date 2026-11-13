@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import { seatSlots } from './scenes/campfire.js';
 import { makeBanner } from './engine/actor.js';
 
-const RING_R = 8.2;
 
 function token(text, color) {
   const cv = document.createElement('canvas'); cv.width = cv.height = 128;
@@ -16,11 +15,11 @@ function token(text, color) {
 }
 
 export class CampfireView {
-  constructor(stage) { this.stage = stage; this.actors = new Map(); this.crown = null; this.tokens = new Map(); this.rings = new Map(); this.night = false; this.key = ''; }
+  constructor(stage) { this.stage = stage; this.actors = new Map(); this.crown = null; this.tokens = new Map(); this.rings = new Map(); this.night = false; this.key = ''; this.voteKey = ''; }
 
   async enter(night = false) {
     this.night = night;
-    this.actors.clear(); this.tokens.clear(); this.rings.clear(); this.crown = null; this.key = '';
+    this.actors.clear(); this.tokens.clear(); this.rings.clear(); this.crown = null; this.key = ''; this.voteKey = '';
     const def = await this.stage.loadScene(night ? 'night' : 'campfire');
     this.stage.cast.clear();
     this.stage.camSpec = { shot: 'wide', start: this.stage.time };
@@ -29,10 +28,8 @@ export class CampfireView {
 
   /** Ring slots for the proposed team (a lit semicircle in front of the fire). */
   ringSlots(n) {
-    return Array.from({ length: n }, (_, i) => {
-      const ang = Math.PI / 2 + (i - (n - 1) / 2) * 0.42; // arc centered on +z (toward the camera)
-      return { x: Math.cos(ang) * RING_R, z: Math.sin(ang) * RING_R, yaw: (Math.atan2(-Math.cos(ang), -Math.sin(ang)) * 180) / Math.PI };
-    });
+    // an arc in front of the fire, everyone turned to the camera
+    return Array.from({ length: n }, (_, i) => { const o = i - (n - 1) / 2; return { x: o * 2.3, z: 4.6 - Math.abs(o) * 0.35, yaw: -o * 6 }; });
   }
 
   sync(pub) {
@@ -89,14 +86,31 @@ export class CampfireView {
       if (!this.crown) { this.crown = st._builtin('crown'); this.crown.scale.setScalar(2.6); }
       if (leader && this.crown.parent !== leader.root) { leader.root.add(this.crown); this.crown.position.set(0, 2.3, 0); }
     } else if (this.crown) this.crown.removeFromParent();
-    // vote tokens
-    for (const t of this.tokens.values()) t.removeFromParent(); this.tokens.clear();
-    if (g && pub.phase === 'vote') for (const id of g.voted) this._token(id, '?', '#6b7280');
-    if (g && pub.phase === 'voteReveal') for (const p of players) this._token(p.id, g.votes[p.id] ? '✔' : '✘', g.votes[p.id] ? '#2e9e4f' : '#d64545');
+    // vote tokens: a grey "?" as each vote lands, then every verdict flips over one after another
+    const voteKey = pub.phase === 'roleReveal' ? `ready:${players.filter((p) => p.ready).map((p) => p.id).join(',')}` : g && (pub.phase === 'vote' || pub.phase === 'voteReveal') ? `${pub.phase}:${g.voted ? g.voted.join(',') : ''}` : '';
+    if (voteKey !== this.voteKey) {
+      const wasReveal = (this.voteKey || '').startsWith('voteReveal');
+      this.voteKey = voteKey;
+      for (const t of this.tokens.values()) t.removeFromParent(); this.tokens.clear();
+      if (pub.phase === 'roleReveal') for (const p of players) if (p.ready) this._token(p.id, '✔', '#2e9e4f', 0); // everyone who has read their role
+      if (g && pub.phase === 'vote') for (const id of g.voted) this._token(id, '?', '#6b7280', 0);
+      if (g && pub.phase === 'voteReveal') {
+        players.forEach((p, i) => this._token(p.id, g.votes[p.id] ? '✔' : '✘', g.votes[p.id] ? '#2e9e4f' : '#d64545', wasReveal ? 0 : 0.25 + i * 0.22, !wasReveal));
+        if (!wasReveal) {
+          const yes = players.filter((p) => g.votes[p.id]).length; const pass = yes * 2 > players.length;
+          st.tween({ dur: 0.01, delay: 0.5 + players.length * 0.22, owner: this, key: 'verdict', update: () => {}, done: () => {
+            if (st.audio) st.audio.sfx(pass ? 'fanfare' : 'wahwah', 0.7);
+            for (const p of players) { const a = this.actors.get(p.id); if (a && g.votes[p.id] === pass) st._op_hop({ who: p.id, count: 1, height: 0.35 }); }
+          } });
+        }
+      }
+    }
   }
 
-  _token(id, text, color) {
+  _token(id, text, color, delay = 0, sound = false) {
     const a = this.actors.get(id); if (!a) return;
     const s = token(text, color); s.position.y = a.height + 1.9; a.root.add(s); this.tokens.set(id, s);
+    s.scale.setScalar(0.001);
+    this.stage.tween({ dur: 0.3, delay, ease: 'back', owner: s, key: 'pop', update: (k) => { if (k > 0) s.scale.setScalar(Math.max(0.001, 1.5 * k)); if (k > 0 && sound && !s.userData.rang) { s.userData.rang = true; if (this.stage.audio) this.stage.audio.sfx('pop', 0.6); } } });
   }
 }

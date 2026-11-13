@@ -61,12 +61,19 @@ test('timeline is flat, sorted, and inside the cutscene duration', () => {
   }
 });
 
-test('every fail gag has comedy beats: freeze-frame, reaction shot, oblivious-pride cheer (placeholder contract)', () => {
-  for (const q of QUESTS) for (const g of q.gags) {
-    const ops = q.beats.fail[g.id].map((b) => b.op);
-    assert.ok(ops.includes('freeze'), `${q.id}.${g.id} freeze`);
-    assert.ok(q.beats.fail[g.id].some((b) => b.op === 'play' && b.anim === 'Cheer' && b.who === 'culprit'), `${q.id}.${g.id} cheer`);
-    assert.ok(q.beats.fail[g.id].some((b) => b.op === 'lookAt'), `${q.id}.${g.id} reaction`);
+test('every fail gag has comedy beats: freeze-frame + reaction shot; oblivious-pride cheer in most of them', () => {
+  for (const q of QUESTS) {
+    let cheers = 0;
+    for (const g of q.gags) {
+      const beats = q.beats.fail[g.id];
+      assert.equal(beats.filter((b) => b.op === 'freeze').length, 1, `${q.id}.${g.id} exactly one freeze`);
+      assert.ok(beats.some((b) => b.op === 'lookAt'), `${q.id}.${g.id} reaction`);
+      // nothing may be scheduled while the world is frozen (the script clock keeps running)
+      const fz = beats.find((b) => b.op === 'freeze');
+      for (const b of beats) assert.ok(!(b.t > fz.t && b.t < fz.t + (fz.dur ?? 1.2) - 1e-9), `${q.id}.${g.id}: ${b.op} @${b.t} lands inside the freeze`);
+      if (beats.some((b) => b.op === 'play' && b.anim === 'Cheer' && b.who === 'culprit')) cheers++;
+    }
+    assert.ok(cheers >= 2, `${q.id}: culprit should Cheer (oblivious pride) in at least two gags`);
   }
 });
 
