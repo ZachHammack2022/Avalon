@@ -1,5 +1,16 @@
 # Fable task board
 
+## Status
+
+Done: **A1-A5** (all five quests: sets, rigs, shared segments, success, 4 gags each), the parts of **B1-B3 and B5**
+they needed (hard cuts, group framing, bubbles/emotes, relative tweens, light dimming, new FX kinds, skeleton patrols,
+guards, crowd), new synthesized SFX for **C1**, and the victory endings on the new throne set (**D3**, partly).
+`scripts/shot.mjs` covers the authoring half of **F1/F3**.
+
+Still open: real audio samples and music (C1), narration tuning (C2), campfire/lobby and reveal polish (D1, D2),
+assassination scene polish and the who-framed-whom recap (D3), phone polish (D4), gag variety and second campaign (E),
+automated off-screen-culprit checks and performance budgets on real hardware (F1, F2).
+
 Read `docs/CUTSCENES.md` first (beat format, ops, rules). Preview any cutscene at `/preview.html`
 (`window.__preview` API; `npm run test:browser -- --shots` for screenshots). Gate for every task:
 `npm test` and `npm run assets:check` pass, and the cutscene validator accepts the script.

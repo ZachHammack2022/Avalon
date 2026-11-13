@@ -56,6 +56,11 @@ export class Hud {
     const f = this.el.freeze; f.textContent = text; f.className = 'show';
     clearTimeout(this.freezeTimer); this.freezeTimer = setTimeout(() => { f.className = ''; }, dur * 1000);
   }
+  flash(color, dur = 0.35) {
+    if (!this.el.flash) { const d = document.createElement('div'); d.style.cssText = 'position:absolute;inset:0;pointer-events:none;opacity:0;z-index:3'; this.el.fade.parentNode.insertBefore(d, this.el.fade); this.el.flash = d; }
+    const f = this.el.flash; f.style.transition = 'none'; if (!color) { f.style.opacity = '0'; return; }
+    f.style.background = color; f.style.opacity = '0.85'; void f.offsetWidth; f.style.transition = `opacity ${dur}s ease-out`; f.style.opacity = '0';
+  }
   fade(to, dur = 0.5) { const f = this.el.fade; f.style.transitionDuration = `${dur}s`; f.style.opacity = to === 'black' ? '1' : '0'; }
 
   setCaptionScale(s) { this.capScale = s; document.documentElement.dataset.caps = s; store.set('sq.capScale', s); }

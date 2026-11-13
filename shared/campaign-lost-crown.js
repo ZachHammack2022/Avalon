@@ -10,6 +10,15 @@
 // replaces it per segment or per gag: add `beats: { setup: [...], fail: { sweater: [...] } }` to a quest entry.
 // See docs/CUTSCENES.md for the authoring guide.
 import { validateQuestScripts } from './cutscene-ops.js';
+import { bridgeBeats } from './cutscenes/bridge.js';
+import { woodsBeats, woodsSceneIds } from './cutscenes/woods.js';
+import { vaultBeats, vaultSceneIds } from './cutscenes/vault.js';
+import { dragonBeats, dragonSceneIds } from './cutscenes/dragon.js';
+import { throneBeats, throneSceneIds } from './cutscenes/throne.js';
+
+// Hand-authored choreography per quest id: (questMeta) => beats. Quests without an entry play the scaffold.
+const AUTHORED = { bridge: bridgeBeats, woods: woodsBeats, vault: vaultBeats, dragon: dragonBeats, throne: throneBeats };
+const SCENE_IDS = { woods: woodsSceneIds, vault: vaultSceneIds, dragon: dragonSceneIds, throne: throneSceneIds };
 
 const SEGMENT_DEFAULTS = { setup: 5, approach: 7, moment: 3, success: 5 };
 
@@ -68,7 +77,7 @@ function scaffold(q) {
   return beats;
 }
 
-const gag = (id, name, caption, extra = {}) => ({ id, name, caption, duration: 7, ...extra });
+const gag = (id, name, caption, extra = {}) => ({ id, name, caption, duration: 8, ...extra });
 
 const RAW = [
   {
@@ -149,11 +158,11 @@ const RAW = [
 ];
 
 export const QUESTS = RAW.map((q, index) => {
-  const quest = { index, durations: { ...SEGMENT_DEFAULTS }, sceneIds: [], ...q };
+  const quest = { index, durations: { ...SEGMENT_DEFAULTS }, sceneIds: SCENE_IDS[q.id] || [], ...q };
   // Hand-authored beats win; anything not authored yet falls back to the placeholder choreography. So you can set
   // just `beats: { moment: [...], fail: { sweater: [...] } }` on a quest and the rest keeps playing.
   const generated = scaffold(quest);
-  const authored = quest.beats || {};
+  const authored = AUTHORED[quest.id] ? AUTHORED[quest.id](quest) : quest.beats || {};
   quest.beats = { ...generated, ...authored, fail: { ...generated.fail, ...(authored.fail || {}) } };
   return quest;
 });

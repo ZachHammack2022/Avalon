@@ -1,10 +1,58 @@
 # Cutscene authoring guide
 
-Everything except the cutscene *content* is built. The pipeline plays all 5 quests × (success + 4 fail gags) today using
-**placeholder choreography**. Your job is to replace the placeholders with the real, funny choreography from `goals.md` §6–7,
-building out each quest's environment in `public/tv/scenes/quests.js` as you go.
+**Status:** all five quests are hand-authored (set, rigs, shared segments, success, four fail gags each).
+This guide is for polishing them or adding more.
 
-You do not need to touch the server, phones, networking, rules, or the TV's HUD/phase logic.
+| Quest | Choreography | Set + rigs |
+|---|---|---|
+| The Old Bridge | `shared/cutscenes/bridge.js` | `public/tv/scenes/bridge.js` (creak, bounce, shed, unravel, collapse, fall, hole, swing) |
+| The Whispering Woods | `shared/cutscenes/woods.js` | `public/tv/scenes/woods.js` (patrol `sk1..sk3`; bare, twang) |
+| The Vault | `shared/cutscenes/vault.js` | `public/tv/scenes/vault.js` (guards `g1..g3`; tumble, spin, open, fall, rise, pull, alarm, gate) |
+| The Dragon's Hoard | `shared/cutscenes/dragon.js` | `public/tv/scenes/dragon.js` (prop `crown`; openEye, twitch, sniff, purr, inhale, sneeze, roar, fly, topple, soot) |
+| The Throne Room | `shared/cutscenes/throne.js` | `public/tv/scenes/throne.js` (`usurper`, `heir`, `tg1/tg2`, crowd `c1..c8`; melt) |
+
+Each choreography file exports `(questMeta) => beats` plus the ids its scene pre-creates; `shared/campaign-lost-crown.js`
+wires them in (`AUTHORED`, `SCENE_IDS`). `shared/cutscenes/util.js` has the tiny beat helpers (`cam`, `cap`, `say`, `emote`, `rig`...).
+Every fail gag ends with a shared consequence helper (`riverReaction`, `chase`, `tossOut`, `flee`, `ousted`) that carries the reaction shot.
+
+## Seeing what you made
+
+```bash
+node scripts/shot.mjs woods fail bush --team 5 --from 15 --to 23 --n 16     # contact sheet -> .shots/
+node scripts/shot.mjs vault success --t 15.3,16,17,18,19.5 --cols 5
+node scripts/anim-sheet.mjs knight Cheer,Interact,PickUp                    # what a clip looks like
+```
+
+`shot.mjs` seeks the preview harness to each time and prints the caption under each frame. Speech bubbles and emotes are
+3D sprites, so they show up in the sheet; HUD overlays (title cards, freeze caption, flashes) do not.
+
+## Ops added for the real choreography
+
+| Op | Use |
+|---|---|
+| `say {who|at, text, dur, style}` | Speech bubble (`shout`, `whisper`). Kept on-screen and readable at any camera distance. |
+| `emote {who|at, text}` | Big glyph over heads: `! ? … ♥ ★ ♪ Zzz`. Multi-target refs get one each. |
+| `hop`, `tremble`, `tilt` | Bounce, shiver, whole-body head-tilt. |
+| `tweenTo {by, stagger, key}` | Relative moves, per-target delay, parallel tweens on one object. |
+| `arc` on actors, `by` | Fling people as well as props. |
+| `formation {run, anim, y}` | Run into formation; teleport formation at a height. |
+| `camera {snap, rel, fov, lag}`, shot `frame` | Hard cuts, angle relative to facing, zoom, glide time, auto-fit a group. `cut` takes `pos`+`target`(+`height`). |
+| `lights {level}` | Dim ambient light; lanterns/torches and unlit sprites stay bright. |
+| `flash {color}` | Full-screen flash. |
+| `play {then:'hold'}` | Freeze on the last frame (the 0-length `*_Pose` clips do not work). |
+| `spawnProp {text}`, `scene:<name>` | Text on `builtin:note` / `builtin:sign`; props a scene registers in `props`. New builtins: rock, lantern, bush, sign, feather, ring. |
+
+Lessons from authoring:
+
+* The team walks in a single-file column facing +X. Close-ups with `rel` put the camera in front of the column, where
+  teammates block the shot; use a fixed `angle` of 10-25 (camera on the +Z side) instead.
+* Keep the camera-side half of every set (z > lane) empty. Scattered dressing there will block a shot sooner or later.
+* A bubble started just before `freeze` stays up (full size) through the freeze; give it `dur` = time until the freeze + ~0.1
+  so it clears right after.
+* Let rigs do anything that depends on where people happen to be standing (who is on which plank, who is under the door).
+* The consequence + reaction shot needs about 2.2 s, so the freeze should end by ~5.6 s in an 8 s gag.
+
+---
 
 ## The 60-second loop
 
@@ -25,7 +73,7 @@ open http://localhost:3000/preview?quest=bridge&outcome=fail&gag=sweater&team=3&
 
 ## What a cutscene is
 
-Data in `shared/campaign-lost-crown.js`. Each quest has:
+Metadata in `shared/campaign-lost-crown.js`, beats in `shared/cutscenes/<quest>.js`. Each quest has:
 
 ```js
 { id, name, scene, tagline, durations:{setup:5, approach:7, moment:3, success:5},

@@ -1,6 +1,10 @@
 // Scene registry. buildScene(name) returns a fresh scene definition (see campfire.js for the shape).
 import { campfireScene } from './campfire.js';
-import { bridgeScene, woodsScene, vaultScene, dragonScene, throneScene } from './quests.js';
+import { bridgeScene } from './bridge.js';
+import { woodsScene } from './woods.js';
+import { vaultScene } from './vault.js';
+import { dragonScene } from './dragon.js';
+import { throneScene } from './throne.js';
 
 const REGISTRY = {
   campfire: () => campfireScene({ night: false }),
