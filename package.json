@@ -1,0 +1,21 @@
+{
+  "name": "saboteur-quests",
+  "version": "0.1.0",
+  "description": "Saboteur Quests: Avalon on the TV, phones as controllers. Vertical slice: The Lost Crown.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js --dev",
+    "test": "node --test",
+    "test:browser": "node scripts/browser-check.mjs",
+    "assets": "node scripts/fetch-assets.mjs",
+    "assets:check": "node scripts/check-assets.mjs",
+    "sim": "node scripts/simulate.mjs"
+  },
+  "dependencies": {
+    "three": "^0.170.0",
+    "ws": "^8.18.0"
+  }
+}
