@@ -1,0 +1,86 @@
+# Cook ledger: Dragon intro
+
+Copy this to `cook/ROUNDS.md` at the start of a run. Keep the header current. Add one round entry per round, newest at the bottom. Label every number as measured or eyeballed.
+
+Started: 2026-11-13 20:55 UTC
+Time: floor [8h] | cap [none]
+Bar: composition [99.9] | light [99.9] | color [99.9] | materials [99.9] | detail [99.9] | motion [9/10]
+Calibration offset: [none yet] (from [user estimate, date])
+Usage: [5h window], about 20% per hour, never 100%
+Gate: stills approved [no] | final render [not started]
+Best so far: round [N], `cook/stills/r[NN]/`, [commit or snapshot]
+
+## Decisions
+
+Made without asking, one line each.
+- [time] [decision], because [reason]
+
+## User feedback inbox
+
+Exact words. Close an item only when a still or clip proves it.
+- [time] "[quote]" | round [N] | [open / done, proof: path]
+
+---
+
+## Round [NN]
+
+Time: [start] to [end] | total elapsed [h]
+Usage: [% of window at the end of the round, or "not readable"]
+Focus: [shot and dimension], because [user feedback / lowest score / largest gap]
+
+Changes:
+- [what changed, where]
+
+Stills: `cook/stills/r[NN]/` | Side by side: `cook/compare/r[NN]/`
+
+Scores, eyeballed: critic median after calibration ([n] critics, [models or "same model"])
+
+| Shot | Comp | Light | Color | Materials | Detail | Motion | vs last round |
+|---|---|---|---|---|---|---|---|
+| S01 | | | | | | | |
+| S02 | | | | | | | |
+
+Raw critic medians before calibration: [ ]
+Own score (logged, never decides): [ ]
+
+Measured (command and result):
+- [color check S01: saturation delta [+/-0.00], brightness delta [+/-0.00]]
+- [render: [N] s per frame at [resolution], [N] sub-frames]
+
+Not checked this round:
+- [what, and why]
+
+Top gaps from critics:
+1. [shot, region, what is wrong, what to change]
+2. [ ]
+3. [ ]
+
+Progress note sent: [time]
+Stop check: bar [no] | floor [no] | stills approved [no] | final checked [no] -> [next round / ship / stop at cap]
+Next focus: [ ]
+
+## Round 05 (first full pass, rounds 1-5 merged: build + 4 fix iterations)
+
+Time: 2026-11-13 20:55 to about 22:30 UTC | total elapsed about 1.5h (floor 8h NOT reached)
+Usage: not readable
+Focus: get all 6 shots rendering end to end.
+
+Changes: procedural sky, terrain, pines, village (houses, tower, people, shader fire and smoke), dragon (trailing-spine body, flapping wings, jaw, legs), fire breath particles, cave with 14k instanced coins and treasures, cave mouth on the mountain, bloom and grade. Deterministic render(t) at public/intro/index.html?t=SECONDS.
+
+Stills: `cook/stills/r05/` | Sheet: `cook/compare/r05-sheet.png`
+
+Scores, eyeballed (2 fresh critics, sonnet + opus, no calibration offset yet), /10:
+composition 5-5.5, light 6, color 6, materials 4 (sonnet), detail 4.5 (sonnet), motion 4 (sonnet), dragon design 4 (opus), first frame 5 (opus).
+Own score (not decisive): about 6.
+Measured: about 0.5 to 2.5 s per 1280x720 still on software GL. Color check, side-by-side with references: not run (no references).
+Not checked: video clip render, contact-sheet timing, realtime fps on a real GPU, sound.
+
+Top gaps from critics:
+1. S03 t=13/14 flat saturated blue sky with dragon overhead clashes with the dusk palette; dragon crop awkward.
+2. S04 t=26-33 tower and houses read as flat orange planes, fire still pale; dragon tiny. Push dragon larger in frame, darker smoke, red-core flames.
+3. S06 ending: dragon reads as a canoe, head and eye unclear; need hero frame on head, rim light, curled tail. Entry into cave is too dark (t=49).
+4. Dragon design: stiff body, weak legs, head unreadable at distance.
+5. Near detail is thin (props, debris, embers). Note: critics asked for textures; rejected, brief says no textures. Use geometry and vertex colour variation instead.
+
+Stop check: bar no | floor no | stills approved no | final render not started
+Next focus: S06 hero ending, dragon head/body design, sky grade in S02, S03/S04 framing.

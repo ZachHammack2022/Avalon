@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Intro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}canvas{display:block;width:100%;height:100%}</style>
+<script type="importmap">{ "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }</script>
+</head><body><canvas id="c"></canvas>
+<script type="module">
+import { createIntro } from './intro.js';
+const q = new URLSearchParams(location.search);
+const canvas = document.getElementById('c');
+const intro = await createIntro(canvas, { quality: q.get('q') || 'high', width: +q.get('w') || undefined, height: +q.get('h') || undefined, pixelRatio: +q.get('pr') || undefined });
+window.intro = intro;
+if (q.has('t')) { intro.render(+q.get('t')); window.__ready = true; }
+else {
+  let t0 = performance.now(); const loop = () => { const t = (performance.now() - t0) / 1000; intro.render(Math.min(t, intro.duration)); requestAnimationFrame(loop); }; loop();
+  window.__ready = true;
+}
+</script></body></html>
