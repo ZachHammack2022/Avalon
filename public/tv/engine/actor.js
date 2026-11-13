@@ -62,9 +62,10 @@ export class Actor {
   }
 
   /** Show the banner for `seconds` (<=0 hides; Infinity keeps it). */
-  showBanner(seconds = Infinity, text) {
+  showBanner(seconds = Infinity, text, lift = 0) {
     if (!this.banner) return;
     if (text) { this.root.remove(this.banner); this.addBanner(text); }
+    this.banner.position.y = this.height + 0.75 + lift;
     this.banner.visible = seconds > 0; this.bannerUntil = seconds;
   }
 

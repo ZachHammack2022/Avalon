@@ -31,13 +31,14 @@ export const OPS = {
   place:     { args: { who: 'who', at: 'pos', '?face': 'any' }, desc: 'Teleport an actor. face = degrees or a pos to look at.' },
   walkTo:    { args: { who: 'who', to: 'pos', '?speed': 'num', '?dur': 'num', '?anim': 'str' }, desc: 'Walk (Walking_A) then idle.' },
   runTo:     { args: { who: 'who', to: 'pos', '?speed': 'num', '?dur': 'num' }, desc: 'Run (Running_A) then idle.' },
-  play:      { args: { who: 'who', anim: 'str', '?loop': 'bool', '?speed': 'num', '?fade': 'num', '?then': 'str' }, desc: 'Play a KayKit animation clip. loop:false clips return to `then` (default Idle).' },
+  play:      { args: { who: 'who', anim: 'str', '?loop': 'bool', '?speed': 'num', '?fade': 'num', '?then': 'str' }, desc: "Play a KayKit animation clip. loop:false clips return to `then` (default Idle); then:'hold' freezes on the last frame." },
   lookAt:    { args: { who: 'who', at: 'pos', '?dur': 'num' }, desc: 'Turn head/body toward a position or actor.' },
   face:      { args: { who: 'who', at: 'any', '?dur': 'num' }, desc: 'Turn body to face a position/actor/degrees.' },
   hide:      { args: { who: 'who' }, desc: 'Make an actor or prop invisible.' },
   show:      { args: { who: 'who' }, desc: 'Make an actor or prop visible.' },
   tweenTo:   { args: { who: 'who', '?pos': 'pos', '?by': 'any', '?rot': 'any', '?scale': 'any', dur: 'num', '?ease': 'str', '?stagger': 'num', '?key': 'str' }, desc: 'Cartoony motion for actors or props: position (absolute pos or relative by:[x,y,z]), rotation (deg [x,y,z]), scale (num or [x,y,z]). stagger delays each successive target. Tweens with different keys on one object run in parallel.' },
   hop:       { args: { who: 'who', '?height': 'num', '?count': 'num', '?dur': 'num', '?stagger': 'num' }, desc: 'Bounce in place count times.' },
+  tilt:      { args: { who: 'who', '?deg': 'num', '?dur': 'num', '?stagger': 'num', '?ease': 'str' }, desc: 'Lean sideways by deg (0 = upright again): the whole-body head tilt.' },
   tremble:   { args: { who: 'who', '?dur': 'num', '?amount': 'num' }, desc: 'Shiver in place (fear, strain, incoming sneeze).' },
   say:       { args: { text: 'str', '?who': 'who', '?at': 'pos', '?dur': 'num', '?style': 'str', '?height': 'num' }, desc: "Speech bubble over an actor (or at a position). style: shout | whisper. Slots allowed." },
   emote:     { args: { text: 'str', '?who': 'who', '?at': 'pos', '?dur': 'num', '?color': 'str', '?height': 'num' }, desc: 'Big glyph over a head: ! ? … ♥ ★ Zzz ♪' },
@@ -121,7 +122,7 @@ export function validateBeat(b, ctx) {
     // player avatars only have the 76 Adventurer clips; skeletons/custom actors have 95
     const playerRef = b.op === 'formation' || (typeof b.who === 'string' && (RESERVED.has(b.who) || b.who.startsWith('team:')));
     const pool = playerRef ? PLAYER_ANIMS : ANIMS;
-    if (!pool.includes(b[k])) errs.push(`${where}: ${playerRef ? 'player avatars have no' : 'unknown'} animation "${b[k]}"`);
+    if (!(k === 'then' && b[k] === 'hold') && !pool.includes(b[k])) errs.push(`${where}: ${playerRef ? 'player avatars have no' : 'unknown'} animation "${b[k]}"`);
   }
   if (b.op === 'tweenTo' && b.ease && !EASES.includes(b.ease)) errs.push(`${where}: unknown ease "${b.ease}"`);
   for (const k of ['target', 'target2', 'pos', 'at', 'to']) if (typeof b[k] === 'string' && ACTOR_REF.test(b[k]) && (RESERVED.has(b[k]) || b[k].startsWith('team:'))) refs.push(b[k]);

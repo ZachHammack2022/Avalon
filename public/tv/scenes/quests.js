@@ -6,25 +6,6 @@ import { box, cyl, flame, flicker, ground, mat, mesh, put, scatter } from './kit
 
 const common = { forward: 90, wideDist: 16, wideHeight: 7, wideAngle: 0 };
 
-export function woodsScene() {
-  return {
-    ...common, name: 'woods', music: 'woods', center: [0, 0, 0],
-    bg: 0x0d1424, fog: { color: 0x0d1424, near: 14, far: 55 },
-    hemi: { sky: 0x4a5f99, ground: 0x1a2418, i: 1.0 }, sun: { color: 0x9db5ff, i: 1.3, pos: [-12, 20, 6] },
-    marks: { spawn: [-18, 4], start: [-10, 3], mid: [0, 3], goal: [10, 3], spot: [0, 3], patrol: [4, -3] },
-    preload: ['knight', 'mage', 'rogue', 'barbarian', 'rogueHooded', 'skeleton_warrior', 'hex:tree_single_A', 'hex:tree_single_B', 'hex:trees_A_medium', 'hex:trees_B_medium', 'hex:rock_single_A'],
-    build(stage) {
-      const g = new THREE.Group();
-      g.add(ground(0x1f3a26, 90));
-      const moon = new THREE.Mesh(new THREE.SphereGeometry(3, 24, 16), new THREE.MeshBasicMaterial({ color: 0xf4f1d0, fog: false }));
-      moon.position.set(-20, 26, -50); g.add(moon);
-      scatter(stage, g, ['hex:tree_single_A', 'hex:tree_single_B', 'hex:trees_A_medium', 'hex:trees_B_medium'], 70, { inner: 4, outer: 38, scale: [2.8, 4.6], seed: 41, avoid: (x, z) => Math.abs(x) < 15 && z > -1 && z < 7 });
-      return g;
-    },
-    rigs: {},
-  };
-}
-
 export function vaultScene() {
   let torches = []; let door; let alarm;
   return {

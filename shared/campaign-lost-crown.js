@@ -11,9 +11,11 @@
 // See docs/CUTSCENES.md for the authoring guide.
 import { validateQuestScripts } from './cutscene-ops.js';
 import { bridgeBeats } from './cutscenes/bridge.js';
+import { woodsBeats, woodsSceneIds } from './cutscenes/woods.js';
 
 // Hand-authored choreography per quest id: (questMeta) => beats. Quests without an entry play the scaffold.
-const AUTHORED = { bridge: bridgeBeats };
+const AUTHORED = { bridge: bridgeBeats, woods: woodsBeats };
+const SCENE_IDS = { woods: woodsSceneIds };
 
 const SEGMENT_DEFAULTS = { setup: 5, approach: 7, moment: 3, success: 5 };
 
@@ -153,7 +155,7 @@ const RAW = [
 ];
 
 export const QUESTS = RAW.map((q, index) => {
-  const quest = { index, durations: { ...SEGMENT_DEFAULTS }, sceneIds: [], ...q };
+  const quest = { index, durations: { ...SEGMENT_DEFAULTS }, sceneIds: SCENE_IDS[q.id] || [], ...q };
   // Hand-authored beats win; anything not authored yet falls back to the placeholder choreography. So you can set
   // just `beats: { moment: [...], fail: { sweater: [...] } }` on a quest and the rest keeps playing.
   const generated = scaffold(quest);

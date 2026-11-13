@@ -187,7 +187,7 @@ export class Stage {
   _op_walkTo(b) { for (const { actor } of this.objs(b.who)) if (actor) this.moveActor(actor, this.pos(b.to), { dur: b.dur, speed: b.speed ?? WALK_SPEED, anim: b.anim || 'Walking_A' }); }
   _op_runTo(b) { for (const { actor } of this.objs(b.who)) if (actor) this.moveActor(actor, this.pos(b.to), { dur: b.dur, speed: b.speed ?? RUN_SPEED, anim: 'Running_A' }); }
   _op_play(b) {
-    for (const { actor } of this.objs(b.who)) if (actor) actor.play(b.anim, { loop: b.loop ?? LOOPING.test(b.anim), fade: b.fade ?? 0.15, speed: b.speed ?? 1, then: b.then ?? 'Idle' });
+    for (const { actor } of this.objs(b.who)) if (actor) actor.play(b.anim, { loop: b.loop ?? LOOPING.test(b.anim), fade: b.fade ?? 0.15, speed: b.speed ?? 1, then: b.then === 'hold' ? null : b.then ?? 'Idle' });
   }
   _op_lookAt(b) { this._op_face({ ...b, dur: b.dur ?? 0.35 }); }
   _op_face(b) {
@@ -224,6 +224,13 @@ export class Stage {
       const n = b.count ?? 1; const h = b.height ?? 0.8; let base = null;
       this.tween({ dur: b.dur ?? 0.45 * n, delay: (b.stagger || 0) * i, ease: 'linear', owner: obj, key: 'hop',
         update: (k) => { if (base === null) base = obj.position.y; const f = (k * n) % 1; obj.position.y = k >= 1 ? base : base + h * 4 * f * (1 - f); } });
+    });
+  }
+  /** Lean sideways (a whole-body head-tilt). Keeps the actor's facing. */
+  _op_tilt(b) {
+    this.objs(b.who).forEach(({ obj }, i) => {
+      let from = null; const to = ((b.deg ?? 20) * Math.PI) / 180;
+      this.tween({ dur: b.dur ?? 0.3, delay: (b.stagger || 0) * i, ease: b.ease || 'out', owner: obj, key: 'tilt', update: (k) => { if (from === null) from = obj.rotation.z; obj.rotation.z = from + (to - from) * k; } });
     });
   }
   /** Quick tremble (scared / straining / about to sneeze). */
@@ -342,7 +349,7 @@ export class Stage {
   }
   // every caption goes through narrate() so a spoken narrator can be added later (see narrate.js)
   _op_caption(b) { this.lastCaption = this._text(b.text); this._say(() => narrate(this._text(b.text), { dur: b.dur ?? 3, style: b.style })); }
-  _op_banner(b) { for (const { actor } of this.objs(b.who)) if (actor) actor.showBanner(b.dur ?? 2, b.text ? this._text(b.text) : undefined); }
+  _op_banner(b) { this.objs(b.who).forEach(({ actor }, i, list) => { if (actor) actor.showBanner(b.dur ?? 2, b.text ? this._text(b.text) : undefined, list.length > 2 && i % 2 ? 0.62 : 0); }); } // alternate heights so neighbours do not overlap
   _op_title(b) { this._say(() => this.hud && this.hud.title(this._text(b.text), b.dur ?? 2)); }
   _op_freeze(b) {
     const dur = b.dur ?? 1.2;
