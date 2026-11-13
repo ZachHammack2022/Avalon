@@ -392,7 +392,7 @@ export class Stage {
     const targets = b.who !== undefined ? this.objs(b.who) : [null];
     targets.forEach((t, i) => { const e = makeEmote(b.text, b.color); if (targets.length > 1) e.scale.multiplyScalar(0.7); this._bubble(e, b, 0.8, t); this.bubbles[this.bubbles.length - 1].age = -i * 0.06; });
   }
-  _updateBubbles(dt) {
+  _updateBubbles(dt, frozen = false) {
     for (let i = this.bubbles.length - 1; i >= 0; i--) {
       const u = this.bubbles[i]; u.age += dt; u.spr.visible = u.age >= 0; if (u.age < 0) continue;
       if (u.age >= u.dur) { u.spr.removeFromParent(); this.bubbles.splice(i, 1); continue; }
@@ -400,7 +400,7 @@ export class Stage {
       if (u.anchor) { u.anchor.getWorldPosition(p); p.y += u.h * u.anchor.scale.y; } else { p.copy(u.at); p.y += u.h; }
       // keep bubbles readable from the couch: roughly constant on-screen size, popped in with a little overshoot
       const d = Math.min(26, Math.max(4, p.distanceTo(this.camera.position))) / 7 * (this.camera.fov / 38);
-      const pop = u.age < 0.18 ? ease('back', u.age / 0.18) : u.dur - u.age < 0.12 ? (u.dur - u.age) / 0.12 : 1;
+      const pop = u.age < 0.18 ? ease('back', u.age / 0.18) : u.dur - u.age < 0.12 && !frozen ? (u.dur - u.age) / 0.12 : 1; // stay full-size through a freeze-frame
       u.spr.scale.copy(u.base).multiplyScalar(d * pop);
       // keep the whole bubble on screen (close-ups would otherwise crop it)
       const v = p.clone().project(this.camera);
@@ -455,7 +455,7 @@ export class Stage {
 
   update(dt) {
     this.time += dt;
-    if (this.frozenLeft > 0) { this.frozenLeft -= dt; this._updateBubbles(0); return; }
+    if (this.frozenLeft > 0) { this.frozenLeft -= dt; this._updateBubbles(0, true); return; }
     if (this.slow) { this.slow.left -= dt; if (this.slow.left <= 0) this.slow = null; }
     const w = dt * (this.slow ? this.slow.scale : 1);
     this._updateTweens(w);

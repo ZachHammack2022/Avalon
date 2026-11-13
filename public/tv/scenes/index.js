@@ -4,7 +4,7 @@ import { bridgeScene } from './bridge.js';
 import { woodsScene } from './woods.js';
 import { vaultScene } from './vault.js';
 import { dragonScene } from './dragon.js';
-import { throneScene } from './quests.js';
+import { throneScene } from './throne.js';
 
 const REGISTRY = {
   campfire: () => campfireScene({ night: false }),
