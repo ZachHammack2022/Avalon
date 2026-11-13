@@ -110,6 +110,15 @@ export class GameAudio {
       const t = this.nextTime; const d = beat * tr.len * 2;
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(tr.vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
       o.connect(lp); lp.connect(g); g.connect(this.master); o.start(t); o.stop(t + d + 0.05);
+      // a simple bed under the melody: root/fifth bass every half bar, and a soft tick on the quicker tracks
+      const k = this.step % 8;
+      if (k === 0 || k === 4) {
+        const bo = this.ctx.createOscillator(); const bg = this.ctx.createGain(); const bd = beat * tr.len * 3.6;
+        bo.type = 'triangle'; bo.frequency.value = SEMI(tr.root / 2, k === 0 ? 0 : 7);
+        bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(tr.vol * 1.5, t + 0.03); bg.gain.exponentialRampToValueAtTime(0.0001, t + bd);
+        bo.connect(bg); bg.connect(this.master); bo.start(t); bo.stop(t + bd + 0.05);
+      }
+      if (tr.bpm >= 88 && k % 2 === 1) this.noise({ t: Math.max(0, t - this.ctx.currentTime), d: 0.03, vol: tr.vol * 0.5, type: 'highpass', f: 6000 });
       this.nextTime += beat * tr.len; this.step++;
     }
   }
