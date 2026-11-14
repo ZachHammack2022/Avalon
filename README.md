@@ -1,7 +1,7 @@
 # Avalon: The Lost Crown
 
 A family party game for the TV with phones as controllers (Jackbox-style). It follows **The Resistance: Avalon** 1:1 (5–10 players, all
-six optional roles). Every quest plays out as a funny 3D cutscene; when a quest fails, the saboteurs secretly choose **who gets framed**.
+six optional roles). Every quest plays out as a funny 3D cutscene; when a quest fails, the Minions of Mordred secretly choose **who gets framed**.
 Full spec: [`goals.md`](goals.md).
 
 ```bash

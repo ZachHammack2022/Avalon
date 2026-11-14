@@ -135,7 +135,7 @@ function showSecret() {
   secret.replaceChildren(
     h('div', { class: 'icon' }, info.icon),
     h('div', { class: `rolecard team-${info.team}` }, info.name),
-    h('div', { class: `team-${info.team}`, style: 'font-weight:700' }, info.team === 'good' ? 'You are on the side of GOOD' : 'You are a SABOTEUR'),
+    h('div', { class: `team-${info.team}`, style: 'font-weight:700' }, info.team === 'good' ? 'You are a Loyal Servant of Arthur (Good)' : 'You are a Minion of Mordred (Evil)'),
     h('div', { class: 'muted' }, info.blurb),
     me.note ? h('div', {}, me.note) : null,
     known.length ? h('div', { class: 'card', style: 'width:100%' },
@@ -209,19 +209,19 @@ function drawSheet() {
     content.push(h('h2', {}, 'What should I do?'), tip ? coachCard(tip) : h('p', { class: 'muted' }, 'Nothing right now. Watch the TV.'));
     if (inGame) {
       const team = ROLE_INFO[me.role].team;
-      content.push(h('h3', {}, team === 'good' ? 'Rules of thumb for heroes' : 'Rules of thumb for saboteurs'), h('ul', {}, GENERAL_TIPS[team].map((t) => h('li', {}, t))));
+      content.push(h('h3', {}, team === 'good' ? 'Rules of thumb for Good' : 'Rules of thumb for Evil'), h('ul', {}, GENERAL_TIPS[team].map((t) => h('li', {}, t))));
     }
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: 'toggle' + (off ? '' : ' on'), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', {}, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
   } else if (sheetTab === 'you' && inGame) {
     const info = ROLE_INFO[me.role]; const known = knownPlayers(state);
     content.push(
-      h('div', { class: `roleplate team-${info.team}` }, h('div', { class: 'icon' }, info.icon), h('div', { class: 'rname' }, info.name), h('div', { class: 'rteam' }, info.team === 'good' ? 'Team Good: heroes of the crown' : 'Team Evil: saboteurs')),
+      h('div', { class: `roleplate team-${info.team}` }, h('div', { class: 'icon' }, info.icon), h('div', { class: 'rname' }, info.name), h('div', { class: 'rteam' }, info.team === 'good' ? 'Team Good: Loyal Servants of Arthur' : 'Team Evil: Minions of Mordred')),
       h('p', {}, info.blurb),
       me.note ? h('p', { class: 'muted' }, me.note) : null,
       known.length ? h('div', { class: 'card' }, h('div', { class: 'muted small' }, KNOW_LABELS[me.knowKind] || 'You know'), h('div', { class: 'players', style: 'margin-top:8px' }, known.map((p) => h('span', { class: 'pill' }, dot(p.color), p.name)))) : null,
       h('h3', {}, 'Tips for your role'), h('ul', {}, (ROLE_TIPS[me.role] || []).map((t) => h('li', {}, t))),
-      h('p', { class: 'muted small' }, `${pub.players.length} players: ${evilCount(pub.players.length)} saboteurs, ${pub.players.length - evilCount(pub.players.length)} heroes.`));
+      h('p', { class: 'muted small' }, `${pub.players.length} players: ${evilCount(pub.players.length)} Minions of Mordred, ${pub.players.length - evilCount(pub.players.length)} Loyal Servants of Arthur.`));
   } else if (sheetTab === 'how') {
     content.push(h('h2', {}, 'How to play'), ...HOW_TO.map((x) => h('div', { class: 'card' }, h('h3', {}, x.h), h('p', {}, x.p))));
   } else {
