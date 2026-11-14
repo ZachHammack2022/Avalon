@@ -133,6 +133,7 @@ document.addEventListener('visibilitychange', () => {
 const peekBtn = $('peek');
 const secret = $('secret');
 const secretOpen = () => !secret.hidden;
+const seenRole = () => !!(state && state.me && store.get(`sq.seen.${roomCode}`) === state.me.role);
 function showSecret() {
   if (!state || !state.me || !state.me.role) return;
   const me = state.me; const info = ROLE_INFO[me.role];
@@ -148,6 +149,7 @@ function showSecret() {
       h('div', { class: 'label' }, KNOW_LABELS[me.knowKind] || 'You know'),
       h('div', { class: 'players' }, known.map((p) => h('span', { class: 'pill' }, avatar(byId(p.id), 'sm'), p.name)))) : (me.note ? h('p', { class: 'rc-note' }, me.note) : null),
     counsel ? h('div', { class: 'rc-counsel' }, h('div', { class: 'label' }, 'Counsel for this moment'), counsel) : null));
+  if (!seenRole()) { store.set(`sq.seen.${roomCode}`, me.role); setTimeout(render, 0); }
   secret.hidden = false; peekBtn.classList.add('revealing'); document.body.classList.add('peeking');
   // never clip a secret: shrink the card to fit very small screens
   const card = secret.firstChild; const cs = getComputedStyle(secret);
@@ -232,12 +234,12 @@ function trackerBar() {
     h('div', { class: 'quests' }, Array.from({ length: QUEST_COUNT }, (_, i) => {
       const r = g.results[i];
       const cls = `${r ? (r.outcome === 'success' ? 's' : 'f') : ''} ${i === g.questIndex && !r ? 'cur' : ''}`;
-      return h('div', { class: `q ${cls}` },
-        r ? icon(r.outcome === 'success' ? 'check' : 'cross') : h('b', {}, String(teamSize(n, i))),
-        failsRequired(n, i) > 1 && !r ? h('span', { class: 'two', title: 'Needs two Fails' }, h('i'), h('i')) : null);
+      return h('div', { class: 'qcol' }, h('div', { class: `q ${cls}` },
+        r ? icon(r.outcome === 'success' ? 'check' : 'cross') : h('b', {}, String(teamSize(n, i)))),
+        h('small', {}, failsRequired(n, i) > 1 && !r ? '2 Fails' : ''));
     })),
     h('div', { class: 'rejects', 'aria-label': `${g.rejectCount} of ${MAX_REJECTS} teams rejected` },
-      h('span', {}, 'Rejected'), Array.from({ length: MAX_REJECTS }, (_, i) => h('i', { class: i < g.rejectCount ? 'on' : '' }))));
+      h('span', {}, `Rejected teams ${g.rejectCount}/${MAX_REJECTS}`), Array.from({ length: MAX_REJECTS }, (_, i) => h('i', { class: i < g.rejectCount ? 'on' : '' }))));
 }
 
 /** A row/tile for a player. `mark` is an optional trailing element. */
@@ -256,7 +258,7 @@ const youTag = (id) => (id === state.me.id ? 'you' : null);
 
 function joinScreen() {
   if (joined) return [waiting('hourglass', 'Connecting…')];
-  const codeIn = h('input', { type: 'text', class: 'code', maxlength: 4, placeholder: 'ABCD', value: roomCode, autocapitalize: 'characters', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Room code' });
+  const codeIn = h('input', { type: 'text', class: 'code', maxlength: 4, placeholder: '____', value: roomCode, autocapitalize: 'characters', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Room code' });
   const nameIn = h('input', { type: 'text', maxlength: 12, placeholder: 'Your name', value: name, autocomplete: 'nickname', 'aria-label': 'Your name' });
   const go = () => {
     roomCode = codeIn.value.trim().toUpperCase(); name = nameIn.value.trim();
@@ -274,7 +276,7 @@ function joinScreen() {
     h('label', { class: 'field' }, h('span', { class: 'label' }, 'Room code on the TV'), codeIn),
     h('label', { class: 'field' }, h('span', { class: 'label' }, 'Your name'), nameIn),
     joinError ? h('p', { class: 'err' }, joinError) : null,
-    h('div', { class: 'actions' }, joinBtn),
+    joinBtn,
   ];
 }
 
@@ -300,7 +302,7 @@ const SCREENS = {
       const v = pub.validation;
       const toggle = (key, label, locked) => h('button', { class: `toggle ${cfg[key] ? 'on' : ''}`, disabled: locked, role: 'switch', 'aria-checked': String(!!cfg[key]), onclick: () => send({ t: 'setRoles', roles: { [key]: !cfg[key] } }) },
         icon(key, `tg team-${ROLE_INFO[key].team}`), h('span', { class: 'grow' }, label, h('small', {}, ROLE_TOGGLE_INFO[key])), h('span', { class: 'sw' }));
-      body.push(
+      body.splice(1, 0,
         h('div', { class: 'panel roles' },
           h('button', { class: 'lookme', 'aria-expanded': String(rolesOpen), onclick: () => { rolesOpen = !rolesOpen; render(); } },
             h('span', { class: 'rolesum' }, ['merlin', 'assassin', 'percival', 'morgana', 'mordred', 'oberon'].filter((k) => cfg[k]).map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
@@ -321,7 +323,7 @@ const SCREENS = {
     const card = bindHold(h('div', { class: 'cardback', role: 'button', tabindex: '0', 'aria-label': 'Hold to reveal your role' }, h('div', { class: 'cb-in' }, icon('crown'), h('span', {}, 'Hold to reveal'))));
     return page({ tracker: false, kicker: 'For your eyes only', title: 'Your role', body: [card],
       actions: [h('p', { class: 'muted center small' }, `${ready} of ${pub.players.length} ready`),
-        h('button', { class: 'primary big', disabled: me.legal.done, onclick: () => send({ t: 'ready' }) }, me.legal.done ? 'Waiting for the others…' : "I'm ready")] });
+        !seenRole() && !me.legal.done ? h('p', { class: 'armhint' }, 'Look at your card first') : h('button', { class: 'primary big', disabled: me.legal.done, onclick: () => send({ t: 'ready' }) }, me.legal.done ? 'Waiting for the others…' : "I'm ready")] });
   },
 
   waitLeader() {
@@ -340,10 +342,15 @@ const SCREENS = {
 
   vote() {
     const { pub } = state; const g = pub.game;
-    const tok = (val, label, ic) => h('button', { class: `token ${val ? 'yes' : 'no'} ${choice === val ? 'sel' : choice == null ? '' : 'dim'}`, 'aria-pressed': String(choice === val), onclick: () => { choice = val; render(); } }, h('span', { class: 'disc' }, icon(ic)), h('b', {}, label));
-    return page({ kicker: `${byId(g.leader).name} proposes`, title: 'Send this team?',
+    const tok = (val, label, ic) => h('button', { class: `token ${val ? 'yes' : 'no'}`, onclick: () => { choice = val; render(); } }, h('span', { class: 'disc' }, icon(ic)), h('b', {}, label));
+    const kicker = `${byId(g.leader).name} proposes`;
+    // once chosen the token turns face-down, so nobody can read the vote off the screen before the table reveal
+    if (choice != null) return page({ kicker, title: 'Vote chosen', hint: false,
+      body: [teamRow(g.team), h('div', { class: 'tokens one' }, h('div', { class: 'token down' }, h('span', { class: 'disc' }, icon('crown')), h('b', {}, 'Face-down')))],
+      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, 'Lock in my vote'), h('button', { class: 'ghost', onclick: () => { choice = null; render(); } }, 'Change my vote')] });
+    return page({ kicker, title: 'Send this team?',
       body: [teamRow(g.team), h('div', { class: 'tokens' }, tok(true, 'Approve', 'check'), tok(false, 'Reject', 'cross'))],
-      actions: [choice == null ? h('p', { class: 'armhint' }, 'Tap a token to choose') : h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, `Lock in ${choice ? 'Approve' : 'Reject'}`)] });
+      actions: [h('p', { class: 'armhint' }, 'Tap a token to choose')] });
   },
   voted() {
     const { pub } = state; const g = pub.game; const voted = new Set(g.voted || []);
@@ -357,7 +364,8 @@ const SCREENS = {
     const { pub } = state; const g = pub.game;
     const yes = pub.players.filter((p) => g.votes[p.id]).length;
     return page({ hint: false, kicker: `${yes} approve · ${pub.players.length - yes} reject`, title: g.approved ? 'Team approved' : 'Team rejected',
-      body: [h('div', { class: `verdict ${g.approved ? 'good' : 'bad'}` }, icon(g.approved ? 'check' : 'cross'), g.approved ? 'The quest begins' : `The crown passes on · ${g.rejectCount} of ${MAX_REJECTS} rejected`),
+      sub: g.approved ? 'The quest begins.' : `The crown passes on. ${g.rejectCount} of ${MAX_REJECTS} teams rejected.`,
+      body: [
         h('div', { class: 'votes' }, pub.players.map((p) => h('div', { class: `vote ${g.votes[p.id] ? 'yes' : 'no'}` }, avatar(p), h('span', { class: 'pname' }, p.name), h('span', { class: 'minitoken' }, icon(g.votes[p.id] ? 'check' : 'cross'), g.votes[p.id] ? 'Approve' : 'Reject'))))] });
   },
 
@@ -380,7 +388,7 @@ const SCREENS = {
   },
   'quest-pick'() {
     const { me } = state;
-    return page({ kicker: 'One more thing', title: 'Who stood out?',
+    return page({ kicker: 'Before the quest resolves', title: 'Who stood out?',
       body: [h('div', { class: 'people' }, me.quest.options.map((id) => personChip(byId(id), { sel: choice === id, tag: youTag(id), mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
       actions: [choice ? h('button', { class: 'primary big', onclick: () => send({ t: 'pick', id: choice }) }, `Pick ${byId(choice).name}`) : h('p', { class: 'armhint' }, 'Tap a name to choose')] });
   },
@@ -400,7 +408,8 @@ const SCREENS = {
     const ok = r.outcome === 'success'; const who = byId(ok ? r.hero : r.culprit);
     return page({ hint: false, kicker: `Quest ${r.questIndex + 1}`, title: ok ? 'Quest succeeded' : 'Quest failed',
       body: [h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xxl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'Suspicion falls on'), h('b', {}, who.name),
-        r.failCount != null ? h('small', {}, `${r.failCount} Fail card${r.failCount === 1 ? '' : 's'} played`) : null)] });
+        r.failCount != null ? h('small', {}, `${r.failCount} Fail card${r.failCount === 1 ? '' : 's'} played`) : null),
+        ok ? null : h('p', { class: 'muted center small' }, 'That is who the story on the TV blamed. They may have been framed.')] });
   },
 
   assassinate() {

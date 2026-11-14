@@ -253,3 +253,20 @@ main.enter > *:nth-child(2) { animation-delay: .04s; } main.enter > *:nth-child(
 .sheetscroll p, .sheetscroll li { font-size: 15.500px; } .sheetscroll .small, .sheetscroll .small li { font-size: 14px; } .hint.big { font-size: 16.500px; }
 @media (max-height: 640px) { .armhint { min-height: 58px; font-size: 16px; } .q { width: 34px; height: 40px; } .spot b { font-size: 20px; } }
 @media (max-width: 350px) { #roomtag span { font-size: 0; } #roomtag b { font-size: 18px; margin: 0; } .holdtag { padding: 5px 7px; font-size: 0; gap: 0; } #peek { max-width: 62vw; } }
+
+/* round 4 */
+.tokens, .qcards { margin-top: auto; } .tokens.one { grid-template-columns: minmax(0, 50%); justify-content: center; }
+.token.down { animation: settle .25s ease-out; } .token.down .disc { background: repeating-linear-gradient(45deg, #ffffff0d 0 8px, transparent 8px 16px), radial-gradient(circle at 35% 28%, #8a2a23, #4a1512 60%, #260a08); color: var(--gold); box-shadow: 0 6px 0 #0009, 0 10px 18px #0007, inset 0 0 0 4px #f2bd4b66; } .token.down b { font-style: italic; color: var(--gold); font-size: 17px; }
+.armhint { border: 0; min-height: 56px; }
+.qcol { display: flex; flex-direction: column; align-items: center; gap: 2px; } .qcol small { font-size: 10.500px; font-weight: 700; color: var(--evil); height: 12px; line-height: 12px; white-space: nowrap; }
+.tracker { align-items: flex-start; } .rejects { margin-top: 4px; }
+.logo + .field { margin-top: 6px; } main[data-screen=connecting] .scroll > button.big { margin-top: 6px; }
+main[data-screen=connecting] button.primary[disabled] { border: 1px solid var(--line2); background: #3a2f22; color: #b9ab95; }
+/* the role card: dark, quiet ink, so it is not a beacon across the couch */
+.rolecard { background: linear-gradient(170deg, #3a1512, #1b0a09); color: #e9d6a8; border-color: #8a6a34; box-shadow: 0 20px 50px #000c, inset 0 0 0 6px #2a0f0d, inset 0 0 0 7.500px #f2bd4b55; }
+.rolecard > * { color: #e9d6a8; } .rc-sigil { color: var(--gold); } .rolecard .label { color: #bfa878; }
+.rolecard .rc-team { background: none; border: 1px solid #f2bd4b66; color: var(--gold); font-weight: 700; }
+.rc-known, .rc-counsel { border-top-color: #f2bd4b33; } .rc-name { color: #f8efde; }
+.pill { background: #0007; border: 1px solid #f2bd4b44; }
+@media (max-height: 640px) { .qcol small { display: none; } .tracker { align-items: center; } .rejects { margin: 0; } .rejects span { font-size: 10px; } }
+@media (max-width: 350px) { .rolesum { display: none; } }

@@ -55,7 +55,7 @@ export function coachFor(screen, state) {
     }
     case 'voted': return 'Votes are revealed together once everyone is in.';
     case 'quest-card': return 'Play one card face-down. Good always plays Success, whichever card is tapped. Only Evil can truly Fail.';
-    case 'quest-pick': return 'Pick one teammate. Picks decide who the story singles out on the TV.';
+    case 'quest-pick': return 'Pick one teammate (or yourself). The story on the TV singles out the most-picked player.';
     case 'quest-done': case 'watchQuest': return 'The cards are being played in secret.';
     case 'assassinate': return 'One guess. Name Merlin and Evil steals the win.';
     case 'waitAssassin': return 'Evil gets one guess at Merlin. Good wins only if they miss.';
