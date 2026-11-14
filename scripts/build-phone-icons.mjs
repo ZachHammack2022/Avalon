@@ -10,7 +10,7 @@ const MAP = {
   loyal: 'cross-shield', merlin: 'wizard-face', percival: 'visored-helm', minion: 'devil-mask', assassin: 'cloak-dagger',
   morgana: 'witch-face', mordred: 'crowned-skull', oberon: 'ghost',
   knight: 'crested-helmet', mage: 'wizard-staff', rogue: 'domino-mask', barbarian: 'battle-axe', rogueHooded: 'hood',
-  crown: 'jewel-crown', leader: 'queen-crown', chalice: 'holy-grail', skull: 'death-skull', fire: 'campfire', hourglass: 'hourglass', tv: 'tv', scroll: 'scroll-unfurled',
+  crown: 'jewel-crown', leader: 'queen-crown', chalice: 'holy-grail', skull: 'death-skull', brokensword: 'shattered-sword', fire: 'campfire', hourglass: 'hourglass', tv: 'tv', scroll: 'scroll-unfurled',
   laurels: 'laurels', banner: 'knight-banner', daggers: 'daggers',
 };
 const out = {};
