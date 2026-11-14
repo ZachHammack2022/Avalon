@@ -46,7 +46,7 @@ export function coachFor(screen, state) {
   const { pub, me } = state; const g = pub.game;
   switch (screen) {
     case 'lobby': return me && me.vip ? 'You are the host. Fill empty seats with bots, choose the roles, then start.' : 'Pick your look. The host starts the game. New here? Tap ? for a one-minute guide.';
-    case 'roleReveal': return 'Press and hold the card to look at your role. Shield your screen. Let go to hide it.';
+    case 'roleReveal': return 'Press and hold the card to look at your role. Shield your screen. Later, hold your name at the top to look again.';
     case 'waitLeader': return 'Talk it over. Tell the leader who you trust.';
     case 'propose': return 'Choose who goes on the quest. Everyone votes on your team next.';
     case 'vote': {
@@ -54,7 +54,7 @@ export function coachFor(screen, state) {
       return left <= 1 ? 'Last chance: if this team is rejected, Evil wins the game.' : 'Approve to send this team. Reject to pass the crown to the next leader.';
     }
     case 'voted': return 'Votes are revealed together once everyone is in.';
-    case 'quest-card': return 'Play one card face-down. Good must play Success. Only Evil may play Fail.';
+    case 'quest-card': return 'Play one card face-down. Good always plays Success, whichever card is tapped. Only Evil can truly Fail.';
     case 'quest-pick': return 'Pick one teammate. Picks decide who the story singles out on the TV.';
     case 'quest-done': case 'watchQuest': return 'The cards are being played in secret.';
     case 'assassinate': return 'One guess. Name Merlin and Evil steals the win.';
@@ -77,7 +77,7 @@ export function counselFor(screen, state) {
     case 'propose': return evil ? 'Put at least one Minion of Mordred on the team (maybe you), without making it obvious.' : role === 'merlin' ? 'Pick players you know are good, but do not be too perfect or the Assassin will notice.' : 'Pick yourself and the players you trust most. You know you are loyal.';
     case 'vote': return evil ? 'Approve if a Minion is on the team. Rejecting too often looks suspicious.' : role === 'merlin' ? 'Reject teams with a Minion on them, but have a reason ready.' : 'Approve teams you trust. Reject if anyone on it worries you.';
     case 'quest-card': {
-      if (!evil) return 'You are Good: play Success. It is the only card you can play.';
+      if (!evil) return 'You are Good: your card is always played as Success, whichever one you tap.';
       const need = g ? failsRequired(n, g.questIndex) : 1;
       return `You usually want to play Fail. ${need > 1 ? 'This quest needs TWO Fails, so it only sinks if another Minion fails too. ' : ''}If you are the only Minion here, a Success now can buy trust for later.`;
     }

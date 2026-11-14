@@ -117,8 +117,8 @@ if (!process.argv.includes('--live-only')) {
   await phone.goto(`${url}/?room=${code}`);
   await phone.fill('input[placeholder="Your name"]', 'Tester');
   await phone.click('main button.primary');
-  await phone.waitForSelector('text=+ Bot');
-  for (let i = 0; i < 4; i++) await phone.click('button:has-text("+ Bot")');
+  await phone.waitForSelector('.stepper');
+  for (let i = 0; i < 4; i++) await phone.click('.stepper button[aria-label="Add a bot"]');
   await phone.waitForFunction(() => window.__sq.state && window.__sq.state.pub.players.length === 5);
   await phone.click('text=Start game');
   await phone.waitForSelector('.cardback');
@@ -151,7 +151,7 @@ if (!process.argv.includes('--live-only')) {
     const clicked = await phone.evaluate(() => {
       const st = window.__sq.state; const L = st.me.legal; const btn = (txt) => [...document.querySelectorAll('main button')].find((b) => b.textContent.includes(txt) && !b.disabled);
       // every choice is select-then-confirm: pick something, then press the primary action
-      const go = () => { const b = document.querySelector('main .actions button:not([disabled])'); if (b) { b.click(); return true; } return false; };
+      const go = () => { const b = document.querySelector('main .actions button.big:not([disabled])'); if (b) { b.click(); return true; } return false; };
       const first = (sel) => { const c = document.querySelector(sel); if (c) c.click(); return !!c; };
       if (L.action === 'propose') { const chips = [...document.querySelectorAll('.people button')]; if (!chips.some((c) => c.classList.contains('sel'))) chips.slice(0, L.size).forEach((c) => c.click()); return go(); }
       if (L.action === 'vote') return first('.token.yes') && go();

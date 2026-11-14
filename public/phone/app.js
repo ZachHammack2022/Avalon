@@ -139,10 +139,10 @@ function showSecret() {
   const known = knownPlayers(state);
   const counsel = counselFor(screenFor(state), state);
   secret.replaceChildren(h('div', { class: 'rolecard' },
-    h('div', { class: 'rc-top' }, info.team === 'good' ? 'Loyal Servant of Arthur' : 'Minion of Mordred'),
-    h('div', { class: `rc-sigil team-${info.team}` }, icon(me.role)),
+    h('div', { class: 'rc-top' }, 'Your role'),
+    h('div', { class: 'rc-sigil' }, icon(me.role)),
     h('div', { class: 'rc-name' }, info.name),
-    h('div', { class: `rc-team team-${info.team}` }, info.team === 'good' ? 'Good' : 'Evil'),
+    h('div', { class: 'rc-team' }, info.team === 'good' ? 'Good · serves Arthur' : 'Evil · serves Mordred'),
     h('p', { class: 'rc-blurb' }, info.blurb),
     known.length ? h('div', { class: 'rc-known' },
       h('div', { class: 'label' }, KNOW_LABELS[me.knowKind] || 'You know'),
@@ -176,6 +176,8 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 // ---------- render ----------
 let lastPhase = '';
 let lastScreen = '';
+let kickArmed = null; // lobby: a human's remove button was tapped once
+let rolesOpen = false; // lobby: role toggles expanded
 let lookOpen = false; // lobby: avatar picker expanded
 let choice = null; // pending vote / card / pick / assassination target on the current screen
 
@@ -184,10 +186,10 @@ function render() {
   if (screen !== lastScreen) choice = null;
   $('roomtag').replaceChildren(roomCode && state ? h('span', {}, 'Room ', h('b', {}, roomCode)) : '');
   const meP = state && state.me && state.pub.players.find((p) => p.id === state.me.id);
-  const chip = $('mechip'); chip.hidden = !meP;
-  if (meP) chip.replaceChildren(avatar(meP, 'sm'), h('span', {}, meP.name));
   const inGame = !!(state && state.pub.phase !== 'lobby' && state.me && state.me.role);
-  $('peekbar').hidden = !inGame || state.pub.phase === 'gameover';
+  const canPeek = inGame && state.pub.phase !== 'gameover';
+  peekBtn.hidden = !meP; peekBtn.disabled = !canPeek; peekBtn.classList.toggle('live', canPeek);
+  if (meP) peekBtn.replaceChildren(...[avatar(meP, 'sm'), h('span', { class: 'nm' }, meP.name), canPeek ? h('span', { class: 'holdtag' }, icon('eye'), 'Hold') : null].filter(Boolean));
   if (!inGame) hideSecret();
   const fn = screen === 'connecting' ? joinScreen : SCREENS[screen];
   const body = [].concat(fn ? fn() : [h('p', { class: 'muted center' }, 'One moment…')]).flat().filter(Boolean);
@@ -234,7 +236,6 @@ function trackerBar() {
         r ? icon(r.outcome === 'success' ? 'check' : 'cross') : h('b', {}, String(teamSize(n, i))),
         failsRequired(n, i) > 1 && !r ? h('span', { class: 'two', title: 'Needs two Fails' }, h('i'), h('i')) : null);
     })),
-    h('div', { class: 'cap' }, `Number = team size${Array.from({ length: QUEST_COUNT }, (_, i) => failsRequired(n, i)).some((x) => x > 1) ? ' · two dots = needs 2 Fails' : ''}`),
     h('div', { class: 'rejects', 'aria-label': `${g.rejectCount} of ${MAX_REJECTS} teams rejected` },
       h('span', {}, 'Rejected'), Array.from({ length: MAX_REJECTS }, (_, i) => h('i', { class: i < g.rejectCount ? 'on' : '' }))));
 }
@@ -255,7 +256,7 @@ const youTag = (id) => (id === state.me.id ? 'you' : null);
 
 function joinScreen() {
   if (joined) return [waiting('hourglass', 'Connecting…')];
-  const codeIn = h('input', { type: 'text', class: 'code', maxlength: 4, placeholder: '····', value: roomCode, autocapitalize: 'characters', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Room code' });
+  const codeIn = h('input', { type: 'text', class: 'code', maxlength: 4, placeholder: 'ABCD', value: roomCode, autocapitalize: 'characters', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Room code' });
   const nameIn = h('input', { type: 'text', maxlength: 12, placeholder: 'Your name', value: name, autocomplete: 'nickname', 'aria-label': 'Your name' });
   const go = () => {
     roomCode = codeIn.value.trim().toUpperCase(); name = nameIn.value.trim();
@@ -265,12 +266,15 @@ function joinScreen() {
     if (ws && ws.readyState === 1) send({ t: 'join', room: roomCode, name, token: store.get(`sq.token.${roomCode}`) || undefined }); else connect();
   };
   nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+  const joinBtn = h('button', { class: 'primary big', onclick: go }, 'Join');
+  const check = () => { joinBtn.disabled = codeIn.value.trim().length !== 4 || !nameIn.value.trim(); };
+  codeIn.addEventListener('input', check); nameIn.addEventListener('input', check); check();
   return [
     h('div', { class: 'logo' }, h('div', { class: 'crest' }, icon('crown')), h('h1', {}, 'Avalon'), h('div', { class: 'tagline' }, 'The Lost Crown')),
     h('label', { class: 'field' }, h('span', { class: 'label' }, 'Room code on the TV'), codeIn),
     h('label', { class: 'field' }, h('span', { class: 'label' }, 'Your name'), nameIn),
     joinError ? h('p', { class: 'err' }, joinError) : null,
-    h('div', { class: 'actions' }, h('button', { class: 'primary big', onclick: go }, 'Join')),
+    h('div', { class: 'actions' }, joinBtn),
   ];
 }
 
@@ -286,10 +290,10 @@ const SCREENS = {
       lookOpen ? h('div', { class: 'swatches' }, AVATAR_COLORS.map((c) => h('button', { class: `swatch ${c === mine.color ? 'sel' : ''}`, style: `--c:${c}`, 'aria-pressed': String(c === mine.color), onclick: () => send({ t: 'setAvatar', color: c }), 'aria-label': `Colour ${c}` }))) : null);
     const roster = h('div', { class: 'panel' },
       h('div', { class: 'row' }, h('div', { class: 'label grow' }, `${n} at the campfire${n < MIN_PLAYERS ? ` · need ${MIN_PLAYERS}` : ''}`),
-        vip ? h('button', { class: 'mini', onclick: () => send({ t: 'removeBot' }), disabled: !pub.players.some((p) => p.bot), 'aria-label': 'Remove a bot' }, '− Bot') : null,
-        vip ? h('button', { class: 'mini', onclick: () => send({ t: 'addBot' }), disabled: n >= 10, 'aria-label': 'Add a bot' }, '+ Bot') : null),
+        vip ? h('div', { class: 'stepper', role: 'group', 'aria-label': 'Bots' }, h('button', { onclick: () => send({ t: 'removeBot' }), disabled: !pub.players.some((p) => p.bot), 'aria-label': 'Remove a bot' }, '−'), h('span', {}, 'Bots'), h('button', { onclick: () => send({ t: 'addBot' }), disabled: n >= 10, 'aria-label': 'Add a bot' }, '+')) : null),
       h('div', { class: 'roster' }, pub.players.map((p) => h('div', { class: `person ${p.connected ? '' : 'off'}` }, avatar(p), h('span', { class: 'pname' }, p.name, h('small', {}, [p.id === me.id ? 'you' : null, p.vip ? 'host' : null, p.bot ? 'bot' : null, p.connected ? null : 'away'].filter(Boolean).join(' · '))),
-        vip && p.id !== me.id ? h('button', { class: 'ghost kick', onclick: () => send({ t: 'kick', id: p.id }), 'aria-label': `Remove ${p.name}` }, icon('cross')) : null))));
+        !vip || p.id === me.id ? null : kickArmed === p.id ? h('button', { class: 'danger kickgo', onclick: () => { kickArmed = null; send({ t: 'kick', id: p.id }); } }, 'Remove?')
+          : h('button', { class: 'ghost kick', onclick: () => { if (p.bot) send({ t: 'kick', id: p.id }); else { kickArmed = p.id; render(); setTimeout(() => { if (kickArmed === p.id) { kickArmed = null; render(); } }, 3000); } }, 'aria-label': `Remove ${p.name}` }, icon('cross'))))));
     const body = [look, roster];
     const actions = [];
     if (vip) {
@@ -298,10 +302,13 @@ const SCREENS = {
         icon(key, `tg team-${ROLE_INFO[key].team}`), h('span', { class: 'grow' }, label, h('small', {}, ROLE_TOGGLE_INFO[key])), h('span', { class: 'sw' }));
       body.push(
         h('div', { class: 'panel roles' },
-          h('div', { class: 'label' }, `Special roles · ${n >= MIN_PLAYERS ? `${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'optional'}`),
-          toggle('merlin', 'Merlin'), toggle('assassin', 'Assassin', cfg.merlin), toggle('percival', 'Percival'), toggle('morgana', 'Morgana'), toggle('mordred', 'Mordred'), toggle('oberon', 'Oberon'),
-          h('button', { class: `toggle ${pub.config.classic ? 'on' : ''}`, role: 'switch', 'aria-checked': String(!!pub.config.classic), onclick: () => send({ t: 'setClassic', on: !pub.config.classic }) },
-            icon('scroll', 'tg'), h('span', { class: 'grow' }, 'Classic: show fail count', h('small', {}, 'Off by default so Evil teams stay hidden.')), h('span', { class: 'sw' }))));
+          h('button', { class: 'lookme', 'aria-expanded': String(rolesOpen), onclick: () => { rolesOpen = !rolesOpen; render(); } },
+            h('span', { class: 'rolesum' }, ['merlin', 'assassin', 'percival', 'morgana', 'mordred', 'oberon'].filter((k) => cfg[k]).map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
+            h('span', { class: 'grow' }, h('span', { class: 'label' }, n >= MIN_PLAYERS ? `${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Special roles'), h('b', {}, ['merlin', 'assassin', 'percival', 'morgana', 'mordred', 'oberon'].filter((k) => cfg[k]).map((k) => ROLE_INFO[k].name).join(', ') || 'No special roles')),
+            h('span', { class: 'chg' }, rolesOpen ? 'Done' : 'Change')),
+          ...(rolesOpen ? [toggle('merlin', 'Merlin'), toggle('assassin', 'Assassin', cfg.merlin), toggle('percival', 'Percival'), toggle('morgana', 'Morgana'), toggle('mordred', 'Mordred'), toggle('oberon', 'Oberon'),
+            h('button', { class: `toggle ${pub.config.classic ? 'on' : ''}`, role: 'switch', 'aria-checked': String(!!pub.config.classic), onclick: () => send({ t: 'setClassic', on: !pub.config.classic }) },
+              icon('scroll', 'tg'), h('span', { class: 'grow' }, 'Classic: show fail count', h('small', {}, 'Off by default so Evil teams stay hidden.')), h('span', { class: 'sw' }))] : [])));
       if (v.errors.length || v.warnings.length) actions.push(h('p', { class: v.errors.length ? 'err' : 'warn' }, startHint(pub)));
       actions.push(h('button', { class: 'primary big', disabled: !v.ok, onclick: () => send({ t: 'start' }) }, n < MIN_PLAYERS ? `Need ${MIN_PLAYERS - n} more (add bots)` : 'Start game'));
     } else actions.push(h('p', { class: 'waitline' }, icon('fire'), 'Waiting for the host to start…'));
@@ -320,7 +327,7 @@ const SCREENS = {
   waitLeader() {
     const { pub } = state; const L = byId(pub.game.leader);
     return page({ kicker: `Quest ${pub.game.questIndex + 1}`, title: `${L.name} is choosing`, sub: `A team of ${pub.game.teamSize} will go.`,
-      body: [h('div', { class: 'spot' }, avatar(L, 'xxl'), icon('crown', 'spotcrown'))] });
+      body: [h('div', { class: 'spot' }, avatar(L, 'xxl'), icon('crown', 'spotcrown'), h('b', {}, L.name))] });
   },
 
   propose() {
@@ -328,7 +335,7 @@ const SCREENS = {
     return page({ kicker: 'You wear the crown', title: `Pick ${size} for the quest`,
       body: [h('div', { class: 'people' }, pub.players.map((p) => personChip(p, { sel: selected.includes(p.id), tag: youTag(p.id), mark: icon('check', 'selmark'), onclick: () => { selected = toggleSelection(selected, p.id, size); render(); } })))],
       actions: [h('div', { class: 'slots', 'aria-hidden': 'true' }, Array.from({ length: size }, (_, i) => (selected[i] ? avatar(byId(selected[i])) : h('span', { class: 'av empty' })))),
-        h('button', { class: 'primary big', disabled: !canConfirm(selected, size), onclick: () => send({ t: 'propose', team: selected }) }, canConfirm(selected, size) ? 'Send this team' : `Send ${selected.length}/${size}`)] });
+        canConfirm(selected, size) ? h('button', { class: 'primary big', onclick: () => send({ t: 'propose', team: selected }) }, 'Send this team') : h('p', { class: 'armhint' }, `Choose ${size - selected.length} more`)] });
   },
 
   vote() {
@@ -336,7 +343,7 @@ const SCREENS = {
     const tok = (val, label, ic) => h('button', { class: `token ${val ? 'yes' : 'no'} ${choice === val ? 'sel' : choice == null ? '' : 'dim'}`, 'aria-pressed': String(choice === val), onclick: () => { choice = val; render(); } }, h('span', { class: 'disc' }, icon(ic)), h('b', {}, label));
     return page({ kicker: `${byId(g.leader).name} proposes`, title: 'Send this team?',
       body: [teamRow(g.team), h('div', { class: 'tokens' }, tok(true, 'Approve', 'check'), tok(false, 'Reject', 'cross'))],
-      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', disabled: choice == null, onclick: () => send({ t: 'vote', approve: choice }) }, choice == null ? 'Choose a token' : `Lock in ${choice ? 'Approve' : 'Reject'}`)] });
+      actions: [choice == null ? h('p', { class: 'armhint' }, 'Tap a token to choose') : h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, `Lock in ${choice ? 'Approve' : 'Reject'}`)] });
   },
   voted() {
     const { pub } = state; const g = pub.game; const voted = new Set(g.voted || []);
@@ -356,26 +363,26 @@ const SCREENS = {
 
   'quest-card'() {
     const { me, pub } = state;
-    // Both cards look and behave the same for everyone, so a glance at a neighbour's phone says nothing.
-    // A Good player cannot take Fail: the card just refuses (the rule is in the hint and in their secret counsel).
-    const take = (val, el) => {
-      if (val === 'fail' && !me.quest.canFail) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); buzz(HAPTIC.bad); return; }
-      choice = val; render();
-    };
-    const card = (val, label, ic) => { const el = h('button', { class: `qcard ${val}`, onclick: () => take(val, el) }, h('span', { class: 'qc-art' }, icon(ic)), h('b', {}, label)); return el; };
+    // Nothing here differs between Good and Evil, so a glance at a neighbour's phone says nothing: both cards can be
+    // tapped, the order is shuffled per player and quest (thumb position gives nothing away), and a Good player's card
+    // is always played as Success whichever one they tap (their secret counsel tells them so).
+    const card = (val, label, ic) => h('button', { class: `qcard ${val}`, onclick: () => { choice = val; render(); } }, h('span', { class: 'qc-art' }, icon(ic)), h('b', {}, label));
+    const pair = [card('success', 'Success', 'chalice'), card('fail', 'Fail', 'skull')];
+    let hsh = pub.game.questIndex * 7 + pub.game.rejectCount; for (const ch of String(me.id)) hsh = (hsh * 31 + ch.charCodeAt(0)) >>> 0;
+    if (hsh % 2) pair.reverse();
     const kicker = `Quest ${pub.game.questIndex + 1} · you are on the team`;
     if (choice) return page({ kicker, title: 'Card chosen', hint: false,
       body: [h('div', { class: 'qcards one' }, h('div', { class: 'qcard down' }, h('span', { class: 'qc-art' }, icon('crown')), h('b', {}, 'Face-down'))), h('p', { class: 'muted center small' }, 'Nobody can see which card this is.')],
-      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'play', card: choice }) }, 'Play this card'), h('button', { class: 'ghost', onclick: () => { choice = null; render(); } }, 'Change my card')] });
+      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'play', card: me.quest.canFail ? choice : 'success' }) }, 'Play this card'), h('button', { class: 'ghost', onclick: () => { choice = null; render(); } }, 'Change my card')] });
     return page({ kicker, title: 'Play your card',
-      body: [h('div', { class: 'qcards' }, card('success', 'Success', 'sun'), card('fail', 'Fail', 'skull'))],
-      actions: [h('button', { class: 'primary big', disabled: true }, 'Choose a card')] });
+      body: [h('div', { class: 'qcards' }, pair)],
+      actions: [h('p', { class: 'armhint' }, 'Tap a card to choose')] });
   },
   'quest-pick'() {
     const { me } = state;
     return page({ kicker: 'One more thing', title: 'Who stood out?',
       body: [h('div', { class: 'people' }, me.quest.options.map((id) => personChip(byId(id), { sel: choice === id, tag: youTag(id), mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
-      actions: [h('button', { class: 'primary big', disabled: !choice, onclick: () => send({ t: 'pick', id: choice }) }, choice ? `Pick ${byId(choice).name}` : 'Choose someone')] });
+      actions: [choice ? h('button', { class: 'primary big', onclick: () => send({ t: 'pick', id: choice }) }, `Pick ${byId(choice).name}`) : h('p', { class: 'armhint' }, 'Tap a name to choose')] });
   },
   'quest-done'() {
     const g = state.pub.game;
@@ -392,7 +399,7 @@ const SCREENS = {
     if (!r) return page({ hint: false, title: 'Eyes on the TV', body: [waiting('tv', '')] });
     const ok = r.outcome === 'success'; const who = byId(ok ? r.hero : r.culprit);
     return page({ hint: false, kicker: `Quest ${r.questIndex + 1}`, title: ok ? 'Quest succeeded' : 'Quest failed',
-      body: [h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xxl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'The story blames'), h('b', {}, who.name),
+      body: [h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xxl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'Suspicion falls on'), h('b', {}, who.name),
         r.failCount != null ? h('small', {}, `${r.failCount} Fail card${r.failCount === 1 ? '' : 's'} played`) : null)] });
   },
 
@@ -400,7 +407,7 @@ const SCREENS = {
     const { me } = state;
     return page({ tracker: false, kicker: 'Good won three quests', title: 'Find Merlin',
       body: [h('div', { class: 'people' }, me.legal.options.map((id) => personChip(byId(id), { sel: choice === id, mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
-      actions: [h('button', { class: 'danger big', 'data-buzz': 'bad', disabled: !choice, onclick: () => send({ t: 'assassinate', id: choice }) }, choice ? `Strike ${byId(choice).name}` : 'Choose your target')] });
+      actions: [choice ? h('button', { class: 'danger big', 'data-buzz': 'bad', onclick: () => send({ t: 'assassinate', id: choice }) }, `Strike ${byId(choice).name}`) : h('p', { class: 'armhint' }, 'Tap a name to choose your target')] });
   },
   waitAssassin() { return page({ tracker: false, kicker: 'The last gamble', title: 'The Assassin strikes', body: [waiting('assassin', 'Someone steps from the shadows… watch the TV.')] }); },
 
@@ -414,7 +421,7 @@ const SCREENS = {
         h('div', { class: 'panel' }, h('div', { class: 'label' }, 'Everyone revealed'),
           h('div', { class: 'reveal' }, pub.players.map((p) => { const r = ROLE_INFO[rv.roles[p.id]]; return h('div', { class: `person team-${r.team}` }, avatar(p), h('span', { class: 'pname' }, p.name, youTag(p.id) ? h('small', {}, 'you') : null), h('span', { class: 'rtag' }, icon(rv.roles[p.id]), r.name)); }))),
         h('div', { class: 'panel' }, h('div', { class: 'label' }, 'The five quests'),
-          h('div', { class: 'recap' }, rv.recap.map((q) => { const ok = q.outcome === 'success'; return h('div', { class: ok ? 'good' : 'bad' }, h('span', { class: 'qn' }, icon(ok ? 'check' : 'cross'), `Quest ${q.questIndex + 1}`), h('span', {}, ok ? `Hero: ${nameOf(pub, q.hero)}` : `Blamed: ${nameOf(pub, q.culprit)}${q.framed ? ' (framed)' : ''}`)); }))),
+          h('div', { class: 'recap' }, rv.recap.map((q) => { const ok = q.outcome === 'success'; return h('div', { class: ok ? 'good' : 'bad' }, h('span', { class: 'qn' }, icon(ok ? 'check' : 'cross'), `Quest ${q.questIndex + 1}`), h('span', {}, ok ? `Hero: ${nameOf(pub, q.hero)}` : `Suspected: ${nameOf(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}`)); }))),
       ],
       actions: [me.vip ? h('button', { class: 'primary big', onclick: () => send({ t: 'again' }) }, 'Play again') : h('p', { class: 'muted center' }, 'Waiting for the host…')] });
   },
@@ -433,9 +440,10 @@ function drawSheet() {
   if (sheetTab === 'now') {
     const tip = coachFor(screenFor(state), state);
     content.push(h('h2', {}, 'What do I do now?'), h('p', { class: 'hint big' }, tip || 'Nothing right now. Watch the TV.'));
-    if (inGame) content.push(h('div', { class: 'panel secretnote' }, icon('eye'), h('div', {}, h('b', {}, 'Forgot who you are?'), h('p', { class: 'muted small' }, 'Hold the button at the bottom of the screen. Your role, who you know, and private advice for this moment appear only while you hold.'))),
+    if (inGame) content.push(h('div', { class: 'panel secretnote' }, icon('eye'), h('div', {}, h('b', {}, 'Forgot who you are?'), h('p', { class: 'muted small' }, 'Press and hold your name at the top of the screen. Your role, who you know, and private advice for this moment appear only while you hold.'))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Good'), h('ul', {}, GENERAL_TIPS.good.map((t) => h('li', {}, t)))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Evil'), h('ul', {}, GENERAL_TIPS.evil.map((t) => h('li', {}, t)))));
+    if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, 'Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.')));
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: `toggle${off ? '' : ' on'}`, role: 'switch', 'aria-checked': String(!off), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', { class: 'grow' }, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
   } else if (sheetTab === 'how') {
@@ -455,7 +463,6 @@ $('helpbtn').replaceChildren(icon('help'));
 $('helpbtn').addEventListener('click', () => openSheet('now'));
 sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
-peekBtn.replaceChildren(icon('eye'), h('span', {}, 'Hold to see your role'));
 
 // debug handle for browser tests and the screenshot harness (inject() draws a state without a server)
 window.__sq = { get state() { return state; }, inject(s) { state = s; joined = true; roomCode = s.pub.room || roomCode; render(); if (!sheet.hidden) drawSheet(); }, openSheet, showSecret, hideSecret };

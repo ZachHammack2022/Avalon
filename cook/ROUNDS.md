@@ -5,7 +5,7 @@ Time: floor 2h | cap 6h
 Bar (critic median, out of 10): clarity 9 | hierarchy 9 | theme and craft 9 | consistency 9 | privacy 9 | ergonomics 9
 Calibration offset: none yet (no user estimate)
 Gate: stills approved no | final deliverable is the live UI (no long render)
-Best so far: round 1, `cook/stills/r01/`
+Best so far: round 3, `cook/stills/r03/`
 
 ## Decisions
 
@@ -29,5 +29,21 @@ Focus: whole phone UI rebuilt around a table-safe screen.
 Changed: new `icons.js` (role, class and UI glyphs), avatars (colour + class glyph), quest tracker with shields and reject pips, face-down role card with hold-to-reveal, parchment role card with known players and secret counsel, vote tokens, quest cards, select-then-confirm, waiting screens with who-has-voted, vote reveal, result and game-over screens, help sheet (Now / How to play / Roles), compact layout for short phones, `scripts/phone-shots.mjs` (23 screens from mock states, overflow check).
 Measured: 97/97 unit tests pass; live-game browser check passes; 23 screens at 390x844 and 320x568 with no horizontal overflow and no console errors.
 Own score (eyeballed, not decisive): clarity 8.5, hierarchy 8.5, theme 8, consistency 8.5, privacy 9, ergonomics 8.
-Critic: pending.
-Next: critic findings.
+Critic 1 (zero context, eyeballed): clarity 7, hierarchy 6, theme 6, consistency 7, privacy 4, ergonomics 5. Main findings: Fail card disabled for Good leaks team; red selected card; team-coloured role card border; overlaps on 320px; peek button under the primary button; weak glyphs.
+
+## Round 02
+
+Time: 04:05 to 04:40 | total elapsed 1.5h
+Focus: privacy and small-phone layout, from critic 1.
+Changed: quest cards identical for everyone and face-down once chosen; role card frame neutral; real scroll region with a fixed action bar; 0.26 s deliberate hold; lobby look picker collapsed, roster first; tracker double-dot for 2-Fail quests; redrawn minion, assassin, rogue, barbarian, hooded glyphs; centred waiting screens.
+Measured: 97/97 tests, live-game check pass, 23 screens x 2 sizes with no overflow or console errors.
+Critic 2 (zero context, eyeballed): clarity 7, hierarchy 7, theme 6, consistency 8, privacy 5, ergonomics 6. Main findings: fixed left/right card order leaks via thumb; coloured sigil and pill on the role card; "The story blames" reads as proof; hold bar next to primary button; one-tap kick; tracker too tall; disabled buttons look live.
+
+## Round 03
+
+Time: 04:40 to 05:15 | total elapsed 2.1h
+Focus: remaining privacy tells and mis-tap risk, from critic 2.
+Changed: hold-to-peek moved into the header name chip (bottom bar removed, more room everywhere); quest card order shuffled per player and quest; a Good player's card always plays as Success with no visible difference; role card in one neutral ink with alignment in words; "Suspicion falls on"; armed-only primary buttons with a dashed hint before a choice; bot stepper; two-step remove for humans; collapsed role settings; single-row tracker with the legend in help; chalice for Success, banner for Percival, new knight and barbarian glyphs; Join disabled until valid.
+Measured: 97/97 tests, live-game check pass, 23 screens x 2 sizes with no overflow or console errors.
+Own score (eyeballed, not decisive): clarity 8.5, hierarchy 8.5, theme 8, consistency 9, privacy 9, ergonomics 8.5.
+Critic 3: pending.
