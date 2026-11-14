@@ -118,7 +118,7 @@ if (!process.argv.includes('--live-only')) {
   await phone.fill('input[placeholder="Your name"]', 'Tester');
   await phone.click('main button.primary');
   await phone.waitForSelector('text=+ Bot');
-  for (let i = 0; i < 4; i++) await phone.click('text=+ Bot');
+  for (let i = 0; i < 4; i++) await phone.click('button:has-text("+ Bot")');
   await phone.waitForFunction(() => window.__sq.state && window.__sq.state.pub.players.length === 5);
   await phone.click('text=Start game');
   await phone.waitForSelector('.cardback');
