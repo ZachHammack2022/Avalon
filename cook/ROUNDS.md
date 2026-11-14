@@ -129,3 +129,5 @@ Added code-made soundtrack (public/intro/sound.js: synthesized pad, wind, wing t
 Round 17 result: the page script was broken by my own edit (fixed, commit 314a1c0). Offline WAV render now works (scripts/intro-audio.mjs, about 4 min on this machine).
 Measured (ffmpeg, cook/audio/intro-r17.wav, 62 s): integrated -23.7 LUFS, true peak -5.0 dBFS, LRA 12.6 LU; RMS by 2 s window: t=5 -31 dB, t=20 -23.7, t=26 -19.7 (attack), t=40 -29, t=52 -29, t=60 -35. Loudness arc follows the story.
 Not verified: how it sounds. Nobody has listened. WAV is git-ignored (11 MB).
+
+Round 17 closing frame: tried two side angles for the last 3 s. The head is still hidden behind the folded wing at t=60-61 (visible at t=58). Open item: raise the head or fold the near wing lower during the settle.

@@ -102,7 +102,7 @@ export async function createIntro(canvas, opts = {}) {
     const ml = new THREE.PointLight(0xff9a3a, 9000, 160, 1.5); ml.position.set(0, 0, 8); mg.add(ml); world.add(mg); }
   { // final hero camera: close on the resting head
     const he = dragon.headPose(cave, 61.9, dragonParams(61.9)).pos; const k = SHOTS[5].keys;
-    k[k.length - 1] = [62, he.x + 20, he.y + 8, he.z - 13, he.x - 1, he.y + 0.6, he.z, 32]; k.splice(k.length - 1, 0, [60, he.x + 12, he.y + 6, he.z - 8, he.x, he.y + 0.5, he.z, 34]); }
+    k[k.length - 1] = [62, he.x + 15, he.y + 7, he.z - 4, he.x - 1, he.y + 0.6, he.z, 30]; k.splice(k.length - 1, 0, [60, he.x + 12, he.y + 6, he.z - 3, he.x, he.y + 0.5, he.z, 34]); }
   const dragonFill = new THREE.PointLight(0xff9a50, 0, 60, 1.6); scene.add(dragonFill);
   const dragonRim = new THREE.PointLight(0x7fa0ff, 0, 60, 1.6); scene.add(dragonRim);
   // lights
