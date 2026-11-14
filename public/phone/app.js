@@ -236,7 +236,7 @@ function trackerBar() {
       const cls = `${r ? (r.outcome === 'success' ? 's' : 'f') : ''} ${i === g.questIndex && !r ? 'cur' : ''}`;
       return h('div', { class: 'qcol' }, h('div', { class: `q ${cls}` },
         r ? icon(r.outcome === 'success' ? 'check' : 'cross') : h('b', {}, String(teamSize(n, i)))),
-        h('small', {}, failsRequired(n, i) > 1 && !r ? '2 Fails' : ''));
+        h('small', {}, failsRequired(n, i) > 1 && !r ? 'needs 2' : ''));
     })),
     h('div', { class: 'rejects', 'aria-label': `${g.rejectCount} of ${MAX_REJECTS} teams rejected` },
       h('span', {}, `Rejected teams ${g.rejectCount}/${MAX_REJECTS}`), Array.from({ length: MAX_REJECTS }, (_, i) => h('i', { class: i < g.rejectCount ? 'on' : '' }))));
@@ -292,7 +292,7 @@ const SCREENS = {
       lookOpen ? h('div', { class: 'swatches' }, AVATAR_COLORS.map((c) => h('button', { class: `swatch ${c === mine.color ? 'sel' : ''}`, style: `--c:${c}`, 'aria-pressed': String(c === mine.color), onclick: () => send({ t: 'setAvatar', color: c }), 'aria-label': `Colour ${c}` }))) : null);
     const roster = h('div', { class: 'panel' },
       h('div', { class: 'row' }, h('div', { class: 'label grow' }, `${n} at the campfire${n < MIN_PLAYERS ? ` · need ${MIN_PLAYERS}` : ''}`),
-        vip ? h('div', { class: 'stepper', role: 'group', 'aria-label': 'Bots' }, h('button', { onclick: () => send({ t: 'removeBot' }), disabled: !pub.players.some((p) => p.bot), 'aria-label': 'Remove a bot' }, '−'), h('span', {}, 'Bots'), h('button', { onclick: () => send({ t: 'addBot' }), disabled: n >= 10, 'aria-label': 'Add a bot' }, '+')) : null),
+        vip ? h('div', { class: 'stepper', role: 'group', 'aria-label': 'Bots' }, h('button', { onclick: () => send({ t: 'removeBot' }), disabled: !pub.players.some((p) => p.bot), 'aria-label': 'Remove a bot' }, '−'), h('span', {}, `${pub.players.filter((p) => p.bot).length} bots`), h('button', { onclick: () => send({ t: 'addBot' }), disabled: n >= 10, 'aria-label': 'Add a bot' }, '+')) : null),
       h('div', { class: 'roster' }, pub.players.map((p) => h('div', { class: `person ${p.connected ? '' : 'off'}` }, avatar(p), h('span', { class: 'pname' }, p.name, h('small', {}, [p.id === me.id ? 'you' : null, p.vip ? 'host' : null, p.bot ? 'bot' : null, p.connected ? null : 'away'].filter(Boolean).join(' · '))),
         !vip || p.id === me.id ? null : kickArmed === p.id ? h('button', { class: 'danger kickgo', onclick: () => { kickArmed = null; send({ t: 'kick', id: p.id }); } }, 'Remove?')
           : h('button', { class: 'ghost kick', onclick: () => { if (p.bot) send({ t: 'kick', id: p.id }); else { kickArmed = p.id; render(); setTimeout(() => { if (kickArmed === p.id) { kickArmed = null; render(); } }, 3000); } }, 'aria-label': `Remove ${p.name}` }, icon('cross'))))));
@@ -347,7 +347,7 @@ const SCREENS = {
     // once chosen the token turns face-down, so nobody can read the vote off the screen before the table reveal
     if (choice != null) return page({ kicker, title: 'Vote chosen', hint: false,
       body: [teamRow(g.team), h('div', { class: 'tokens one' }, h('div', { class: 'token down' }, h('span', { class: 'disc' }, icon('crown')), h('b', {}, 'Face-down')))],
-      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, 'Lock in my vote'), h('button', { class: 'ghost', onclick: () => { choice = null; render(); } }, 'Change my vote')] });
+      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, 'Lock in my vote'), h('button', { class: 'linkbtn', onclick: () => { choice = null; render(); } }, 'Change my vote')] });
     return page({ kicker, title: 'Send this team?',
       body: [teamRow(g.team), h('div', { class: 'tokens' }, tok(true, 'Approve', 'check'), tok(false, 'Reject', 'cross'))],
       actions: [h('p', { class: 'armhint' }, 'Tap a token to choose')] });
@@ -381,7 +381,7 @@ const SCREENS = {
     const kicker = `Quest ${pub.game.questIndex + 1} · you are on the team`;
     if (choice) return page({ kicker, title: 'Card chosen', hint: false,
       body: [h('div', { class: 'qcards one' }, h('div', { class: 'qcard down' }, h('span', { class: 'qc-art' }, icon('crown')), h('b', {}, 'Face-down'))), h('p', { class: 'muted center small' }, 'Nobody can see which card this is.')],
-      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'play', card: me.quest.canFail ? choice : 'success' }) }, 'Play this card'), h('button', { class: 'ghost', onclick: () => { choice = null; render(); } }, 'Change my card')] });
+      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'play', card: me.quest.canFail ? choice : 'success' }) }, 'Play this card'), h('button', { class: 'linkbtn', onclick: () => { choice = null; render(); } }, 'Change my card')] });
     return page({ kicker, title: 'Play your card',
       body: [h('div', { class: 'qcards' }, pair)],
       actions: [h('p', { class: 'armhint' }, 'Tap a card to choose')] });
@@ -427,6 +427,7 @@ const SCREENS = {
     return page({ tracker: false, hint: false, kicker: won ? 'Victory' : 'Defeat', title: goodWon ? 'Good wins' : 'Evil wins',
       body: [
         h('div', { class: `result ${goodWon ? 'good' : 'bad'}` }, h('span', { class: `sigil team-${mine.team}` }, icon(rv.roles[me.id])), h('div', { class: 'label' }, 'You were'), h('b', {}, mine.name), h('small', {}, won ? 'Your side took the realm.' : 'Better luck next time.')),
+        rv.assassination && rv.assassination.target ? h('p', { class: 'center' }, `The Assassin struck ${nameOf(pub, rv.assassination.target)}. ${rv.winner === 'evil' ? 'It was Merlin.' : 'Merlin survives.'}`) : null,
         h('div', { class: 'panel' }, h('div', { class: 'label' }, 'Everyone revealed'),
           h('div', { class: 'reveal' }, pub.players.map((p) => { const r = ROLE_INFO[rv.roles[p.id]]; return h('div', { class: `person team-${r.team}` }, avatar(p), h('span', { class: 'pname' }, p.name, youTag(p.id) ? h('small', {}, 'you') : null), h('span', { class: 'rtag' }, icon(rv.roles[p.id]), r.name)); }))),
         h('div', { class: 'panel' }, h('div', { class: 'label' }, 'The five quests'),

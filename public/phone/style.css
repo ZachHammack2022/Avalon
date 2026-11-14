@@ -181,7 +181,7 @@ button.person { border-width: 2px; } button.person.sel { border-color: var(--gol
 .cardback:active { transform: scale(.98); }
 
 /* peek bar + secret role card */
-#secret { position: fixed; inset: 0; z-index: 10; background: rgba(6,4,3,.96); display: flex; align-items: center; justify-content: center; padding: 72px 20px 20px; pointer-events: none; }
+#secret { position: fixed; inset: 0; z-index: 10; background: #070504; display: flex; align-items: center; justify-content: center; padding: 72px 20px 20px; pointer-events: none; }
 #secret[hidden] { display: none; }
 .rolecard { width: min(100%, 360px); max-height: 100%; overflow: hidden; border-radius: 22px; padding: 22px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; background: linear-gradient(170deg, #f7ecd0, #e2cd9b); color: var(--parchink); border: 3px solid; box-shadow: 0 20px 50px #000c, inset 0 0 0 6px #f7ecd0, inset 0 0 0 7.500px #8a6a3488; animation: flip .22s ease-out; }
 @keyframes flip { from { transform: perspective(700px) rotateY(70deg) scale(.9); opacity: .2; } to { transform: none; opacity: 1; } }
@@ -270,3 +270,15 @@ main[data-screen=connecting] button.primary[disabled] { border: 1px solid var(--
 .pill { background: #0007; border: 1px solid #f2bd4b44; }
 @media (max-height: 640px) { .qcol small { display: none; } .tracker { align-items: center; } .rejects { margin: 0; } .rejects span { font-size: 10px; } }
 @media (max-width: 350px) { .rolesum { display: none; } }
+
+/* round 5 */
+.qcol small { color: var(--muted); font-weight: 600; } .q:not(.cur):not(.s):not(.f) { background: var(--line2); color: #efe3cf; }
+.token.no .disc { background: radial-gradient(circle at 35% 28%, #8b8591, #4a4551 60%, #2a2730); color: #ff8b78; }
+.linkbtn { background: none; border: 0; box-shadow: none; min-height: 44px; margin-top: 8px; padding: 6px; font-size: 15px; font-weight: 600; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.cardback { width: min(72vw, 300px); margin: auto; } main[data-screen=roleReveal] .scroll { justify-content: flex-start; }
+.rtag { min-width: 128px; justify-content: flex-start; }
+.roles .lookme b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; } .roles .lookme .grow { min-width: 0; } .rolesum { max-width: none; flex-wrap: nowrap; font-size: 20px; }
+input.code { line-height: 1.2; } input.code::placeholder { letter-spacing: .3em; }
+#helpbtn { margin-left: 6px; }
+.armhint { color: #d6c8b2; }
+@media (max-height: 640px) { .cardback { width: auto; height: 34vh; margin: 0 auto; } }

@@ -5,7 +5,7 @@ Time: floor 2h | cap 6h
 Bar (critic median, out of 10): clarity 9 | hierarchy 9 | theme and craft 9 | consistency 9 | privacy 9 | ergonomics 9
 Calibration offset: none yet (no user estimate)
 Gate: stills approved no | final deliverable is the live UI (no long render)
-Best so far: round 4, `cook/stills/r04/`
+Best so far: round 5, `cook/stills/r05/`
 
 ## Decisions
 
@@ -55,4 +55,16 @@ Focus: critic 3 findings.
 Changed: vote token turns face-down once chosen (same pattern as the quest card); dark role card with quiet gold ink; tokens and cards anchored just above the action bar; tracker shows "2 Fails" under the shield and "Rejected teams n/5"; Join sits under the fields; "I'm ready" appears only after the first look at the card; role settings above the roster for the host; vote verdict as a plain line; framed note on a failed quest; redrawn minion (horned skull), chalice and axe.
 Not taken: removing red and blue avatar colours (they are shared with the TV scenes), unique glyph per player (only five avatar classes exist), removing self from "Who stood out?" (server rule).
 Measured: 97/97 tests, live-game check pass, 23 screens x 2 sizes with no overflow or console errors.
-Critic 4: pending.
+Critic 4 (zero context, eyeballed): clarity 8, hierarchy 7, theme 6, consistency 8, privacy 8, ergonomics 7. Main findings: page ghosting through the hold overlay; tracker wording; Approve looked pre-selected; Change button too close to Lock in; small face-down card; no assassination line at game over.
+
+## Round 05
+
+Time: 05:45 to 06:00 | total elapsed 2.8h
+Focus: cheap, valid items from critic 4.
+Changed: opaque hold overlay; "needs 2" in neutral ink and brighter future shields; lighter Reject token; "Change my vote/card" as a text link; larger face-down role card; assassination line and aligned role column at game over; bot count in the stepper; one-line role summary in the lobby.
+Measured: 97/97 tests, live-game check pass, 23 screens x 2 sizes with no overflow or console errors.
+Critic: not run for this round.
+
+## Status at stop
+
+Below the bar of 9 on every dimension by the last critic (8 / 7 / 6 / 8 / 8 / 7, round 4, eyeballed). Biggest gap: theme and craft (code-drawn glyphs and a system serif; no real-device look yet). Not tested on a real phone. User has not approved the stills.
