@@ -60,7 +60,7 @@ export function addRim(mat) {
   return mat;
 }
 const v3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
-const S = 1.55; // dragon scale; the group is scaled, so internal space is world / S
+const S = 2.0; // dragon scale; the group is scaled, so internal space is world / S
 const M = {
   scale: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.62, metalness: 0.08 }),
   bone: new THREE.MeshStandardMaterial({ color: 0x3a2c28, flatShading: true, roughness: 0.7 }),
@@ -101,7 +101,7 @@ export class Dragon {
     this.spine = Array.from({ length: RINGS }, v3); this.frames = Array.from({ length: RINGS }, () => ({ T: v3(), U: v3(), R: v3() }));
   }
   buildHead() {
-    const h = this.head = new THREE.Group(); this.group.add(h); h.scale.setScalar(1.5);
+    const h = this.head = new THREE.Group(); this.group.add(h); h.scale.setScalar(1.7);
     const mk = (geo, mat, p, r, s) => { const m = new THREE.Mesh(geo, mat); if (p) m.position.set(...p); if (r) m.rotation.set(...r); if (s) m.scale.set(...s); m.castShadow = true; return m; };
     const dark = addRim(new THREE.MeshStandardMaterial({ color: 0x3a3238, flatShading: true, roughness: 0.6 }));
     // skull: tapered 5-sided prism lying along z

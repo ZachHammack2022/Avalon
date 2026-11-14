@@ -164,3 +164,10 @@ User: "can you use rag, like just go look up some cool dragons or shots to infor
 Sources read: Definition magazine, "Behind the shot: House of the Dragon" (cinematography: clarity, "give chaos a shape", light motivated by fire/smoke/sky, a single day passing cool to warm to fiery sunset, atmosphere over clarity); 80.lv, Final Fantasy-inspired dragon workflow (line of action, mixed animal references, wings as thin slivers, early attempts "too red overall", three-point key/fill/rim, embers and grain added in post). Tuts+ page needs JavaScript, nothing extracted. Search snippets: silhouette first, warm amber rim on a dark dragon, membrane slack between fingers, visible elbow and wrist.
 Applied: dragon recoloured from saturated red to dark charcoal body, bronze membrane with a darker-to-lighter gradient, belly kept warm; elbow spurs and deeper slack scallops; light film grain; S05 chase camera fixed (it was inside the mountain at t=43, producing the black blobs) and kept above terrain; cave-mouth rocks and arch made visible instead of black.
 Sheet: `cook/compare/r26-sheet.png`. Critic: pending.
+
+Round 26 critic (1 sonnet, fresh context, eyeballed, no calibration offset): composition 6, light 7, color 6.5, materials 4, detail 5, dragon design 3.5, story clarity 6.5.
+Reading: the reference-informed palette and grain did not raise scores; dragon design dropped to 3.5 because the dragon is small, thin and often cropped in most frames, never a hero shape. Next try: make the dragon bigger and bulkier in frame everywhere (scale 1.55 to 2.0, thicker body, bigger head).
+
+## Round 27
+Change: dragon scale 1.55 to 2.0 and head 1.5 to 1.7 so it is larger in every frame. Sheet: `cook/compare/r27-sheet.png`. Critic: not run (self-eyeballed: the opening and mountain shots read better, the dragon fills more of the frame; the cave closing frame is now crowded).
+Stop check: bar no (about 6-7 vs 9) | floor reached | stills approved no | final render not started
