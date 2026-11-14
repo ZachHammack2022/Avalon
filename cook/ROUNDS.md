@@ -135,3 +135,7 @@ Round 17 closing frame: tried two side angles for the last 3 s. The head is stil
 ## Round 18
 Fix: the dragon's head is lifted off the coins during the settle (headLift 2.6 m from t=58.5), so it is visible in the closing frames (t=60, 61). Closed the open item from round 17.
 Sheet: `cook/compare/r18-sheet.png` (12 frames), closing check `cook/compare/r17c-sheet.png`.
+
+Round 18 critic (1 sonnet, fresh context, eyeballed, no calibration offset): composition 6, light 7, color 6.5, materials 4, detail 5, dragon design 5, story clarity 7.
+Gaps: opening (frames 1-2) dragon thin in beige haze and low contrast terrain; frame 5 thin wings and tiled pines; frame 9 cave arch looks pasted on and floats high; frame 11 cave interior murky with no focal point. Burning village frames (6-8) are the best and the quality reference.
+Stop check: bar no (about 6-7 vs 9) | floor about 7.5h of 8h | stills approved no | final render not started
