@@ -96,7 +96,8 @@ export async function createIntro(canvas, opts = {}) {
   const caveG = makeCave(env); scene.add(caveG);
   const dragon = new Dragon(); scene.add(dragon.group);
   // cave mouth on the mountain: dark arch + warm glow, plus a light
-  { const mg = new THREE.Group(); mg.position.copy(MOUTH); const nrm = V(0.79, 0.12, 0.61).normalize(); mg.lookAt(MOUTH.clone().add(nrm));
+  { const mg = new THREE.Group(); mg.position.copy(MOUTH); const nrm = V(0.79, 0.12, 0.61).normalize(); { const e = 4, gx = heightAt(MOUTH.x + e, MOUTH.z) - heightAt(MOUTH.x - e, MOUTH.z), gz = heightAt(MOUTH.x, MOUTH.z + e) - heightAt(MOUTH.x, MOUTH.z - e); const tn = V(-gx / (2 * e), 1, -gz / (2 * e)).normalize(); nrm.lerp(tn, 0.5).normalize(); mg.lookAt(MOUTH.clone().add(nrm)); }
+    { const rock = new THREE.MeshStandardMaterial({ color: 0x3a2e28, flatShading: true, roughness: 1 }); const led = new THREE.Mesh(new THREE.BoxGeometry(30, 3, 16), rock); led.position.set(0, -15.5, 6); mg.add(led); for (let i = 0; i < 9; i++) { const a = Math.PI * (i / 8), r = new THREE.Mesh(new THREE.IcosahedronGeometry(3.2 + (i % 3), 0), rock); r.position.set(Math.cos(a) * 17.5, Math.sin(a) * 21 - 1, 0); r.rotation.set(i, i * 2, i * 3); mg.add(r); } }
     const glow = new THREE.Mesh(new THREE.CircleGeometry(15, 24), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.62, 0.18).multiplyScalar(2.3) })); glow.scale.set(0.8, 1.05, 1); glow.position.z = 0.5; mg.add(glow);
     const arch = new THREE.Mesh(new THREE.TorusGeometry(15, 3.2, 5, 14, Math.PI), new THREE.MeshStandardMaterial({ color: 0x2c2420, flatShading: true, roughness: 1 })); arch.scale.set(0.8, 1.05, 1.4); arch.position.z = 0.3; mg.add(arch);
     for (const s of [-1, 1]) { const col = new THREE.Mesh(new THREE.BoxGeometry(5, 18, 6), arch.material); col.position.set(s * 12.2, -9, 0.3); mg.add(col); }
@@ -114,7 +115,7 @@ export async function createIntro(canvas, opts = {}) {
   const fireLight = new THREE.PointLight(0xff7a20, 0, 120, 1.4); scene.add(fireLight);
   const fireLights = [0, 1, 2].map(() => { const l = new THREE.PointLight(0xff6a18, 0, 60, 1.5); scene.add(l); return l; });
   const sunDir = V(0.19, 0.22, -0.96).normalize(); sky.material.uniforms.uSun.value.copy(sunDir);
-  scene.fog = new THREE.FogExp2(0xb86a48, 0.0008);
+  scene.fog = new THREE.FogExp2(0xb86a48, 0.0005);
 
   // plan village destruction from the dragon track
   const headAt = (t) => dragon.headPose(outdoor, t, dragonParams(t)).pos;
@@ -182,7 +183,7 @@ export async function createIntro(canvas, opts = {}) {
     const sunMix = smoothstep(22, 36, t); sunL.color.setRGB(1.0, lerp(0.66, 0.55, sunMix), lerp(0.4, 0.5, sunMix)); sunL.intensity = lerp(3.4, 1.2, sunMix) * (inCave ? 0 : 1);
     sunL.position.copy(camera.position).addScaledVector(sunDir, 300); sunL.target.position.copy(camera.position).add(V(0, 0, -20)); if (shot.id === 'S03' || shot.id === 'S02' || shot.id === 'S02b' || shot.id === 'S04') { sunL.target.position.set(0, 0, 0); sunL.position.copy(sunDir).multiplyScalar(300); sunL.shadow.camera.left = -120; sunL.shadow.camera.right = 120; sunL.shadow.camera.top = 120; sunL.shadow.camera.bottom = -120; } else { sunL.castShadow = true; }
     hemi.intensity = inCave ? 0.0 : lerp(1.5, 1.5, dusk); hemi.color.setRGB(lerp(0.55, 0.42, dusk), lerp(0.6, 0.5, dusk), lerp(0.75, 0.85, dusk));
-    scene.fog.color.setRGB(lerp(0.82, 0.3, dusk), lerp(0.4, 0.22, dusk), lerp(0.2, 0.24, dusk)); scene.fog.density = inCave ? 0 : lerp(0.0008, 0.0007, dusk);
+    scene.fog.color.setRGB(lerp(0.82, 0.3, dusk), lerp(0.4, 0.22, dusk), lerp(0.2, 0.24, dusk)); scene.fog.density = inCave ? 0 : lerp(0.0005, 0.0007, dusk);
     // fire lights: follow the three nearest burning houses to camera
     const burning = village.houses.filter((h) => t > h.ignite + 0.3 && t < h.ignite + 60).sort((a, b) => Math.hypot(a.x - camera.position.x, a.z - camera.position.z) - Math.hypot(b.x - camera.position.x, b.z - camera.position.z));
     fireLights.forEach((l, i) => { const h = burning[i]; if (!h || inCave) { l.intensity = 0; return; } l.position.set(h.x, h.y + h.h + 2, h.z); l.intensity = 900 * clamp((t - h.ignite) / 2) * (0.85 + 0.15 * Math.sin(t * 23 + i * 5)); });

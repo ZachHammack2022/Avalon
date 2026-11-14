@@ -139,3 +139,7 @@ Sheet: `cook/compare/r18-sheet.png` (12 frames), closing check `cook/compare/r17
 Round 18 critic (1 sonnet, fresh context, eyeballed, no calibration offset): composition 6, light 7, color 6.5, materials 4, detail 5, dragon design 5, story clarity 7.
 Gaps: opening (frames 1-2) dragon thin in beige haze and low contrast terrain; frame 5 thin wings and tiled pines; frame 9 cave arch looks pasted on and floats high; frame 11 cave interior murky with no focal point. Burning village frames (6-8) are the best and the quality reference.
 Stop check: bar no (about 6-7 vs 9) | floor about 7.5h of 8h | stills approved no | final render not started
+
+## Round 20
+Changes: dragon rebuilt with a deeper chest, thicker neck and larger wings (arms and fingers about 20-25% longer, fuller membrane scallops); cave mouth set into the slope with a boulder ring and a ledge, tilted to the terrain normal; sun disc enlarged and sky glow lowered so the opening is less washed out; cave gets four stone pillars and a stronger moon shaft.
+Sheet: `cook/compare/r20-sheet.png`. Critic scores: pending.

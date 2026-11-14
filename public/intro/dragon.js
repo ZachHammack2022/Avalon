@@ -44,9 +44,9 @@ const LEN = 38, RINGS = 56, SIDES = 10;
 function radiusAt(s) {
   const k = (a, b, x) => clamp((x - a) / (b - a));
   const sm = (x) => x * x * (3 - 2 * x);
-  if (s < 8) return 0.42 + 0.55 * sm(k(0, 8, s));
-  if (s < 15) return 0.97 + 0.75 * sm(k(8, 12, s)) - 0.15 * sm(k(12, 15, s));
-  if (s < 21) return 1.57 - 0.35 * sm(k(15, 21, s));
+  if (s < 8) return 0.5 + 0.6 * sm(k(0, 8, s));
+  if (s < 15) return 1.05 + 1.1 * sm(k(8, 12, s)) - 0.15 * sm(k(12, 15, s));
+  if (s < 21) return 2.0 - 0.6 * sm(k(15, 21, s));
   return 1.22 * Math.pow(1 - k(21, LEN, s), 1.25) + 0.05;
 }
 
@@ -209,11 +209,11 @@ export class Dragon {
     for (const w of this.wings) {
       const sd = w.side, Z = new THREE.Vector3(0, 0, 1);
       const sh = new THREE.Vector3(sd * 0.9, 0.9, 0);
-      const ua = new THREE.Vector3(sd * 1, 0.25, 0.55).normalize().multiplyScalar(5.2 * (1 - fold * 0.55)); rot(ua, -sd * flap, Z); if (fold) ua.set(sd * 0.55, 0.9, -0.2).multiplyScalar(fold).add(ua.clone().multiplyScalar(1 - fold));
+      const ua = new THREE.Vector3(sd * 1, 0.25, 0.55).normalize().multiplyScalar(6.3 * (1 - fold * 0.55)); rot(ua, -sd * flap, Z); if (fold) ua.set(sd * 0.55, 0.9, -0.2).multiplyScalar(fold).add(ua.clone().multiplyScalar(1 - fold));
       const E = sh.clone().add(ua);
-      const fa = new THREE.Vector3(sd * 1, 0.05, -0.55).normalize().multiplyScalar(7.2 * (1 - fold * 0.75)); rot(fa, -sd * flap2, Z); if (fold) fa.lerp(new THREE.Vector3(-sd * 0.2, 0.2, -1).multiplyScalar(7.2 * 0.25), fold);
+      const fa = new THREE.Vector3(sd * 1, 0.05, -0.55).normalize().multiplyScalar(8.6 * (1 - fold * 0.75)); rot(fa, -sd * flap2, Z); if (fold) fa.lerp(new THREE.Vector3(-sd * 0.2, 0.2, -1).multiplyScalar(7.2 * 0.25), fold);
       const W = E.clone().add(fa);
-      const fingers = [[1, 0.05, 0.6, 11], [1, 0.0, 0.0, 14], [0.9, -0.05, -0.55, 13.5], [0.7, -0.1, -1.0, 10.5]].map(([x, y, z, len]) => {
+      const fingers = [[1, 0.05, 0.6, 14], [1, 0.0, 0.0, 17.5], [0.9, -0.05, -0.55, 17], [0.7, -0.1, -1.0, 13.5]].map(([x, y, z, len]) => {
         const d = new THREE.Vector3(sd * x, y, z).normalize(); rot(d, -sd * (flap2 * 1.1 + 0.2), Z);
         if (fold) d.lerp(new THREE.Vector3(-sd * 0.15, 0.15, -1), fold).normalize();
         d.y -= 0.06 * Math.abs(Math.sin(flap2)) ; return W.clone().addScaledVector(d, len * (1 - fold * 0.72));
@@ -225,7 +225,7 @@ export class Dragon {
       const bones = [[S, Ew, 0.6], [Ew, Ww, 0.45], [Ww, Fw[0], 0.26], [Ww, Fw[1], 0.26], [Ww, Fw[2], 0.22], [Ww, Fw[3], 0.18]];
       w.bones.forEach((b, i) => this.place(b, bones[i][0], bones[i][1], bones[i][2]));
       // membrane triangles
-      const tri = []; const mid = (a, b) => v3().copy(a).lerp(b, 0.5).lerp(Ww, 0.22);
+      const tri = []; const mid = (a, b) => v3().copy(a).lerp(b, 0.5).lerp(Ww, 0.12);
       const chain = [Fw[0], Fw[1], Fw[2], Fw[3], Bw];
       for (let i = 0; i < chain.length - 1; i++) { const m = mid(chain[i], chain[i + 1]); tri.push([Ww, chain[i], m], [Ww, m, chain[i + 1]]); }
       tri.push([Ww, Bw, S], [S, Ew, Ww]);

@@ -47,6 +47,8 @@ export function makeCave(envMap) {
     if (up) { m.position.set(x, rockFloor(x, z) + h / 2 - 0.3, z); } else { m.rotation.x = Math.PI; const ceil = ceilingAt(x, z); if (ceil == null) continue; m.position.set(x, ceil - h / 2 + 0.6, z); }
     m.castShadow = true; g.add(m);
   }
+  // pillars
+  for (const [x, z, rr] of [[-36, 14, 3], [34, 8, 2.6], [-30, -22, 3.2], [26, -26, 2.8]]) { const top = ceilingAt(x, z); if (top == null) continue; const h = top - rockFloor(x, z); const col = new THREE.Mesh(new THREE.CylinderGeometry(rr * 0.8, rr, h, 7), rockM); col.position.set(x, rockFloor(x, z) + h / 2, z); col.castShadow = true; g.add(col); }
   // hoard: dark gold base heap + instanced coins
   const hg = new THREE.PlaneGeometry(64, 64, 96, 96); hg.rotateX(-Math.PI / 2);
   const hp = hg.attributes.position; for (let i = 0; i < hp.count; i++) { const x = hp.getX(i), z = hp.getZ(i); hp.setY(i, Math.max(heapH(x, z) - 0.5, rockFloor(x, z) - 0.2)); }
@@ -95,7 +97,7 @@ export function makeCave(envMap) {
     transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
     uniforms: { uI: { value: 1 } },
     vertexShader: 'varying vec2 vUv; varying vec3 vN; void main(){ vUv=uv; vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }',
-    fragmentShader: 'varying vec2 vUv; uniform float uI; void main(){ float a = pow(1.0-vUv.y, 1.4)*0.05*uI; a *= smoothstep(0.0,0.1,vUv.y); gl_FragColor = vec4(vec3(0.5,0.65,1.0)*a, a); }',
+    fragmentShader: 'varying vec2 vUv; uniform float uI; void main(){ float a = pow(1.0-vUv.y, 1.4)*0.08*uI; a *= smoothstep(0.0,0.1,vUv.y); gl_FragColor = vec4(vec3(0.5,0.65,1.0)*a, a); }',
   }));
   shaft.position.set(14, 40 - 18, -6); shaft.renderOrder = 4; g.add(shaft);
   // lights

@@ -37,17 +37,17 @@ export function makeSky() {
         vec3 horizon = mix(vec3(1.0,0.5,0.14), vec3(0.55,0.32,0.28), uMix);
         float t = clamp(y,0.,1.);
         vec3 col = mix(horizon, mid, smoothstep(0.0,0.22,t)); col = mix(col, zenith, smoothstep(0.3,1.0,t));
-        col += vec3(1.0,0.55,0.18) * pow(sd, 6.) * 0.3 * (1.-uMix*0.6) + vec3(1.0,0.78,0.4) * pow(sd, 48.) * 0.6 * (1.-uMix*0.5);
+        col += vec3(1.0,0.55,0.18) * pow(sd, 6.) * 0.18 * (1.-uMix*0.6) + vec3(1.0,0.78,0.4) * pow(sd, 48.) * 0.6 * (1.-uMix*0.5);
         // sun disc
-        float disc = smoothstep(0.9993, 0.9997, sd); col = mix(col, vec3(1.0,0.86,0.55)*3.0, disc*(1.-uMix));
+        float disc = smoothstep(0.9988, 0.9993, sd); col = mix(col, vec3(1.0,0.8,0.4)*3.5, disc*(1.-uMix));
         // clouds on a plane
         vec2 uv = d.xz / (abs(y)+0.12) * 0.9 + vec2(uTime*0.004, 0.);
         float c = fbm(uv*1.3); float c2 = fbm(uv*3.1+4.);
         float cl = smoothstep(0.42, 0.75, c*0.8 + c2*0.35) * smoothstep(-0.02, 0.1, y) * (1. - smoothstep(0.8, 1.0, y));
         vec3 under = mix(vec3(0.95,0.38,0.13), vec3(0.22,0.18,0.3), uMix) * (0.45 + 0.9*pow(sd,2.)) ;
         vec3 top = mix(vec3(0.35,0.2,0.28), vec3(0.08,0.1,0.18), uMix);
-        vec3 ccol = mix(top, under, smoothstep(0.55,0.78,c) ) + vec3(1.,0.65,0.3)*pow(sd,5.)*0.9*(1.-uMix);
-        col = mix(col, ccol, cl*0.88);
+        vec3 ccol = mix(top, under, smoothstep(0.55,0.78,c) ) + vec3(1.,0.5,0.18)*pow(sd,5.)*0.35*(1.-uMix);
+        col = mix(col, ccol, cl*0.8);
         // distant fire glow on the horizon
         col += vec3(1.,0.35,0.06) * uFire * smoothstep(0.35,0.0,y) * 0.5;
         // stars at night
