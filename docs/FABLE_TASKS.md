@@ -14,7 +14,9 @@ Done:
 - **F1/F3:** `scripts/shot.mjs` contact sheets; the browser check asserts the culprit is on screen at every freeze-frame
   and the hero during their hero beat.
 
-Still open: real audio samples and music (C1), narration tuning (C2), phone polish (D4), gag variety and a second
+- **D4 (phone polish):** haptics (tick on every button, pattern when it is your turn, result buzz), screen-enter transition, offline banner that disables buttons, ✔/✖ symbols alongside colour on decisions, focus rings, reduced-motion, 44px+ tap targets, small and landscape layouts.
+
+Still open: real audio samples and music (C1), narration tuning (C2), gag variety and a second
 campaign (E), performance budgets on real hardware (F2).
 
 ## A. Cutscenes (the main event)

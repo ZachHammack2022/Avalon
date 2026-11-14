@@ -52,7 +52,7 @@ function connect() {
   if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
   ws = new WebSocket(url());
   ws.onopen = () => {
-    retry = 0;
+    retry = 0; setOffline(false);
     const token = store.get(`sq.token.${roomCode}`);
     if (roomCode && name && (token || wantJoin)) send({ t: 'join', room: roomCode, name, token: token || undefined });
     else render();
@@ -62,7 +62,7 @@ function connect() {
     onMessage(m);
   };
   ws.onclose = () => {
-    if (joined) toast('Reconnecting…');
+    if (joined) setOffline(true);
     retryTimer = setTimeout(connect, Math.min(5000, 500 * 2 ** retry++));
   };
   ws.onerror = () => {};
@@ -93,6 +93,21 @@ function onMessage(m) {
       joined = false; state = null; store.del(`sq.token.${roomCode}`); joinError = 'You were removed from the room.'; render();
       break;
   }
+}
+
+// ---------- haptics ----------
+const buzz = (pat) => { try { if (navigator.vibrate) navigator.vibrate(pat); } catch { /* unsupported */ } };
+const HAPTIC = { tap: 12, confirm: [25, 40, 25], turn: [120, 60, 120], result: 200, bad: [60, 40, 60, 40, 160] };
+// every button press gets a light tick; buttons can opt into a stronger pattern with data-buzz
+document.addEventListener('pointerdown', (e) => {
+  const b = e.target.closest && e.target.closest('button');
+  if (b && !b.disabled && b.id !== 'peek') buzz(HAPTIC[b.dataset.buzz] || HAPTIC.tap);
+}, true);
+
+// ---------- connection banner ----------
+function setOffline(off) {
+  const b = $('offline'); if (b) b.hidden = !off;
+  document.body.classList.toggle('offline', off);
 }
 
 let toastTimer;
@@ -146,11 +161,19 @@ function render() {
   main.replaceChildren(...[].concat(fn ? fn() : [h('p', { class: 'muted center' }, 'One moment…')]));
   const phase = state ? state.pub.phase : '';
   if (phase !== lastPhase) {
-    if (phase === 'questResult' && navigator.vibrate) { try { navigator.vibrate(200); } catch { /* ignore */ } }
+    if (phase === 'questResult') buzz(HAPTIC.result);
+    else if (phase === 'roleReveal') buzz(HAPTIC.confirm);
     lastPhase = phase;
+  }
+  // a nudge when it becomes *your* turn to act
+  if (screen !== lastScreen) {
+    if (['propose', 'vote', 'quest-card', 'quest-pick', 'assassinate'].includes(screen)) buzz(HAPTIC.turn);
+    main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
+    lastScreen = screen;
   }
 }
 let lastPhase = '';
+let lastScreen = '';
 
 function joinScreen() {
   if (joined) return [h('p', { class: 'muted center' }, 'Connecting…')];
@@ -187,7 +210,7 @@ const SCREENS = {
       h('div', { class: 'card' },
         h('div', { class: 'muted small' }, `${pub.players.length} at the campfire`),
         h('div', { class: 'players', style: 'margin-top:8px' }, pub.players.map((p) => h('span', { class: `pill ${p.connected ? '' : 'off'}` }, dot(p.color), p.name + (p.vip ? ' ★' : '') + (p.bot ? ' (bot)' : ''),
-          vip && p.id !== me.id ? h('button', { class: 'ghost', style: 'min-height:28px;padding:0 8px;border-radius:14px', onclick: () => send({ t: 'kick', id: p.id }), 'aria-label': `Remove ${p.name}` }, '✕') : null)))),
+          vip && p.id !== me.id ? h('button', { class: 'ghost', style: 'min-height:44px;min-width:44px;padding:0 8px;border-radius:14px', onclick: () => send({ t: 'kick', id: p.id }), 'aria-label': `Remove ${p.name}` }, '✕') : null)))),
     ];
     if (vip) {
       const v = pub.validation;
@@ -240,8 +263,8 @@ const SCREENS = {
       h('h2', {}, 'Approve this team?'),
       teamCard(pub),
       h('div', { class: 'row' },
-        h('button', { class: 'ok big grow', onclick: () => send({ t: 'vote', approve: true }) }, 'Approve'),
-        h('button', { class: 'no big grow', onclick: () => send({ t: 'vote', approve: false }) }, 'Reject')),
+        h('button', { class: 'ok big grow', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: true }) }, '✔ Approve'),
+        h('button', { class: 'no big grow', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: false }) }, '✖ Reject')),
     ];
   },
   voted() { return [header(), teamCard(state.pub), h('div', { class: 'bigtext' }, 'Vote locked in. Waiting for the others…')]; },
@@ -250,8 +273,8 @@ const SCREENS = {
     const { pub } = state; const g = pub.game;
     return [
       header(),
-      h('div', { class: `banner ${g.approved ? 'good' : 'bad'}` }, g.approved ? 'Team approved' : 'Team rejected'),
-      h('div', { class: 'card recap' }, pub.players.map((p) => h('div', {}, h('span', {}, dot(p.color), ' ', p.name), h('span', { class: g.votes[p.id] ? 'tag-good' : 'tag-evil' }, g.votes[p.id] ? 'Approve' : 'Reject')))),
+      h('div', { class: `banner ${g.approved ? 'good' : 'bad'}` }, g.approved ? '✔ Team approved' : '✖ Team rejected'),
+      h('div', { class: 'card recap' }, pub.players.map((p) => h('div', {}, h('span', {}, dot(p.color), ' ', p.name), h('span', { class: g.votes[p.id] ? 'tag-good' : 'tag-evil' }, g.votes[p.id] ? '✔ Approve' : '✖ Reject')))),
       !g.approved ? h('p', { class: 'muted center' }, `${g.rejectCount} of 5 rejections`) : null,
     ];
   },
@@ -262,8 +285,8 @@ const SCREENS = {
       header(),
       h('h2', {}, 'Play your card'),
       h('p', { class: 'muted' }, 'Secretly choose how you help this quest.'),
-      h('button', { class: 'ok big', onclick: () => send({ t: 'play', card: 'success' }) }, 'Success'),
-      h('button', { class: 'no big', disabled: !me.quest.canFail, onclick: () => send({ t: 'play', card: 'fail' }) }, 'Fail'),
+      h('button', { class: 'ok big', 'data-buzz': 'confirm', onclick: () => send({ t: 'play', card: 'success' }) }, '✔ Success'),
+      h('button', { class: 'no big', 'data-buzz': 'bad', disabled: !me.quest.canFail, onclick: () => send({ t: 'play', card: 'fail' }) }, '✖ Fail'),
     ];
   },
   'quest-pick'() {
@@ -287,7 +310,7 @@ const SCREENS = {
     const ok = r.outcome === 'success';
     return [
       header(),
-      h('div', { class: `banner ${ok ? 'good' : 'bad'}` }, ok ? 'Quest succeeded!' : 'Quest failed!'),
+      h('div', { class: `banner ${ok ? 'good' : 'bad'}` }, ok ? '✔ Quest succeeded!' : '✖ Quest failed!'),
       h('div', { class: 'bigtext' }, ok ? `Hero: ${nameOf(pub, r.hero)}` : `${nameOf(pub, r.culprit)} did it.`),
       r.failCount != null ? h('p', { class: 'muted center' }, `${r.failCount} Fail card${r.failCount === 1 ? '' : 's'}`) : null,
     ];

@@ -9,7 +9,8 @@
 </head>
 <body>
 <header id="top"><span id="roomtag"></span><span id="nametag"></span></header>
-<main id="main"><p class="muted center">Connecting…</p></main>
+<div id="offline" role="alert" hidden>Connection lost. Reconnecting… your seat is saved.</div>
+<main id="main" aria-live="polite"><p class="muted center">Connecting…</p></main>
 <div id="toast" role="status" aria-live="polite"></div>
 <footer id="peekbar" hidden>
   <button id="peek" type="button">Hold to peek at your role</button>

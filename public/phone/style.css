@@ -1,5 +1,5 @@
 :root {
-  --bg: #14110f; --panel: #221d19; --panel2: #2d2620; --ink: #f6efe6; --muted: #a79b8d;
+  --bg: #14110f; --panel: #221d19; --panel2: #2d2620; --ink: #f6efe6; --muted: #bdb2a5;
   --gold: #f4b942; --good: #4db6ac; --evil: #e5604f; --ok: #5cb85c; --no: #d9534f;
   --r: 16px;
 }
@@ -60,3 +60,16 @@ footer#peekbar button.revealing { background: var(--gold); color: #1d1405; }
 .tag-good { color: var(--good); } .tag-evil { color: var(--evil); }
 .progress { display: flex; gap: 8px; justify-content: center; } .progress i { width: 26px; height: 26px; border-radius: 50%; background: var(--panel2); display: block; }
 .progress i.s { background: var(--good); } .progress i.f { background: var(--evil); } .progress i.cur { outline: 3px solid var(--gold); }
+
+/* ---- polish: motion, focus, offline, small screens ---- */
+main.enter { animation: enter .22s ease-out; }
+@keyframes enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+#offline { background: var(--no); color: #fff; text-align: center; padding: 8px 12px; font-weight: 700; font-size: 15px; }
+#offline[hidden] { display: none; }
+body.offline main button { opacity: .4; pointer-events: none; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.tag-good, .tag-evil { font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { main.enter { animation: none; } button:active { transform: none; } .toggle .sw::after { transition: none; } }
+@media (max-width: 360px) { .chips { grid-template-columns: 1fr; } button.big { font-size: 20px; min-height: 80px; } h1 { font-size: 22px; } }
+@media (max-height: 560px) { button.big { min-height: 64px; } .bigtext { padding: 14px 8px; } }
+@media (orientation: landscape) and (max-height: 500px) { main { flex-direction: row; flex-wrap: wrap; align-content: flex-start; } main > * { flex: 1 1 280px; } }
