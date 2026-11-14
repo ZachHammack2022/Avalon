@@ -1,4 +1,6 @@
 // Inline SVG glyphs (24x24, currentColor). Hand-drawn in code so the phone needs no icon font, emoji or network.
+import { GAME_ICONS } from './icon-data.js';
+
 const P = {
   // roles
   loyal: '<path fill-rule="evenodd" d="M12 2l8 3v6c0 5.2-3.4 9.4-8 11-4.6-1.6-8-5.8-8-11V5zm-1 5v3H8v2h3v5h2v-5h3v-2h-3V7z"/>',
@@ -31,11 +33,11 @@ const P = {
   help: '<path d="M8 8.500C8 6 9.700 4.500 12 4.500s4 1.400 4 3.600c0 1.700-.9 2.500-2 3.300-.8.600-1 1-1 2.100h-2.200c0-1.900.5-2.700 1.700-3.600.8-.6 1.200-1 1.200-1.800 0-.9-.7-1.500-1.700-1.500s-1.800.7-1.800 1.900z"/><circle cx="12" cy="17.800" r="1.500"/>',
 };
 
-/** <span class="ic"> wrapping the glyph. `name` must be a key above (static, trusted markup). */
+/** <span class="ic"> wrapping the glyph. Illustrated glyphs (game-icons.net) win over the hand-drawn fallbacks above. */
 export function icon(name, cls = '') {
   const el = document.createElement('span');
   el.className = `ic ${cls}`; el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor">${P[name] || P.help}</svg>`;
+  el.innerHTML = GAME_ICONS[name] ? `<svg viewBox="0 0 512 512" fill="currentColor">${GAME_ICONS[name]}</svg>` : `<svg viewBox="0 0 24 24" fill="currentColor">${P[name] || P.help}</svg>`;
   return el;
 }
-export const hasIcon = (name) => name in P;
+export const hasIcon = (name) => name in P || name in GAME_ICONS;

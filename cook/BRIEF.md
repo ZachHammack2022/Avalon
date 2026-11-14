@@ -10,3 +10,5 @@ Started 2026-11-14 03:13 UTC. User prompt: "fable take a hard look at the phone 
 - **Deliverable:** the live phone UI in the repo, plus screenshot sheets in `cook/stills/`.
 - **Permissions:** commit and push to `main` (established earlier in this session). No downloads needed.
 - Intake questions were skipped: the prompt plus earlier session answers covered them; defaults logged in ROUNDS.md.
+
+- **Update 06:10 UTC:** user lifted the code-only rule ("Yeah you can break that rule! Keep cooking to make the app better, you have full creative authority!"). Licensed fonts and icons allowed, credited in `public/assets/CREDITS.md`. Scope widened from the phone screens to making the app better.

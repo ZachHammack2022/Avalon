@@ -250,7 +250,7 @@ function teamRow(ids, label) {
   const g = state.pub.game;
   return h('div', { class: 'panel' },
     label ? h('div', { class: 'label' }, label) : null,
-    h('div', { class: 'team' }, ids.map((id) => { const p = byId(id); return h('div', { class: 'member' }, avatar(p, 'lg'), h('span', {}, p.name), id === g.leader ? icon('crown', 'leadmark') : null); })));
+    h('div', { class: 'team' }, ids.map((id) => { const p = byId(id); return h('div', { class: 'member' }, avatar(p, 'lg'), h('span', {}, p.name), id === g.leader ? icon('leader', 'leadmark') : null); })));
 }
 
 const waiting = (ic, text) => h('div', { class: 'waiting' }, h('div', { class: 'pulse' }, icon(ic)), h('p', {}, text));
@@ -329,7 +329,7 @@ const SCREENS = {
   waitLeader() {
     const { pub } = state; const L = byId(pub.game.leader);
     return page({ kicker: `Quest ${pub.game.questIndex + 1}`, title: `${L.name} is choosing`, sub: `A team of ${pub.game.teamSize} will go.`,
-      body: [h('div', { class: 'spot' }, avatar(L, 'xxl'), icon('crown', 'spotcrown'), h('b', {}, L.name))] });
+      body: [h('div', { class: 'spot' }, avatar(L, 'xxl'), icon('leader', 'spotcrown'), h('b', {}, L.name))] });
   },
 
   propose() {
@@ -445,7 +445,8 @@ function closeSheet() { sheet.hidden = true; sheetBody.replaceChildren(); }
 function drawSheet() {
   const pub = state && state.pub;
   const inGame = !!(state && state.me && state.me.role && pub.phase !== 'lobby');
-  const tabs = [['now', 'Now'], ['how', 'How to play'], ['roles', 'Roles']];
+  const tabs = [['now', 'Now'], ...(inGame ? [['log', 'Record']] : []), ['how', 'How to play'], ['roles', 'Roles']];
+  if (!tabs.some(([k]) => k === sheetTab)) sheetTab = 'now';
   const content = [];
   if (sheetTab === 'now') {
     const tip = coachFor(screenFor(state), state);
@@ -456,6 +457,22 @@ function drawSheet() {
     if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, 'Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.')));
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: `toggle${off ? '' : ' on'}`, role: 'switch', 'aria-checked': String(!off), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', { class: 'grow' }, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
+  } else if (sheetTab === 'log') {
+    // public table knowledge only: who proposed whom, how everyone voted, how each quest ended
+    const g = pub.game; const hist = g.history || [];
+    content.push(h('h2', {}, 'The record so far'));
+    if (!hist.length) content.push(h('p', { class: 'muted' }, 'Nothing yet. Every proposal, vote and quest result will be kept here so you can check who backed whom.'));
+    for (let qi = 0; qi <= Math.min(g.questIndex, QUEST_COUNT - 1); qi++) {
+      const rows = hist.filter((x) => x.questIndex === qi); const r = g.results[qi];
+      if (!rows.length && !r) continue;
+      content.push(h('div', { class: 'panel logq' },
+        h('div', { class: 'row' }, h('h3', { class: 'grow' }, `Quest ${qi + 1}`), r ? h('span', { class: `minitoken ${r.outcome === 'success' ? 'ok' : 'ko'}` }, icon(r.outcome === 'success' ? 'check' : 'cross'), r.outcome === 'success' ? 'Succeeded' : 'Failed') : h('span', { class: 'muted small' }, 'in progress')),
+        ...rows.map((x) => h('div', { class: `prop ${x.approved ? 'yes' : 'no'}` },
+          h('div', { class: 'row' }, avatar(byId(x.leader), 'sm'), h('span', { class: 'grow' }, h('b', {}, byId(x.leader).name), ' proposed'), h('span', { class: 'small' }, x.approved ? 'Approved' : 'Rejected')),
+          h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Team'), x.team.map((id) => h('span', { class: 'pill' }, avatar(byId(id), 'sm'), byId(id).name))),
+          h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Votes'), pub.players.map((pl) => h('span', { class: `vt ${x.votes[pl.id] ? 'y' : 'n'}`, title: `${pl.name}: ${x.votes[pl.id] ? 'approve' : 'reject'}` }, avatar(pl, 'sm'), icon(x.votes[pl.id] ? 'check' : 'cross')))))),
+        r ? h('p', { class: 'small muted' }, r.outcome === 'success' ? `Hero: ${nameOf(pub, r.hero)}` : `Suspicion fell on ${nameOf(pub, r.culprit)}`) : null));
+    }
   } else if (sheetTab === 'how') {
     content.push(h('h2', {}, 'How to play'), ...HOW_TO.map((x, i) => h('div', { class: 'panel step' }, h('span', { class: 'num' }, String(i + 1)), h('div', {}, h('h3', {}, x.h), h('p', {}, x.p)))));
   } else {

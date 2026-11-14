@@ -1,12 +1,18 @@
+@font-face { font-family: "Cinzel"; font-weight: 700; font-display: swap; src: url(/assets/fonts/cinzel-latin-700-normal.woff2) format("woff2"); }
+@font-face { font-family: "Cinzel"; font-weight: 900; font-display: swap; src: url(/assets/fonts/cinzel-latin-900-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; font-display: swap; src: url(/assets/fonts/alegreya-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 400; font-style: italic; font-display: swap; src: url(/assets/fonts/alegreya-sans-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 500 600; font-display: swap; src: url(/assets/fonts/alegreya-sans-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-weight: 700 900; font-display: swap; src: url(/assets/fonts/alegreya-sans-latin-700-normal.woff2) format("woff2"); }
 /* Avalon phone controller. Torchlit night, gold leaf, parchment cards. No external assets. */
 :root {
   --bg: #120d0a; --bg2: #1c1510; --panel: #241b14; --panel2: #32261c; --line: #4d3b29; --line2: #6b5236;
   --ink: #f8efde; --muted: #c9bba6; --gold: #f2bd4b; --gold2: #b97f1c; --goldink: #2b1a04;
   --good: #7fd6e8; --goodbg: #123642; --evil: #ff7a66; --evilbg: #47160f; --parch: #efe0bd; --parchink: #33240f;
-  --r: 16px; --serif: "Palatino Linotype", Palatino, "Book Antiqua", "Iowan Old Style", Georgia, serif;
+  --r: 16px; --serif: "Cinzel", "Palatino Linotype", Palatino, Georgia, serif; --body: "Alegreya Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; color: var(--ink); font: 17px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overscroll-behavior: none; }
+html, body { margin: 0; height: 100%; color: var(--ink); font: 18px/1.35 var(--body); overscroll-behavior: none; }
 body {
   display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; background: var(--bg);
   background-image: radial-gradient(130% 55% at 50% -12%, rgba(242,189,75,.20), transparent 62%), radial-gradient(90% 40% at 50% 112%, rgba(255,122,60,.12), transparent 70%), linear-gradient(180deg, #17110d, #0e0a08);
@@ -282,3 +288,39 @@ input.code { line-height: 1.2; } input.code::placeholder { letter-spacing: .3em;
 #helpbtn { margin-left: 6px; }
 .armhint { color: #d6c8b2; }
 @media (max-height: 640px) { .cardback { width: auto; height: 34vh; margin: 0 auto; } }
+
+/* round 6: bundled type (Cinzel + Alegreya Sans) and illustrated glyphs */
+h1 { font-weight: 700; font-size: 27px; letter-spacing: .02em; } h2 { font-size: 20px; } h3 { font-size: 15.500px; letter-spacing: .03em; }
+button.big { font-size: 19px; letter-spacing: .04em; } button.primary, button.danger { font-weight: 700; }
+.kicker { font: 700 13px var(--serif); letter-spacing: .1em; text-transform: uppercase; }
+.label { font-size: 14px; font-weight: 500; } .hint { font-size: 16px; } .pname small { font-size: 13.500px; }
+.armhint, .waiting, .waitline, .cb-in, .token.down b, .qcard.down, .logo .tagline { font-family: var(--body); font-style: italic; }
+.bigtext, .waiting { font-size: 19px; }
+.logo h1 { font-weight: 900; font-size: 50px; letter-spacing: .1em; } .logo .tagline { font-size: 19px; letter-spacing: .08em; }
+#roomtag b { font-weight: 900; } input.code { font-weight: 900; }
+.token { font-size: 17px; letter-spacing: .04em; } .qcard { font-size: 18px; letter-spacing: .05em; }
+.rc-name { font-weight: 900; font-size: 32px; letter-spacing: .03em; } .result b { font-size: 26px; } .spot b { font-size: 22px; }
+.lookme b { font-size: 17px; } .roles .lookme b { font: 700 16px/1.25 var(--body); }
+.rolerow b { font-size: 16px; letter-spacing: .03em; } .step .num { font-size: 14px; }
+.av { font-size: calc(var(--s) * .66); color: rgba(24,14,6,.86); }
+.q b, .q { font-family: var(--serif); }
+.rc-sigil { font-size: 112px; } .sigil { font-size: 76px; } .rolerow .sigil { font-size: 46px; } .rtag .ic { font-size: 24px; }
+.logo .crest { font-size: 84px; } .cb-in .ic { font-size: 96px; } .qcard .qc-art { font-size: min(26vw, 100px); } .pulse { font-size: 84px; }
+.leadmark { font-size: 22px; top: -12px; } .spotcrown { font-size: 50px; top: -4px; }
+.toggle .tg { font-size: 30px; } .rolesum { font-size: 24px; gap: 3px; } .classes button { font-size: 34px; }
+.token .disc { font-size: min(15vw, 58px); }
+/* fine grain so flat fills read as material rather than plastic */
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: .07; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@media (max-height: 640px) { h1 { font-size: 22px; } .rc-sigil { font-size: 64px; } .rc-name { font-size: 25px; } .cb-in .ic { font-size: 56px; } .qcard .qc-art { font-size: 58px; } .pulse { font-size: 52px; } .logo h1 { font-size: 40px; } .logo .crest { font-size: 54px; } button.big { font-size: 17px; } .token .disc { font-size: 34px; } }
+@media (max-width: 350px) { .logo h1 { font-size: 40px; } h1 { font-size: 22px; } }
+
+/* record tab */
+body { font-size: 19px; } .hint { font-size: 17px; } .sheetscroll p, .sheetscroll li { font-size: 17px; } .sheetscroll .small, .sheetscroll .small li { font-size: 15.500px; } .small { font-size: 15.500px; } .label { font-size: 15px; }
+.logq { gap: 12px; } .prop { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: #0004; border-left: 3px solid var(--line2); }
+.prop.yes { border-left-color: #e9d7ae; } .prop.no { border-left-color: var(--evil); opacity: .92; }
+.wrapr { flex-wrap: wrap; gap: 6px 8px; } .prop .label { width: 44px; flex: none; }
+.vt { position: relative; display: inline-flex; } .vt > .ic { position: absolute; right: -4px; bottom: -4px; width: 15px; height: 15px; padding: 2.500px; border-radius: 50%; }
+.vt.y > .ic { background: #e9d7ae; color: #245a2b; } .vt.n > .ic { background: #2a262e; color: var(--evil); box-shadow: 0 0 0 1px #5a4f63; }
+.vt.n .av { filter: saturate(.5) brightness(.75); }
+.minitoken.ok { background: #e9d7ae; color: #245a2b; } .minitoken.ko { background: #201c24; color: var(--evil); border: 1px solid #4a3f52; }
+.logq .pill { font-size: 15px; padding: 3px 10px 3px 3px; }

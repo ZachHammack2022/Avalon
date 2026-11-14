@@ -19,7 +19,14 @@ const players = names.map((name, i) => ({ id: `p${i}`, name, cls: cls[i], color:
 const roles = { p0: 'merlin', p1: 'minion', p2: 'loyal', p3: 'assassin', p4: 'percival', p5: 'morgana', p6: 'loyal' };
 const config = { roles: { merlin: true, assassin: true, percival: true, morgana: true, mordred: false, oberon: false }, classic: false };
 const results = [{ questIndex: 0, outcome: 'success', team: ['p0', 'p2'], hero: 'p2' }, { questIndex: 1, outcome: 'fail', team: ['p0', 'p1', 'p3'], culprit: 'p0' }];
-const game = (x = {}) => ({ n: 7, questIndex: 2, teamSize: 3, leader: 'p4', rejectCount: 2, team: ['p0', 'p4', 'p6'], results, assassinationEnabled: true, ...x });
+const V = (...yes) => Object.fromEntries(players.map((p) => [p.id, yes.includes(p.id)]));
+const history = [
+  { questIndex: 0, leader: 'p1', team: ['p1', 'p3'], votes: V('p1', 'p3', 'p5'), approved: false },
+  { questIndex: 0, leader: 'p2', team: ['p0', 'p2'], votes: V('p0', 'p2', 'p4', 'p6', 'p1'), approved: true },
+  { questIndex: 1, leader: 'p3', team: ['p0', 'p1', 'p3'], votes: V('p0', 'p1', 'p3', 'p5'), approved: true },
+  { questIndex: 2, leader: 'p4', team: ['p4', 'p5', 'p6'], votes: V('p4', 'p5'), approved: false },
+];
+const game = (x = {}) => ({ n: 7, history, questIndex: 2, teamSize: 3, leader: 'p4', rejectCount: 2, team: ['p0', 'p4', 'p6'], results, assassinationEnabled: true, ...x });
 const pub = (phase, g, x = {}) => ({ room: 'KQXD', phase, players, config, ...(g === null ? {} : { game: game(g) }), ...x });
 const good = (legal, x = {}) => ({ id: 'p0', name: 'Zach', vip: true, role: 'merlin', team: 'good', knowKind: 'evil', knows: ['p1', 'p3', 'p5'], legal, ...x });
 const evil = (legal, x = {}) => ({ id: 'p0', name: 'Zach', vip: true, role: 'assassin', team: 'evil', knowKind: 'allies', knows: ['p1', 'p5'], note: 'These are your fellow Minions of Mordred.', legal, ...x });
@@ -49,6 +56,7 @@ const SHOTS = [
   ['19-assassinate', { pub: pub('assassination', { results: [...results, { questIndex: 2, outcome: 'success', hero: 'p6' }, { questIndex: 3, outcome: 'success', hero: 'p0' }] }), me: evil({ action: 'assassinate', options: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'] }) }, (p) => p.click('.people button >> nth=3')],
   ['20-gameover', { pub: pub('gameover', {}, { reveal }), me: good({ action: 'again' }) }],
   ['21-help-now', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('now'))],
+  ['21b-help-record', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('log'))],
   ['22-help-how', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('how'))],
   ['23-help-roles', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('roles'))],
 ];
@@ -66,7 +74,7 @@ for (const [name, st, step] of SHOTS) {
   await p.waitForFunction(() => window.__sq);
   if (st) await p.evaluate((s) => window.__sq.inject(s), st);
   if (step) await step(p);
-  await p.waitForTimeout(120);
+  await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(150);
   const f = `${out}/${name}.png`; await p.screenshot({ path: f }); files.push(f);
   // overflow check: anything wider than the viewport is a layout bug
   const over = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
