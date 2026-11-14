@@ -3,7 +3,8 @@
 import { screenFor, toggleSelection, canConfirm, knownPlayers, leaderName, nameOf, lastResult, startHint } from './model.js';
 import { ROLE_INFO, ROLE_TOGGLE_INFO, KNOW_LABELS } from '/shared/roles-info.js';
 import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
-import { QUEST_COUNT, MIN_PLAYERS } from '/shared/avalon.js';
+import { QUEST_COUNT, MIN_PLAYERS, evilCount } from '/shared/avalon.js';
+import { HOW_TO, GENERAL_TIPS, ROLE_TIPS, coachFor, questStrip } from './guide.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -81,6 +82,7 @@ function onMessage(m) {
       state = m;
       if (state.pub.phase !== 'propose') selected = [];
       render();
+      if (!sheet.hidden) drawSheet();
       break;
     case 'error':
       if (m.code === 'noRoom' || m.code === 'joinFailed') {
@@ -152,13 +154,17 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 function render() {
   const screen = screenFor(state);
   $('roomtag').textContent = roomCode ? `Room ${roomCode}` : '';
-  $('nametag').textContent = (state && state.me && state.me.name) || name || '';
   const inGame = state && state.pub.phase !== 'lobby' && state.me && state.me.role;
   $('peekbar').hidden = !inGame;
   peekBtn.textContent = screen === 'roleReveal' ? 'Hold to reveal your role' : 'Hold to peek at your role';
   if (!inGame) hideSecret();
   const fn = screen === 'connecting' ? joinScreen : SCREENS[screen];
-  main.replaceChildren(...[].concat(fn ? fn() : [h('p', { class: 'muted center' }, 'One moment…')]));
+  const body = [].concat(fn ? fn() : [h('p', { class: 'muted center' }, 'One moment…')]).filter(Boolean);
+  const tip = screen !== 'connecting' && store.get('sq.coach') !== 'off' ? coachFor(screen, state) : null;
+  if (tip) { const i = body[0] && body[0].classList && (body[0].classList.contains('tracker')) ? 1 : 0; body.splice(i, 0, coachCard(tip)); }
+  main.replaceChildren(...body);
+  renderChip();
+  document.body.dataset.team = inGame ? ROLE_INFO[state.me.role].team : '';
   const phase = state ? state.pub.phase : '';
   if (phase !== lastPhase) {
     if (phase === 'questResult') buzz(HAPTIC.result);
@@ -175,6 +181,67 @@ function render() {
 let lastPhase = '';
 let lastScreen = '';
 
+function coachCard(tip) { return h('div', { class: 'coach' }, h('span', { class: 'ci', 'aria-hidden': 'true' }, tip.icon), h('span', {}, tip.text)); }
+
+function renderChip() {
+  const c = $('rolechip');
+  const r = state && state.me && state.me.role;
+  c.hidden = !r || state.pub.phase === 'lobby';
+  if (c.hidden) return;
+  const info = ROLE_INFO[r];
+  c.className = `team-${info.team}`;
+  c.replaceChildren(h('span', {}, info.icon), ' ', info.name);
+}
+
+// ---------- help sheet ----------
+const sheet = $('sheet'); const sheetBody = $('sheetbody');
+let sheetTab = 'now';
+function openSheet(tab) { sheetTab = tab || sheetTab; drawSheet(); sheet.hidden = false; hideSecret(); }
+function closeSheet() { sheet.hidden = true; sheetBody.replaceChildren(); }
+function drawSheet() {
+  const me = state && state.me; const pub = state && state.pub;
+  const inGame = !!(me && me.role && pub.phase !== 'lobby');
+  const tabs = [['now', 'Now'], ...(inGame ? [['you', 'You']] : []), ['how', 'How to play'], ['roles', 'Roles']];
+  if (!tabs.some(([k]) => k === sheetTab)) sheetTab = 'now';
+  const content = [];
+  if (sheetTab === 'now') {
+    const tip = coachFor(screenFor(state), state);
+    content.push(h('h2', {}, 'What should I do?'), tip ? coachCard(tip) : h('p', { class: 'muted' }, 'Nothing right now. Watch the TV.'));
+    if (inGame) {
+      const team = ROLE_INFO[me.role].team;
+      content.push(h('h3', {}, team === 'good' ? 'Rules of thumb for heroes' : 'Rules of thumb for saboteurs'), h('ul', {}, GENERAL_TIPS[team].map((t) => h('li', {}, t))));
+    }
+    const off = store.get('sq.coach') === 'off';
+    content.push(h('button', { class: 'toggle' + (off ? '' : ' on'), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', {}, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
+  } else if (sheetTab === 'you' && inGame) {
+    const info = ROLE_INFO[me.role]; const known = knownPlayers(state);
+    content.push(
+      h('div', { class: `roleplate team-${info.team}` }, h('div', { class: 'icon' }, info.icon), h('div', { class: 'rname' }, info.name), h('div', { class: 'rteam' }, info.team === 'good' ? 'Team Good: heroes of the crown' : 'Team Evil: saboteurs')),
+      h('p', {}, info.blurb),
+      me.note ? h('p', { class: 'muted' }, me.note) : null,
+      known.length ? h('div', { class: 'card' }, h('div', { class: 'muted small' }, KNOW_LABELS[me.knowKind] || 'You know'), h('div', { class: 'players', style: 'margin-top:8px' }, known.map((p) => h('span', { class: 'pill' }, dot(p.color), p.name)))) : null,
+      h('h3', {}, 'Tips for your role'), h('ul', {}, (ROLE_TIPS[me.role] || []).map((t) => h('li', {}, t))),
+      h('p', { class: 'muted small' }, `${pub.players.length} players: ${evilCount(pub.players.length)} saboteurs, ${pub.players.length - evilCount(pub.players.length)} heroes.`));
+  } else if (sheetTab === 'how') {
+    content.push(h('h2', {}, 'How to play'), ...HOW_TO.map((x) => h('div', { class: 'card' }, h('h3', {}, x.h), h('p', {}, x.p))));
+  } else {
+    const cfg = pub && pub.config ? pub.config.roles : null;
+    content.push(h('h2', {}, 'Roles'), h('p', { class: 'muted small' }, cfg ? 'Roles marked ★ are in this game.' : ''),
+      ...Object.entries(ROLE_INFO).map(([id, info]) => {
+        const on = id === 'loyal' || id === 'minion' || (cfg && cfg[id]);
+        return h('div', { class: `card rolerow team-${info.team}` }, h('span', { class: 'icon' }, info.icon), h('div', {}, h('b', {}, info.name + (on && cfg ? ' ★' : '')), h('div', { class: 'muted small' }, info.blurb)));
+      }));
+  }
+  sheetBody.replaceChildren(
+    h('div', { class: 'sheethead' }, h('div', { class: 'tabs', role: 'tablist' }, tabs.map(([k, l]) => h('button', { role: 'tab', 'aria-selected': String(k === sheetTab), class: k === sheetTab ? 'on' : '', onclick: () => { sheetTab = k; drawSheet(); } }, l))),
+      h('button', { class: 'close', 'aria-label': 'Close help', onclick: closeSheet }, '✕')),
+    h('div', { class: 'sheetscroll' }, content));
+}
+$('helpbtn').addEventListener('click', () => openSheet('now'));
+$('rolechip').addEventListener('click', () => openSheet('you'));
+sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+
 function joinScreen() {
   if (joined) return [h('p', { class: 'muted center' }, 'Connecting…')];
   const codeIn = h('input', { type: 'text', class: 'code', maxlength: 4, placeholder: 'ABCD', value: roomCode, autocapitalize: 'characters', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Room code' });
@@ -187,8 +254,8 @@ function joinScreen() {
     if (ws && ws.readyState === 1) send({ t: 'join', room: roomCode, name, token: store.get(`sq.token.${roomCode}`) || undefined }); else connect();
   };
   return [
-    h('h1', {}, 'Saboteur Quests'),
-    h('p', { class: 'muted' }, 'Join the game on the TV.'),
+    h('div', { class: 'logo' }, h('div', { class: 'crest', 'aria-hidden': 'true' }, '👑'), h('h1', {}, 'Saboteur Quests'), h('div', { class: 'sub' }, 'The Lost Crown')),
+    h('p', { class: 'muted center' }, 'Enter the 4-letter code shown on the TV.'),
     codeIn, nameIn,
     joinError ? h('p', { class: 'err' }, joinError) : null,
     h('button', { class: 'primary big', onclick: go }, 'Join'),
@@ -237,8 +304,8 @@ const SCREENS = {
   roleReveal() {
     const { me } = state;
     return [
-      h('h1', {}, 'Your role'),
-      h('p', { class: 'muted' }, 'Keep it secret! Press and hold the button at the bottom to see your role. Let go to hide it.'),
+      h('h1', {}, 'Your secret role'),
+      h('p', { class: 'muted' }, 'Keep it hidden from the others. Hold the button at the bottom to look, let go to hide it.'),
       h('button', { class: 'primary big', disabled: me.legal.done, onclick: () => send({ t: 'ready' }) }, me.legal.done ? 'Waiting for the others…' : "I'm ready"),
     ];
   },
@@ -341,10 +408,13 @@ const SCREENS = {
 
 function header() {
   const g = state.pub.game; if (!g) return null;
-  return h('div', { class: 'progress', 'aria-label': 'Quest progress' }, Array.from({ length: QUEST_COUNT }, (_, i) => {
-    const r = g.results[i];
-    return h('i', { class: `${r ? (r.outcome === 'success' ? 's' : 'f') : ''} ${i === g.questIndex ? 'cur' : ''}` });
-  }));
+  return h('div', { class: 'tracker' },
+    h('div', { class: 'progress', 'aria-label': 'Quest progress' }, Array.from({ length: QUEST_COUNT }, (_, i) => {
+      const r = g.results[i];
+      const sym = r ? (r.outcome === 'success' ? '✔' : '✖') : i + 1;
+      return h('i', { class: `${r ? (r.outcome === 'success' ? 's' : 'f') : ''} ${i === g.questIndex ? 'cur' : ''}` }, String(sym));
+    })),
+    h('div', { class: 'strip' }, questStrip(state.pub)));
 }
 
 function teamCard(pub) {

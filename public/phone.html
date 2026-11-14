@@ -8,13 +8,18 @@
 <link rel="stylesheet" href="/phone/style.css">
 </head>
 <body>
-<header id="top"><span id="roomtag"></span><span id="nametag"></span></header>
+<header id="top">
+  <span id="roomtag"></span>
+  <button id="rolechip" type="button" hidden aria-label="Your role"></button>
+  <button id="helpbtn" type="button" aria-label="Help and how to play">?</button>
+</header>
 <div id="offline" role="alert" hidden>Connection lost. Reconnecting… your seat is saved.</div>
 <main id="main" aria-live="polite"><p class="muted center">Connecting…</p></main>
 <div id="toast" role="status" aria-live="polite"></div>
 <footer id="peekbar" hidden>
-  <button id="peek" type="button">Hold to peek at your role</button>
+  <button id="peek" type="button">👁 Hold to peek at your role</button>
 </footer>
+<div id="sheet" hidden role="dialog" aria-modal="true" aria-label="Help"><div id="sheetbody"></div></div>
 <div id="secret" hidden aria-live="polite"></div>
 <script type="module" src="/phone/app.js"></script>
 </body>

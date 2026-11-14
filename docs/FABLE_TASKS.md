@@ -14,6 +14,7 @@ Done:
 - **F1/F3:** `scripts/shot.mjs` contact sheets; the browser check asserts the culprit is on screen at every freeze-frame
   and the hero during their hero beat.
 
+- **D5 (phone experience):** torchlit-parchment theme; help sheet (Now / You / How to play / Roles); role chip in the header that opens "You" with role, what you know and role tips; per-screen coach hints (good: always Success, evil: usually Fail, framing, last-rejection warning), toggleable; quest strip (team size, fails needed). Content in `public/phone/guide.js`, tests in `test/guide.test.js`; `scripts/phone-shots.mjs` takes screenshots.
 - **D4 (phone polish):** haptics (tick on every button, pattern when it is your turn, result buzz), screen-enter transition, offline banner that disables buttons, ✔/✖ symbols alongside colour on decisions, focus rings, reduced-motion, 44px+ tap targets, small and landscape layouts.
 
 Still open: real audio samples and music (C1), narration tuning (C2), gag variety and a second
