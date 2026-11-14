@@ -143,3 +143,8 @@ Stop check: bar no (about 6-7 vs 9) | floor about 7.5h of 8h | stills approved n
 ## Round 20
 Changes: dragon rebuilt with a deeper chest, thicker neck and larger wings (arms and fingers about 20-25% longer, fuller membrane scallops); cave mouth set into the slope with a boulder ring and a ledge, tilted to the terrain normal; sun disc enlarged and sky glow lowered so the opening is less washed out; cave gets four stone pillars and a stronger moon shaft.
 Sheet: `cook/compare/r20-sheet.png`. Critic scores: pending.
+
+Round 20 critic (1 sonnet, fresh context, eyeballed, no calibration offset): composition 6, light 7, color 6.5, materials 4, detail 5, dragon design 4.5, story clarity 6.
+Plateau: scores have been flat for rounds 14, 18 and 20 (about 6-7 on light/color/composition, 4-5 on materials/detail/dragon).
+Gaps: final hoard shot has a small dark dragon and noisy coins; mid-flight frames show a flat red dragon cutout; frame 7 wing slab crops out and blocks the tower; opening dragon thin against the sun; fire frames overexposed.
+Stop check: bar no (about 6-7 vs 9) | floor reached | stills approved no | final render not started
