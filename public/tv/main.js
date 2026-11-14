@@ -70,6 +70,12 @@ class App {
 
   async syncView(pub, first, prev) {
     const phase = pub.phase;
+    if (prev && prev.phase === 'lobby' && phase !== 'lobby' && !this.introSeen && !params.has('nointro')) {
+      this.introSeen = true;
+      audio.music(null);
+      const { playIntro } = await import('./intro-overlay.js');
+      await playIntro();
+    }
     const campfirePhases = ['lobby', 'roleReveal', 'propose', 'vote', 'voteReveal', 'questPlay'];
     if (campfirePhases.includes(phase) || (phase === 'cutscene' && !this.cutsceneActive && this.view !== 'cutscene')) {
       if (this.view !== 'campfire') { this.view = 'campfire'; this.cutsceneActive = false; hud.fade('black', 0.3); await sleep(300); await this.campfire.enter(false); audio.music('camp'); hud.fade('clear', 0.5); }
@@ -138,6 +144,7 @@ const toggleMute = () => { audio.setMuted(!audio.muted); muteBtn.textContent = a
 muteBtn.addEventListener('click', toggleMute);
 document.getElementById('btn-caps').addEventListener('click', () => narrate(`Caption size: ${hud.cycleCaptionScale()}`, { dur: 1.5, silent: true }));
 document.getElementById('btn-full').addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()));
-window.addEventListener('keydown', (e) => { if (e.key === 'm' || e.key === 'M') toggleMute(); if (e.key === 'c' || e.key === 'C') document.getElementById('btn-caps').click(); if (e.key === 'f' || e.key === 'F') document.getElementById('btn-full').click(); });
+window.addEventListener('keydown', (e) => { if (e.key === 'm' || e.key === 'M') toggleMute(); if (e.key === 'c' || e.key === 'C') document.getElementById('btn-caps').click(); if (e.key === 'f' || e.key === 'F') document.getElementById('btn-full').click();
+  if ((e.key === 'i' || e.key === 'I') && app.pub && app.pub.phase === 'lobby') import('./intro-overlay.js').then((m) => m.playIntro()); });
 
 app.init();

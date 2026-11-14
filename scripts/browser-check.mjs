@@ -107,7 +107,7 @@ if (!process.argv.includes('--live-only')) {
   const { port: p2 } = await live.listen();
   const url = `http://127.0.0.1:${p2}`;
   const tv = await newPage(1280, 720);
-  await tv.goto(`${url}/tv`);
+  await tv.goto(`${url}/tv?nointro`);
   await tv.waitForSelector('#code:not(:empty)');
   await tv.waitForFunction(() => document.getElementById('code').textContent.length === 4);
   const code = (await tv.textContent('#code')).trim();
