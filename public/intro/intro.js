@@ -102,8 +102,9 @@ export async function createIntro(canvas, opts = {}) {
     const ml = new THREE.PointLight(0xff9a3a, 9000, 160, 1.5); ml.position.set(0, 0, 8); mg.add(ml); world.add(mg); }
   { // final hero camera: close on the resting head
     const he = dragon.headPose(cave, 61.9, dragonParams(61.9)).pos; const k = SHOTS[5].keys;
-    k[k.length - 1] = [62, he.x + 9, he.y + 5.5, he.z - 2, he.x, he.y + 0.5, he.z, 30]; k.splice(k.length - 1, 0, [60, he.x + 10, he.y + 6, he.z - 2, he.x, he.y + 0.5, he.z, 34]); }
+    k[k.length - 1] = [62, he.x + 26, he.y + 11, he.z + 10, he.x - 2, he.y + 1, he.z - 1, 34]; k.splice(k.length - 1, 0, [60, he.x + 10, he.y + 6, he.z - 2, he.x, he.y + 0.5, he.z, 34]); }
   const dragonFill = new THREE.PointLight(0xff9a50, 0, 60, 1.6); scene.add(dragonFill);
+  const dragonRim = new THREE.PointLight(0x7fa0ff, 0, 60, 1.6); scene.add(dragonRim);
   // lights
   const sunL = new THREE.DirectionalLight(0xffa860, 3.2); sunL.castShadow = true; sunL.shadow.mapSize.set(2048, 2048);
   const sc = sunL.shadow.camera; sc.left = -110; sc.right = 110; sc.top = 110; sc.bottom = -110; sc.near = 1; sc.far = 600; sunL.shadow.bias = -0.0006; sunL.shadow.normalBias = 0.5;
@@ -186,7 +187,7 @@ export async function createIntro(canvas, opts = {}) {
     fireLights.forEach((l, i) => { const h = burning[i]; if (!h || inCave) { l.intensity = 0; return; } l.position.set(h.x, h.y + h.h + 2, h.z); l.intensity = 900 * clamp((t - h.ignite) / 2) * (0.85 + 0.15 * Math.sin(t * 23 + i * 5)); });
     const br01 = dp.breath; const mouth = dragon.headPose(outdoor, t, dp).mouth; fireLight.position.copy(mouth).add(V(0, -3, 0)); fireLight.intensity = (!inCave ? br01 : 0) * 2600;
     const px = renderer.getPixelRatio() * H * 0.9; village.update(t, px); bmat.uniforms.uPx.value = px; updateBreath(t);
-    if (inCave) { const hp2 = dragon.headPose(cave, t, dp).pos; dragonFill.position.copy(hp2).add(V(6, 7, 8)); dragonFill.intensity = 260; } else dragonFill.intensity = 0;
+    if (inCave) { const hp2 = dragon.headPose(cave, t, dp).pos; dragonFill.position.copy(hp2).add(V(6, 7, 8)); dragonFill.intensity = 260; dragonRim.position.copy(hp2).add(V(-9, 7, -9)); dragonRim.intensity = 420; } else { dragonFill.intensity = 0; dragonRim.intensity = 0; }
     // cave lighting animation
     if (inCave) { const L = caveG.userData.lights; L.torches.forEach((l, i) => { l.intensity = (i < 2 ? 260 : 180) * (0.9 + 0.1 * Math.sin(t * 17 + i * 3) * Math.sin(t * 9 + i)); }); scene.fog.density = 0.0022; scene.fog.color.setRGB(0.1, 0.06, 0.04); bloom.strength = 0.12; } else bloom.strength = 0.32;
     // fade in / out

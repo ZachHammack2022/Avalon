@@ -159,7 +159,7 @@ export class Dragon {
     for (let i = 0; i < RINGS; i++) {
       const s = (i / (RINGS - 1)) * LEN; track.atLen(L - s * S, P[i]).multiplyScalar(1 / S);
       const ph = t * 2.2 - s * 0.16, k = s / LEN;
-      const sway = (p.sway ?? 1) * 1.1 * Math.pow(k, 1.3) * Math.sin(ph);
+      const sway = (p.sway ?? 1) * 1.9 * Math.pow(k, 1.3) * Math.sin(ph);
       P[i]._sway = sway + 0.8 * Math.sin(s * 0.55 - t * 1.5) * Math.sin(Math.min(s, 9) / 9 * Math.PI) * (p.neckArch ?? 1); P[i]._bob = (p.bob ?? 1) * (0.35 * Math.pow(k, 1.1) * Math.sin(ph * 0.9 + 1.2) + 0.5 * Math.sin(Math.min(s, 9) / 9 * Math.PI) * (p.neckArch ?? 1) * 1.5);
     }
     const up = new THREE.Vector3(0, 1, 0);

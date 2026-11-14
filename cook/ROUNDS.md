@@ -115,3 +115,10 @@ Critic (1 sonnet, eyeballed, r14 sheet): composition 6, light 7, color 6.5, mate
 Critic gaps: S01/S02 dragon thin and small (partly fixed), cave dragon hard to read against gold noise, closing frame unclear, mountain faces flat, pines clash with warm haze, fire billboards flat.
 Stills: `cook/stills/r15/`, sheets `cook/compare/r15b.png`, `r15c.png`. Not measured: color check, clip render, fps.
 Next focus: cave dragon separation (rim light, less coin noise near it), closing frame pull-back, pine tint, dragon body, clip render test.
+
+## Round 16
+Time: 2026-11-14 | about 6h elapsed, floor 8h not reached
+User: "yes keep cooking" (also answered the sound question with yes; code-made sound to be tried next round, no downloads).
+Changes: cool rim light plus warm fill on the cave dragon, calmer coin colours, closing shot now pulls back to show the whole hoard, pines tinted warmer, stronger body undulation.
+Stills: `cook/stills/r16/`, sheet `cook/compare/r16-sheet.png`. Critic pass: not run this round (self-eyeballed: cave dragon separates much better; closing frame reads as a sleeping dragon on the hoard but the head is partly hidden by the wing at t=60-61).
+Next focus: head visibility in the closing frame, code-made sound test, clip render test, critic pass.

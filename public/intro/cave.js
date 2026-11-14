@@ -60,7 +60,7 @@ export function makeCave(envMap) {
     const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * 30, x = Math.cos(a) * d, z = Math.sin(a) * d * 0.95, y = heapH(x, z) + (rand() - 0.2) * 0.5;
     e.set((rand() - 0.5) * 2.2, rand() * 6.28, (rand() - 0.5) * 2.2); q.setFromEuler(e); const s = 0.8 + rand() * 0.5;
     coins.setMatrixAt(i, m4.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(s, s, s)));
-    const k = rand(); tc.setHSL(0.115 + rand() * 0.03, 0.85 + rand() * 0.1, 0.42 + rand() * 0.22 + (k > 0.96 ? 0.2 : 0)); coins.setColorAt(i, tc);
+    const k = rand(); tc.setHSL(0.11 + rand() * 0.02, 0.8 + rand() * 0.08, 0.38 + rand() * 0.12 + (k > 0.97 ? 0.18 : 0)); coins.setColorAt(i, tc);
   }
   coins.castShadow = true; coins.receiveShadow = true; g.add(coins);
   // treasures: gems, goblets, crowns, swords, shields, bars, chests

@@ -100,7 +100,7 @@ export function makeTrees(count = 2600) {
     for (let l = 0; l < 3; l++) {
       const w = s * (0.62 - l * 0.14), hh = s * (0.55 - l * 0.05);
       cones.setMatrixAt(k, m4.compose(new THREE.Vector3(x, h + s * (0.3 + l * 0.3), z), q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * 6), new THREE.Vector3(w, hh, w)));
-      c.setHSL(0.27 + rand() * 0.05, 0.4, 0.14 + rand() * 0.07 + l * 0.015); cones.setColorAt(k, c); k++;
+      c.setHSL(0.2 + rand() * 0.06, 0.36, 0.13 + rand() * 0.07 + l * 0.015); cones.setColorAt(k, c); k++;
     }
     n++;
   }
