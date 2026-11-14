@@ -1,4 +1,4 @@
-# Saboteur Quests: Vertical Slice Spec
+# Avalon: Vertical Slice Spec
 
 A family party game played on a TV, with everyone's phone as a controller (Jackbox-style). It follows **The Resistance: Avalon** rules 1:1, and each quest plays out as a funny **3D cutscene** on the TV. When a quest fails, the saboteurs secretly choose **who gets framed**, and that player is shown causing the disaster in the cutscene.
 

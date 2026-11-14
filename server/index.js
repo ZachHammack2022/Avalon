@@ -188,7 +188,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const timeScale = Number(arg('speed') || 1);
   const app = createGameServer({ port, timeScale });
   app.listen().then((info) => {
-    console.log('\n  Saboteur Quests: The Lost Crown\n');
+    console.log('\n  Avalon: The Lost Crown\n');
     console.log(`  TV:     ${info.tvUrl}`);
     console.log(`  Phones: ${info.phoneUrl}   (same Wi-Fi)`);
     console.log(`  Preview harness: http://localhost:${info.port}/preview\n`);

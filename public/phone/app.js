@@ -254,7 +254,7 @@ function joinScreen() {
     if (ws && ws.readyState === 1) send({ t: 'join', room: roomCode, name, token: store.get(`sq.token.${roomCode}`) || undefined }); else connect();
   };
   return [
-    h('div', { class: 'logo' }, h('div', { class: 'crest', 'aria-hidden': 'true' }, '👑'), h('h1', {}, 'Saboteur Quests'), h('div', { class: 'sub' }, 'The Lost Crown')),
+    h('div', { class: 'logo' }, h('div', { class: 'crest', 'aria-hidden': 'true' }, '👑'), h('h1', {}, 'Avalon'), h('div', { class: 'sub' }, 'The Lost Crown')),
     h('p', { class: 'muted center' }, 'Enter the 4-letter code shown on the TV.'),
     codeIn, nameIn,
     joinError ? h('p', { class: 'err' }, joinError) : null,

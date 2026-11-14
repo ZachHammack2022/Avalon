@@ -1,7 +1,7 @@
 {
-  "name": "saboteur-quests",
+  "name": "avalon",
   "version": "0.1.0",
-  "description": "Saboteur Quests: Avalon on the TV, phones as controllers. Vertical slice: The Lost Crown.",
+  "description": "Avalon on the TV, phones as controllers. Vertical slice: The Lost Crown.",
   "type": "module",
   "private": true,
   "engines": { "node": ">=20" },
