@@ -153,3 +153,8 @@ Stop check: bar no (about 6-7 vs 9) | floor reached | stills approved no | final
 Changes: fresnel rim light on dragon (driven per phase: warm at sunset, hotter in fire, warm gold in cave), tail blade, shaded house walls (vertex colour gradient), ground clutter (900 rocks, 1200 bushes, 9000 grass tufts) around the village, cave hero props (giant chalice, crown, gem clusters), S03 camera pulled back so the wing no longer blocks the tower, bloom and flame alpha reduced, closer closing shot.
 First rim pass was too strong (dragon washed pink); reduced to 0.3-0.5 outdoors and 0.07 in the cave.
 Sheet: `cook/compare/r22-sheet.png`. Critic: pending.
+
+Round 22 critic (1 sonnet, fresh context, eyeballed, no calibration offset): composition 6, light 7, color 6, materials 4, detail 5, dragon design 4, story clarity 6.
+Result: no improvement after the "keep pushing" rebuild; plateau confirmed across rounds 14, 18, 20 and 22. Clutter and rim light did not move the scores.
+Gaps: S05 mountain frames (cave mouth reads as a prop, huge wing planes crop the frame), opening dragon small, dragon design inconsistent across shots (thin bat early, flat red slab later), saturated pure-red wing clashes with the palette.
+Stop check: bar no (about 6-7 vs 9) | floor reached | stills approved no | final render not started
