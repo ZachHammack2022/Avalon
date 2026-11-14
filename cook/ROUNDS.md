@@ -101,3 +101,9 @@ Round 11 critic (1 sonnet, fresh context, eyeballed, no calibration yet): compos
 Weakest frames: t=14 (dragon overhead reads upside-down, empty sky), t=44 (mountain faceted triangle, dragon cropped at bottom), t=8 (dragon like a paper cutout, thin wing), t=24 (orange wing crowds the tower and tree).
 Next focus: re-frame t=14 and t=44, thicker wing membranes and ribs, per-face colour variation on rock and scales, dragon neck/body pose.
 Stop check: bar no | floor no | stills approved no | final render not started
+
+## Round 14 (rounds 12-14)
+Time: 2026-11-14 | about 4h elapsed, floor 8h not reached
+Changes: S02 split in two (no more upside-down overhead frame; second half watches the dragon bank away over the village), S05 is now a dynamic chase camera framing the dragon against the glowing cave mouth, thicker wing bones, neck S-curve, per-face colour variation and strata on the cave mountain and dragon scales.
+Stills: `cook/stills/r14/` | Sheet: `cook/compare/r14-sheet.png`. Critic scores for this round: not run yet (eyeballed by me only: S02 and S05 clearly better).
+Still open: coin glare mid S06, pale fire in S03, dragon body stiff, no clip render, no sound.

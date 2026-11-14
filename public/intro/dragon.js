@@ -54,7 +54,7 @@ const v3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const S = 1.55; // dragon scale; the group is scaled, so internal space is world / S
 const M = {
   scale: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.62, metalness: 0.08 }),
-  bone: new THREE.MeshStandardMaterial({ color: 0x2c1612, flatShading: true, roughness: 0.7 }),
+  bone: new THREE.MeshStandardMaterial({ color: 0x4a2418, flatShading: true, roughness: 0.7 }),
   membrane: new THREE.MeshStandardMaterial({ color: 0xa83522, emissive: 0x3a0e04, flatShading: true, roughness: 0.75, side: THREE.DoubleSide }),
   horn: new THREE.MeshStandardMaterial({ color: 0xd9c9a0, flatShading: true, roughness: 0.5 }),
   eye: new THREE.MeshBasicMaterial({ color: 0xffb020 }),
@@ -75,7 +75,7 @@ export class Dragon {
     const back = new THREE.Color(0x7a2616), belly = new THREE.Color(0xd9a04a), c = new THREE.Color();
     for (let r = 0; r < RINGS; r++) for (let j = 0; j < SIDES; j++) {
       const phi = (j / SIDES) * Math.PI * 2, down = clamp(-Math.sin(phi) * 1.4 - 0.25, 0, 1); // belly weight
-      c.copy(back).lerp(belly, down * down); const stripe = (r % 4 < 2) ? 1 : 0.88; c.multiplyScalar(stripe);
+      c.copy(back).lerp(belly, down * down); const stripe = ((r % 4 < 2) ? 1 : 0.88) * (0.9 + 0.2 * ((r * 7 + j * 13) % 5) / 4); c.multiplyScalar(stripe);
       col.set([c.r, c.g, c.b], (r * SIDES + j) * 3);
     }
     const g = new THREE.BufferGeometry();
@@ -160,7 +160,7 @@ export class Dragon {
       const s = (i / (RINGS - 1)) * LEN; track.atLen(L - s * S, P[i]).multiplyScalar(1 / S);
       const ph = t * 2.2 - s * 0.16, k = s / LEN;
       const sway = (p.sway ?? 1) * 1.1 * Math.pow(k, 1.3) * Math.sin(ph);
-      P[i]._sway = sway; P[i]._bob = (p.bob ?? 1) * (0.35 * Math.pow(k, 1.1) * Math.sin(ph * 0.9 + 1.2) + 0.5 * Math.sin(Math.min(s, 9) / 9 * Math.PI) * (p.neckArch ?? 1) * 0.7);
+      P[i]._sway = sway + 0.8 * Math.sin(s * 0.55 - t * 1.5) * Math.sin(Math.min(s, 9) / 9 * Math.PI) * (p.neckArch ?? 1); P[i]._bob = (p.bob ?? 1) * (0.35 * Math.pow(k, 1.1) * Math.sin(ph * 0.9 + 1.2) + 0.5 * Math.sin(Math.min(s, 9) / 9 * Math.PI) * (p.neckArch ?? 1) * 1.5);
     }
     const up = new THREE.Vector3(0, 1, 0);
     for (let i = 0; i < RINGS; i++) {
@@ -221,7 +221,7 @@ export class Dragon {
       const S = toW(sh.x, sh.y, sh.z, fw, P[ringW]), Ew = toW(E.x, E.y, E.z, fw, P[ringW]), Ww = toW(W.x, W.y, W.z, fw, P[ringW]);
       const Fw = fingers.map((f) => toW(f.x, f.y, f.z, fw, P[ringW]));
       const Bw = toW(sd * 1.0, 0.1, 0, hf, hips);
-      const bones = [[S, Ew, 0.34], [Ew, Ww, 0.26], [Ww, Fw[0], 0.14], [Ww, Fw[1], 0.14], [Ww, Fw[2], 0.12], [Ww, Fw[3], 0.1]];
+      const bones = [[S, Ew, 0.6], [Ew, Ww, 0.45], [Ww, Fw[0], 0.26], [Ww, Fw[1], 0.26], [Ww, Fw[2], 0.22], [Ww, Fw[3], 0.18]];
       w.bones.forEach((b, i) => this.place(b, bones[i][0], bones[i][1], bones[i][2]));
       // membrane triangles
       const tri = []; const mid = (a, b) => v3().copy(a).lerp(b, 0.5).lerp(Ww, 0.22);

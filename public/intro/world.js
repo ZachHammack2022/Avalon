@@ -71,6 +71,7 @@ export function makeTerrain() {
     c.copy(grass).lerp(dry, fbm(x * 0.02, z * 0.02) * 1.2).multiplyScalar(0.8 + 0.4 * fbm(x * 0.1, z * 0.1));
     c.lerp(rock, smoothstep(0.1, 0.35, slope + clamp((h - 60) / 400)));
     c.lerp(rock2, fbm(x * 0.05, z * 0.05) * 0.4 * smoothstep(40, 120, h));
+    { const cd = Math.hypot(x - CAVE_PEAK.x, z - CAVE_PEAK.z); if (cd < 200) { c.multiplyScalar(0.8 + 0.28 * (0.5 + 0.5 * Math.sin(h * 0.45 + fbm(x * 0.04, z * 0.04) * 6))); c.lerp(new THREE.Color(0x7a5a3c), 0.35 * fbm(x * 0.07 + 3, z * 0.07)); } }
     c.lerp(snow, smoothstep(0.0, 1.0, clamp((h - (150 + fbm(x * 0.01, z * 0.01) * 50)) / 40)) * (1 - smoothstep(0.3, 0.6, slope)));
     c.lerp(dirt, (1 - smoothstep(3, 9, Math.abs(x))) * (1 - smoothstep(60, 100, Math.abs(z - 10))) ); // street
     c.lerp(dirt, (1 - smoothstep(10, 22, Math.hypot(x, z))) * 0.8); // plaza

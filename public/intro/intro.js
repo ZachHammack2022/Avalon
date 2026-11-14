@@ -66,10 +66,11 @@ function camPath(keys, t) {
 
 const SHOTS = [
   { id: 'S01', t0: 0, t1: 9, keys: [[0, -50, 9, 215, 20, 100, -330, 26], [9, -34, 12, 190, 10, 75, -300, 24]], follow: (t) => 0.2 + 0.7 * smoothstep(0, 8, t) },
-  { id: 'S02', t0: 9, t1: 18, keys: [[9, 1, 1.75, 40, 0, 8, -40, 58], [12, 0.5, 1.75, 34, 0, 20, -10, 58], [15, 0, 1.8, 30, -2, 30, 40, 52], [18, 1, 1.8, 28, 0, 35, 110, 50]], follow: (t) => smoothstep(10.5, 12.5, t) * (1 - smoothstep(14.5, 16.0, t)) },
+  { id: 'S02', t0: 9, t1: 13, keys: [[9, 2, 1.75, 44, 0, 8, -40, 58], [13, 1, 1.75, 38, -1, 22, -10, 54]], follow: (t) => smoothstep(9.5, 11.5, t) },
+  { id: 'S02b', t0: 13, t1: 18, keys: [[13, 3, 2.0, -34, 0, 38, 60, 50], [18, 2, 2.2, -30, -10, 40, 130, 46]], follow: (t) => 0.9 },
   { id: 'S03', t0: 18, t1: 30, keys: [[18, -100, 18, 190, 20, 30, 140, 36], [21, -96, 14, 110, 0, 16, 60, 34], [23.5, -92, 11, 50, 0, 12, 20, 34], [26, -90, 10, -5, 0, 10, -22, 34], [28.5, -84, 12, -55, 0, 14, -72, 36], [30, -70, 11, -60, 0, 15, -85, 40]], follow: (t) => 0.92 },
   { id: 'S04', t0: 30, t1: 38, keys: [[30, 0, 2.6, -8, -10, 22, -112, 52], [34, 1, 3, -10, -40, 55, -140, 44], [38, 2, 4, -12, -90, 92, -200, 38]], follow: (t) => 0.35 + 0.55 * smoothstep(30, 34, t) },
-  { id: 'S05', t0: 38, t1: 47, keys: [[38, -90, 128, -160, -200, 135, -270, 38], [43, -145, 150, -190, -250, 150, -295, 36], [47, -170, 160, -215, -268, 152, -302, 34]], follow: (t) => 0.75 },
+  { id: 'S05', t0: 38, t1: 47, dyn: true, keys: [[38, -90, 128, -160, -200, 135, -270, 38], [43, -145, 150, -190, -250, 150, -295, 36], [47, -170, 160, -215, -268, 152, -302, 34]], follow: (t) => 0.75 },
   { id: 'S06', t0: 47, t1: 62, keys: [[47, 8, 4.8, 44, 4, 8, -10, 62], [51, 4, 4.8, 40, -4, 9, -14, 58], [54.8, 22, 5.5, 34, -8, 9, -8, 52], [58, 38, 16, 34, -2, 9, -4, 44], [62, 30, 11, 26, -3, 10, -6, 34]].map((k) => [k[0], k[1] + CAVE_X, k[2], k[3], k[4] + CAVE_X, k[5], k[6], k[7]]), follow: (t) => t < 49 ? 0 : t < 56 ? 0.75 * smoothstep(49, 51, t) : (0.3 * (1 - smoothstep(56, 58, t)) + 0.95 * smoothstep(58, 59.5, t)) },
 ];
 
@@ -165,9 +166,11 @@ export async function createIntro(canvas, opts = {}) {
     sky.material.uniforms.uMix.value = mixN; sky.material.uniforms.uTime.value = t; sky.material.uniforms.uFire.value = smoothstep(22, 30, t) * (1 - smoothstep(38, 46, t));
     // camera
     const c = camPath(shot.keys, t); const hh = dragon.headPose(track, t, dp).pos;
-    const w = shot.follow(t); const look = V(c[4], c[5], c[6]).lerp(hh, w);
+    let w = shot.follow(t); const look = V(c[4], c[5], c[6]).lerp(hh, w);
+    let dynPos = null;
+    if (shot.dyn) { const a = outdoor.head(Math.max(outdoor.t0, t - 0.4), V(0, 0, 0)), b = outdoor.head(Math.min(outdoor.t1, t + 0.4), V(0, 0, 0)); const T = b.sub(a).normalize(), side = V().crossVectors(T, V(0, 1, 0)).normalize(); const k = smoothstep(38, 40, t); dynPos = hh.clone().addScaledVector(T, -105).addScaledVector(side, 42 + 8 * Math.sin(t * 0.4)).add(V(0, 22 + 6 * (1 - k), 0)); look.copy(hh).addScaledVector(T, 50).add(V(0, 4, 0)); }
     const sh = 0.05 * (shot.id === 'S06' ? 0.3 : 1); // handheld
-    camera.position.set(c[1] + Math.sin(t * 1.3) * sh, c[2] + Math.sin(t * 1.7 + 1) * sh, c[3] + Math.cos(t * 1.1) * sh);
+    camera.position.set(c[1] + Math.sin(t * 1.3) * sh, c[2] + Math.sin(t * 1.7 + 1) * sh, c[3] + Math.cos(t * 1.1) * sh); if (dynPos) camera.position.copy(dynPos);
     camera.fov = c[7]; camera.aspect = W / H; camera.updateProjectionMatrix();
     { const dv = look.clone().sub(camera.position), hz = Math.hypot(dv.x, dv.z), maxUp = hz * Math.tan(1.15); if (dv.y > maxUp) look.y = camera.position.y + maxUp; }
     if (opts.camOverride) { const o = opts.camOverride; camera.position.set(...o.slice(0, 3)); camera.fov = o[6] || 40; camera.updateProjectionMatrix(); look.set(o[3], o[4], o[5]); }
@@ -175,7 +178,7 @@ export async function createIntro(canvas, opts = {}) {
     // lighting by phase
     const dusk = mixN;
     const sunMix = smoothstep(22, 36, t); sunL.color.setRGB(1.0, lerp(0.66, 0.55, sunMix), lerp(0.4, 0.5, sunMix)); sunL.intensity = lerp(3.4, 1.2, sunMix) * (inCave ? 0 : 1);
-    sunL.position.copy(camera.position).addScaledVector(sunDir, 300); sunL.target.position.copy(camera.position).add(V(0, 0, -20)); if (shot.id === 'S03' || shot.id === 'S02' || shot.id === 'S04') { sunL.target.position.set(0, 0, 0); sunL.position.copy(sunDir).multiplyScalar(300); sunL.shadow.camera.left = -120; sunL.shadow.camera.right = 120; sunL.shadow.camera.top = 120; sunL.shadow.camera.bottom = -120; } else { sunL.castShadow = true; }
+    sunL.position.copy(camera.position).addScaledVector(sunDir, 300); sunL.target.position.copy(camera.position).add(V(0, 0, -20)); if (shot.id === 'S03' || shot.id === 'S02' || shot.id === 'S02b' || shot.id === 'S04') { sunL.target.position.set(0, 0, 0); sunL.position.copy(sunDir).multiplyScalar(300); sunL.shadow.camera.left = -120; sunL.shadow.camera.right = 120; sunL.shadow.camera.top = 120; sunL.shadow.camera.bottom = -120; } else { sunL.castShadow = true; }
     hemi.intensity = inCave ? 0.0 : lerp(1.5, 1.5, dusk); hemi.color.setRGB(lerp(0.55, 0.42, dusk), lerp(0.6, 0.5, dusk), lerp(0.75, 0.85, dusk));
     scene.fog.color.setRGB(lerp(0.82, 0.3, dusk), lerp(0.4, 0.22, dusk), lerp(0.2, 0.24, dusk)); scene.fog.density = inCave ? 0 : lerp(0.0008, 0.0007, dusk);
     // fire lights: follow the three nearest burning houses to camera
