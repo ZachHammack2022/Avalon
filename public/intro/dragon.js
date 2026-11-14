@@ -195,6 +195,7 @@ export class Dragon {
     const hp = this.headPose(track, t, p);
     const hb = new THREE.Matrix4().makeBasis(hp.R, hp.U, hp.T); this.head.quaternion.setFromRotationMatrix(hb);
     this.head.position.copy(hp.pos).multiplyScalar(1 / S).addScaledVector(hp.T, -1.3).addScaledVector(hp.U, 0.0);
+    if (p.headLift) this.head.position.y += p.headLift / S;
     this.jaw.rotation.x = (p.jaw || 0) * 0.55 + 0.04;
     this.mouthGlow.material.color.setRGB(1, 0.35 + (p.breath || 0) * 0.4, 0.05).multiplyScalar(0.25 + (p.breath || 0) * 2.2);
     this.mouthGlow.visible = (p.jaw || 0) > 0.05;

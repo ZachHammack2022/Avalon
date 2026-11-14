@@ -46,6 +46,7 @@ function dragonParams(t) {
   if (t > 47) p.legExt = smoothstep(55.2, 56.8, t) * (1 - smoothstep(58.5, 60.0, t) * 0.8);
   p.eyeOpen = t > 59 ? 0.3 + 0.7 * smoothstep(60.4, 61.8, t) * 0 + 0.7 * smoothstep(60.8, 61.8, t) : 1;
   if (t > 58.5) p.eyeOpen = 0.08 + 0.92 * smoothstep(60.6, 61.8, t);
+  if (t > 47) p.headLift = 2.6 * smoothstep(58.5, 60.3, t);
   if (t > 59.3) p.headPitch = -0.15 * smoothstep(59.3, 61, t);
   // bank from path curvature
   const tr = t < 47 ? outdoor : cave, h0 = tr.head(Math.max(tr.t0, t - 0.5)), h1 = tr.head(Math.min(tr.t1, t + 0.5)), hm = tr.head(clamp(t, tr.t0, tr.t1));
@@ -102,7 +103,7 @@ export async function createIntro(canvas, opts = {}) {
     const ml = new THREE.PointLight(0xff9a3a, 9000, 160, 1.5); ml.position.set(0, 0, 8); mg.add(ml); world.add(mg); }
   { // final hero camera: close on the resting head
     const he = dragon.headPose(cave, 61.9, dragonParams(61.9)).pos; const k = SHOTS[5].keys;
-    k[k.length - 1] = [62, he.x + 15, he.y + 7, he.z - 4, he.x - 1, he.y + 0.6, he.z, 30]; k.splice(k.length - 1, 0, [60, he.x + 12, he.y + 6, he.z - 3, he.x, he.y + 0.5, he.z, 34]); }
+    k[k.length - 1] = [62, he.x + 13, he.y + 7.5, he.z - 3, he.x - 1, he.y + 3, he.z, 30]; k.splice(k.length - 1, 0, [60, he.x + 12, he.y + 7, he.z - 3, he.x, he.y + 2.6, he.z, 34]); }
   const dragonFill = new THREE.PointLight(0xff9a50, 0, 60, 1.6); scene.add(dragonFill);
   const dragonRim = new THREE.PointLight(0x7fa0ff, 0, 60, 1.6); scene.add(dragonRim);
   // lights

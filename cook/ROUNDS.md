@@ -131,3 +131,7 @@ Measured (ffmpeg, cook/audio/intro-r17.wav, 62 s): integrated -23.7 LUFS, true p
 Not verified: how it sounds. Nobody has listened. WAV is git-ignored (11 MB).
 
 Round 17 closing frame: tried two side angles for the last 3 s. The head is still hidden behind the folded wing at t=60-61 (visible at t=58). Open item: raise the head or fold the near wing lower during the settle.
+
+## Round 18
+Fix: the dragon's head is lifted off the coins during the settle (headLift 2.6 m from t=58.5), so it is visible in the closing frames (t=60, 61). Closed the open item from round 17.
+Sheet: `cook/compare/r18-sheet.png` (12 frames), closing check `cook/compare/r17c-sheet.png`.
