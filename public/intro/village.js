@@ -163,8 +163,8 @@ export class Village {
             gl_FragColor = vec4(col, a);` : `
             float yy = 1.0 - gl_PointCoord.y; float wob = sin(yy*9.0 + vSeed*40.0)*0.06*yy; float wdt = max(0.02, (1.0 - yy*0.92) * 0.42); float dx = abs(gl_PointCoord.x - 0.5 + wob) / wdt;
             float a = smoothstep(1.0, 0.2, dx) * smoothstep(0.0, 0.12, yy) * smoothstep(1.0, 0.7, yy); a *= (1.0 - vAge*vAge*0.8);
-            vec3 col = mix(vec3(1.0,0.85,0.35), vec3(1.0,0.28,0.04), smoothstep(0.0,0.7,vAge)); col = mix(col, vec3(0.5,0.05,0.0), smoothstep(0.7,1.0,vAge));
-            gl_FragColor = vec4(col*1.0, a*0.6);`}
+            vec3 col = mix(vec3(1.0,0.62,0.18), vec3(0.95,0.2,0.03), smoothstep(0.0,0.6,vAge)); col = mix(col, vec3(0.5,0.05,0.0), smoothstep(0.7,1.0,vAge));
+            gl_FragColor = vec4(col*1.0, a*0.42);`}
           }`,
       });
       const p = new THREE.Points(g, mat); p.frustumCulled = false; return p;

@@ -32,18 +32,18 @@ export function makeSky() {
       void main(){
         vec3 d = normalize(vDir); float y = d.y;
         float sd = max(dot(d, normalize(uSun)), 0.);
-        vec3 zenith = mix(vec3(0.05,0.16,0.32), vec3(0.015,0.045,0.13), uMix);
-        vec3 mid = mix(vec3(0.55,0.28,0.2), vec3(0.12,0.17,0.32), uMix);
+        vec3 zenith = mix(vec3(0.035,0.1,0.22), vec3(0.015,0.045,0.13), uMix);
+        vec3 mid = mix(vec3(0.6,0.3,0.2), vec3(0.12,0.17,0.32), uMix);
         vec3 horizon = mix(vec3(1.0,0.5,0.14), vec3(0.55,0.32,0.28), uMix);
         float t = clamp(y,0.,1.);
-        vec3 col = mix(horizon, mid, smoothstep(0.0,0.22,t)); col = mix(col, zenith, smoothstep(0.12,0.75,t));
+        vec3 col = mix(horizon, mid, smoothstep(0.0,0.22,t)); col = mix(col, zenith, smoothstep(0.3,1.0,t));
         col += vec3(1.0,0.55,0.18) * pow(sd, 6.) * 0.3 * (1.-uMix*0.6) + vec3(1.0,0.78,0.4) * pow(sd, 48.) * 0.6 * (1.-uMix*0.5);
         // sun disc
         float disc = smoothstep(0.9993, 0.9997, sd); col = mix(col, vec3(1.0,0.86,0.55)*3.0, disc*(1.-uMix));
         // clouds on a plane
         vec2 uv = d.xz / (abs(y)+0.12) * 0.9 + vec2(uTime*0.004, 0.);
         float c = fbm(uv*1.3); float c2 = fbm(uv*3.1+4.);
-        float cl = smoothstep(0.48, 0.8, c*0.8 + c2*0.35) * smoothstep(-0.02, 0.1, y) * (1. - smoothstep(0.5, 0.9, y));
+        float cl = smoothstep(0.42, 0.75, c*0.8 + c2*0.35) * smoothstep(-0.02, 0.1, y) * (1. - smoothstep(0.8, 1.0, y));
         vec3 under = mix(vec3(0.95,0.38,0.13), vec3(0.22,0.18,0.3), uMix) * (0.45 + 0.9*pow(sd,2.)) ;
         vec3 top = mix(vec3(0.35,0.2,0.28), vec3(0.08,0.1,0.18), uMix);
         vec3 ccol = mix(top, under, smoothstep(0.55,0.78,c) ) + vec3(1.,0.65,0.3)*pow(sd,5.)*0.9*(1.-uMix);

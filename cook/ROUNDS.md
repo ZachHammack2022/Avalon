@@ -84,3 +84,15 @@ Top gaps from critics:
 
 Stop check: bar no | floor no | stills approved no | final render not started
 Next focus: S06 hero ending, dragon head/body design, sky grade in S02, S03/S04 framing.
+
+## Decisions (round 6)
+- 2026-11-13 user: "lets keep /cook on the dragon intro, you can use whatever you want to make it awesome". Interpreted as creative latitude; still code-only, no texture files (original brief), no downloads.
+
+## Round 11 (rounds 6-11 merged)
+
+Time: 2026-11-14 ~00:00 UTC | floor 8h not reached (about 3h elapsed)
+Changes: S02 sky regraded (no flat blue), dragon head 1.5x with brighter body/membrane colours, S04 camera moved onto the street, flames more orange and less washed, cave ambient raised and entry camera no longer stares at ceiling, dragon fill light, S06 hero ending now tracks the resting head (horns, eye), glow light lowered.
+Stills: `cook/stills/r11/` | Sheet: `cook/compare/r11-sheet.png`
+Critic scores: pending at time of writing. Measured: none beyond render times (~1-3 s per still, software GL).
+Still open: coin glare in S06 mid frames (t=60), pale fire bloom in S03/S04, dragon body stiff, near detail thin, no clip render, no sound.
+Next focus: dragon body/neck pose and legs, fire/smoke readability, S01 composition, then clip render test.

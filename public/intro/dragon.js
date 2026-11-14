@@ -55,7 +55,7 @@ const S = 1.55; // dragon scale; the group is scaled, so internal space is world
 const M = {
   scale: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.62, metalness: 0.08 }),
   bone: new THREE.MeshStandardMaterial({ color: 0x2c1612, flatShading: true, roughness: 0.7 }),
-  membrane: new THREE.MeshStandardMaterial({ color: 0x8a2c1c, emissive: 0x2a0802, flatShading: true, roughness: 0.75, side: THREE.DoubleSide }),
+  membrane: new THREE.MeshStandardMaterial({ color: 0xa83522, emissive: 0x3a0e04, flatShading: true, roughness: 0.75, side: THREE.DoubleSide }),
   horn: new THREE.MeshStandardMaterial({ color: 0xd9c9a0, flatShading: true, roughness: 0.5 }),
   eye: new THREE.MeshBasicMaterial({ color: 0xffb020 }),
   mouth: new THREE.MeshBasicMaterial({ color: 0xff6a10 }),
@@ -72,7 +72,7 @@ export class Dragon {
       const a = r * SIDES + j, b = r * SIDES + (j + 1) % SIDES, c = (r + 1) * SIDES + j, d = (r + 1) * SIDES + (j + 1) % SIDES;
       idx.push(a, c, b, b, c, d);
     }
-    const back = new THREE.Color(0x4a1710), belly = new THREE.Color(0xc58a3a), c = new THREE.Color();
+    const back = new THREE.Color(0x7a2616), belly = new THREE.Color(0xd9a04a), c = new THREE.Color();
     for (let r = 0; r < RINGS; r++) for (let j = 0; j < SIDES; j++) {
       const phi = (j / SIDES) * Math.PI * 2, down = clamp(-Math.sin(phi) * 1.4 - 0.25, 0, 1); // belly weight
       c.copy(back).lerp(belly, down * down); const stripe = (r % 4 < 2) ? 1 : 0.88; c.multiplyScalar(stripe);
@@ -89,9 +89,9 @@ export class Dragon {
     this.spine = Array.from({ length: RINGS }, v3); this.frames = Array.from({ length: RINGS }, () => ({ T: v3(), U: v3(), R: v3() }));
   }
   buildHead() {
-    const h = this.head = new THREE.Group(); this.group.add(h);
+    const h = this.head = new THREE.Group(); this.group.add(h); h.scale.setScalar(1.5);
     const mk = (geo, mat, p, r, s) => { const m = new THREE.Mesh(geo, mat); if (p) m.position.set(...p); if (r) m.rotation.set(...r); if (s) m.scale.set(...s); m.castShadow = true; return m; };
-    const dark = new THREE.MeshStandardMaterial({ color: 0x4d1912, flatShading: true, roughness: 0.6 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x6e2415, flatShading: true, roughness: 0.6 });
     // skull: tapered 5-sided prism lying along z
     const skull = new THREE.CylinderGeometry(0.62, 0.95, 1.9, 6); skull.rotateX(Math.PI / 2); // narrow end toward +z
     h.add(mk(skull, dark, [0, 0.05, 0.9], null, [1.0, 0.8, 1]));
@@ -194,7 +194,7 @@ export class Dragon {
     // head
     const hp = this.headPose(track, t, p);
     const hb = new THREE.Matrix4().makeBasis(hp.R, hp.U, hp.T); this.head.quaternion.setFromRotationMatrix(hb);
-    this.head.position.copy(hp.pos).multiplyScalar(1 / S).addScaledVector(hp.T, -0.9).addScaledVector(hp.U, 0.0);
+    this.head.position.copy(hp.pos).multiplyScalar(1 / S).addScaledVector(hp.T, -1.3).addScaledVector(hp.U, 0.0);
     this.jaw.rotation.x = (p.jaw || 0) * 0.55 + 0.04;
     this.mouthGlow.material.color.setRGB(1, 0.35 + (p.breath || 0) * 0.4, 0.05).multiplyScalar(0.25 + (p.breath || 0) * 2.2);
     this.mouthGlow.visible = (p.jaw || 0) > 0.05;

@@ -68,9 +68,9 @@ const SHOTS = [
   { id: 'S01', t0: 0, t1: 9, keys: [[0, -50, 9, 215, 20, 100, -330, 26], [9, -34, 12, 190, 10, 75, -300, 24]], follow: (t) => 0.2 + 0.7 * smoothstep(0, 8, t) },
   { id: 'S02', t0: 9, t1: 18, keys: [[9, 1, 1.75, 40, 0, 8, -40, 58], [12, 0.5, 1.75, 34, 0, 20, -10, 58], [15, 0, 1.8, 30, -2, 30, 40, 52], [18, 1, 1.8, 28, 0, 35, 110, 50]], follow: (t) => smoothstep(10.5, 12.5, t) * (1 - smoothstep(14.5, 16.0, t)) },
   { id: 'S03', t0: 18, t1: 30, keys: [[18, -100, 18, 190, 20, 30, 140, 36], [21, -96, 14, 110, 0, 16, 60, 34], [23.5, -92, 11, 50, 0, 12, 20, 34], [26, -90, 10, -5, 0, 10, -22, 34], [28.5, -84, 12, -55, 0, 14, -72, 36], [30, -70, 11, -60, 0, 15, -85, 40]], follow: (t) => 0.92 },
-  { id: 'S04', t0: 30, t1: 38, keys: [[30, 2, 2.5, -28, -10, 22, -112, 50], [34, 3, 2.8, -30, -40, 55, -140, 44], [38, 4, 3, -34, -90, 92, -200, 40]], follow: (t) => 0.35 + 0.55 * smoothstep(30, 34, t) },
+  { id: 'S04', t0: 30, t1: 38, keys: [[30, 0, 2.6, -8, -10, 22, -112, 52], [34, 1, 3, -10, -40, 55, -140, 44], [38, 2, 4, -12, -90, 92, -200, 38]], follow: (t) => 0.35 + 0.55 * smoothstep(30, 34, t) },
   { id: 'S05', t0: 38, t1: 47, keys: [[38, -90, 128, -160, -200, 135, -270, 38], [43, -145, 150, -190, -250, 150, -295, 36], [47, -170, 160, -215, -268, 152, -302, 34]], follow: (t) => 0.75 },
-  { id: 'S06', t0: 47, t1: 62, keys: [[47, 8, 4.8, 44, 4, 12, -10, 62], [51, 4, 4.8, 40, -4, 9, -14, 58], [54.8, 22, 5.5, 34, -8, 9, -8, 52], [58, 38, 16, 34, -2, 9, -4, 44], [62, 30, 11, 26, -3, 10, -6, 34]].map((k) => [k[0], k[1] + CAVE_X, k[2], k[3], k[4] + CAVE_X, k[5], k[6], k[7]]), follow: (t) => t < 56 ? 0.75 : 0.3 * (1 - smoothstep(56, 58, t)) },
+  { id: 'S06', t0: 47, t1: 62, keys: [[47, 8, 4.8, 44, 4, 8, -10, 62], [51, 4, 4.8, 40, -4, 9, -14, 58], [54.8, 22, 5.5, 34, -8, 9, -8, 52], [58, 38, 16, 34, -2, 9, -4, 44], [62, 30, 11, 26, -3, 10, -6, 34]].map((k) => [k[0], k[1] + CAVE_X, k[2], k[3], k[4] + CAVE_X, k[5], k[6], k[7]]), follow: (t) => t < 49 ? 0 : t < 56 ? 0.75 * smoothstep(49, 51, t) : (0.3 * (1 - smoothstep(56, 58, t)) + 0.95 * smoothstep(58, 59.5, t)) },
 ];
 
 export async function createIntro(canvas, opts = {}) {
@@ -99,6 +99,10 @@ export async function createIntro(canvas, opts = {}) {
     const arch = new THREE.Mesh(new THREE.TorusGeometry(15, 3.2, 5, 14, Math.PI), new THREE.MeshStandardMaterial({ color: 0x2c2420, flatShading: true, roughness: 1 })); arch.scale.set(0.8, 1.05, 1.4); arch.position.z = 0.3; mg.add(arch);
     for (const s of [-1, 1]) { const col = new THREE.Mesh(new THREE.BoxGeometry(5, 18, 6), arch.material); col.position.set(s * 12.2, -9, 0.3); mg.add(col); }
     const ml = new THREE.PointLight(0xff9a3a, 9000, 160, 1.5); ml.position.set(0, 0, 8); mg.add(ml); world.add(mg); }
+  { // final hero camera: close on the resting head
+    const he = dragon.headPose(cave, 61.9, dragonParams(61.9)).pos; const k = SHOTS[5].keys;
+    k[k.length - 1] = [62, he.x + 9, he.y + 5.5, he.z - 2, he.x, he.y + 0.5, he.z, 30]; k.splice(k.length - 1, 0, [60, he.x + 10, he.y + 6, he.z - 2, he.x, he.y + 0.5, he.z, 34]); }
+  const dragonFill = new THREE.PointLight(0xff9a50, 0, 60, 1.6); scene.add(dragonFill);
   // lights
   const sunL = new THREE.DirectionalLight(0xffa860, 3.2); sunL.castShadow = true; sunL.shadow.mapSize.set(2048, 2048);
   const sc = sunL.shadow.camera; sc.left = -110; sc.right = 110; sc.top = 110; sc.bottom = -110; sc.near = 1; sc.far = 600; sunL.shadow.bias = -0.0006; sunL.shadow.normalBias = 0.5;
@@ -170,7 +174,7 @@ export async function createIntro(canvas, opts = {}) {
     camera.lookAt(look);
     // lighting by phase
     const dusk = mixN;
-    sunL.color.setRGB(1.0, lerp(0.62, 0.5, dusk), lerp(0.34, 0.45, dusk)); sunL.intensity = lerp(3.4, 1.3, dusk) * (inCave ? 0 : 1);
+    const sunMix = smoothstep(22, 36, t); sunL.color.setRGB(1.0, lerp(0.66, 0.55, sunMix), lerp(0.4, 0.5, sunMix)); sunL.intensity = lerp(3.4, 1.2, sunMix) * (inCave ? 0 : 1);
     sunL.position.copy(camera.position).addScaledVector(sunDir, 300); sunL.target.position.copy(camera.position).add(V(0, 0, -20)); if (shot.id === 'S03' || shot.id === 'S02' || shot.id === 'S04') { sunL.target.position.set(0, 0, 0); sunL.position.copy(sunDir).multiplyScalar(300); sunL.shadow.camera.left = -120; sunL.shadow.camera.right = 120; sunL.shadow.camera.top = 120; sunL.shadow.camera.bottom = -120; } else { sunL.castShadow = true; }
     hemi.intensity = inCave ? 0.0 : lerp(1.5, 1.5, dusk); hemi.color.setRGB(lerp(0.55, 0.42, dusk), lerp(0.6, 0.5, dusk), lerp(0.75, 0.85, dusk));
     scene.fog.color.setRGB(lerp(0.82, 0.3, dusk), lerp(0.4, 0.22, dusk), lerp(0.2, 0.24, dusk)); scene.fog.density = inCave ? 0 : lerp(0.0008, 0.0007, dusk);
@@ -179,6 +183,7 @@ export async function createIntro(canvas, opts = {}) {
     fireLights.forEach((l, i) => { const h = burning[i]; if (!h || inCave) { l.intensity = 0; return; } l.position.set(h.x, h.y + h.h + 2, h.z); l.intensity = 900 * clamp((t - h.ignite) / 2) * (0.85 + 0.15 * Math.sin(t * 23 + i * 5)); });
     const br01 = dp.breath; const mouth = dragon.headPose(outdoor, t, dp).mouth; fireLight.position.copy(mouth).add(V(0, -3, 0)); fireLight.intensity = (!inCave ? br01 : 0) * 2600;
     const px = renderer.getPixelRatio() * H * 0.9; village.update(t, px); bmat.uniforms.uPx.value = px; updateBreath(t);
+    if (inCave) { const hp2 = dragon.headPose(cave, t, dp).pos; dragonFill.position.copy(hp2).add(V(6, 7, 8)); dragonFill.intensity = 260; } else dragonFill.intensity = 0;
     // cave lighting animation
     if (inCave) { const L = caveG.userData.lights; L.torches.forEach((l, i) => { l.intensity = (i < 2 ? 260 : 180) * (0.9 + 0.1 * Math.sin(t * 17 + i * 3) * Math.sin(t * 9 + i)); }); scene.fog.density = 0.0022; scene.fog.color.setRGB(0.1, 0.06, 0.04); bloom.strength = 0.2; } else bloom.strength = 0.32;
     // fade in / out
