@@ -102,7 +102,7 @@ export function makeCave(envMap) {
   const torch = (x, y, z, i) => { const l = new THREE.PointLight(0xff8a30, i, 90, 1.6); l.position.set(x, y, z); g.add(l); const f = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.0, 5), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.55, 0.15).multiplyScalar(2.5) })); f.position.set(x, y, z); g.add(f); const s = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.4, 5), wood); s.position.set(x, y - 1.6, z); g.add(s); return l; };
   const lights = { torches: [torch(-44, 8, -10, 700), torch(40, 8, -22, 600), torch(-30, 8, 40, 500), torch(32, 8, 40, 500)] };
   lights.glow = new THREE.PointLight(0xffb040, 90, 80, 1.5); lights.glow.position.set(0, 22, 4); g.add(lights.glow);
-  lights.moon = new THREE.SpotLight(0x8fb0ff, 9000, 130, 0.22, 0.6, 1.2); lights.moon.position.set(14, 40, -6); lights.moon.target.position.set(2, 8, 0); lights.moon.castShadow = true; lights.moon.shadow.mapSize.set(1024, 1024); lights.moon.shadow.bias = -0.0004; g.add(lights.moon, lights.moon.target);
+  lights.moon = new THREE.SpotLight(0x8fb0ff, 5500, 130, 0.22, 0.6, 1.2); lights.moon.position.set(14, 40, -6); lights.moon.target.position.set(2, 8, 0); lights.moon.castShadow = true; lights.moon.shadow.mapSize.set(1024, 1024); lights.moon.shadow.bias = -0.0004; g.add(lights.moon, lights.moon.target);
   lights.amb = new THREE.HemisphereLight(0x403048, 0x5a3a14, 0.32); g.add(lights.amb);
   g.userData.lights = lights; g.visible = false; return g;
 }

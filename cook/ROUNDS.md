@@ -107,3 +107,11 @@ Time: 2026-11-14 | about 4h elapsed, floor 8h not reached
 Changes: S02 split in two (no more upside-down overhead frame; second half watches the dragon bank away over the village), S05 is now a dynamic chase camera framing the dragon against the glowing cave mouth, thicker wing bones, neck S-curve, per-face colour variation and strata on the cave mountain and dragon scales.
 Stills: `cook/stills/r14/` | Sheet: `cook/compare/r14-sheet.png`. Critic scores for this round: not run yet (eyeballed by me only: S02 and S05 clearly better).
 Still open: coin glare mid S06, pale fire in S03, dragon body stiff, no clip render, no sound.
+
+## Round 15
+Time: 2026-11-14 | about 5h elapsed, floor 8h not reached
+Changes: breath is now a long forward plume (head pitch -0.26, wider cone, less white), houses ignite as the breath passes, S01 dragon closer and centred on the sun, cave bloom and moon light reduced.
+Critic (1 sonnet, eyeballed, r14 sheet): composition 6, light 7, color 6.5, materials 4, detail 5, dragon design 4.5, story 7.
+Critic gaps: S01/S02 dragon thin and small (partly fixed), cave dragon hard to read against gold noise, closing frame unclear, mountain faces flat, pines clash with warm haze, fire billboards flat.
+Stills: `cook/stills/r15/`, sheets `cook/compare/r15b.png`, `r15c.png`. Not measured: color check, clip render, fps.
+Next focus: cave dragon separation (rim light, less coin noise near it), closing frame pull-back, pine tint, dragon body, clip render test.

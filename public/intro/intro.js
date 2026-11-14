@@ -16,7 +16,7 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const MOUTH = (() => { const x = CAVE_PEAK.x + 45, z = CAVE_PEAK.z + 35; return V(x, heightAt(x, z) + 12, z); })();
 // ---- dragon tracks (head position over time) ----
 const outdoor = new Track([
-  [0, 46, 118, -330], [5, 28, 100, -225], [9, 8, 68, -90], [11.5, 0, 40, -30], [13.5, -6, 34, 40],
+  [0, 46, 112, -260], [5, 26, 92, -160], [9, 8, 66, -75], [11.5, 0, 40, -30], [13.5, -6, 34, 40],
   [15, -22, 38, 110], [16.8, 4, 40, 165], [18.2, 38, 33, 145], [19.6, 28, 26, 100], [21.2, 4, 17, 62],
   [23, 0, 14, 30], [25, 0, 12, -5], [27, 0, 12, -40], [28.6, 0, 15, -72],
   [30, -22, 32, -112], [33, -62, 60, -155], [36, -102, 92, -205], [39, -165, 118, -250], [42, -205, 142, -275],
@@ -41,7 +41,7 @@ function dragonParams(t) {
   else { amp = 0.5 * (1 - smoothstep(55.5, 58.5, t)); f = 0.45; }
   const ph = t * f * Math.PI * 2;
   p.flap = amp * Math.sin(ph) + 0.1; p.flap2 = amp * Math.sin(ph - 0.7) + 0.1;
-  p.breath = breath; p.jaw = Math.max(breath, 0.0) * 0.95; p.headPitch = -0.48 * breath;
+  p.breath = breath; p.jaw = Math.max(breath, 0.0) * 0.95; p.headPitch = -0.26 * breath;
   if (t >= 58.5) { p.fold = smoothstep(58.5, 60.8, t) * 0.92; p.flap = lerp(p.flap, 0.1, p.fold); p.flap2 = p.flap; }
   if (t > 47) p.legExt = smoothstep(55.2, 56.8, t) * (1 - smoothstep(58.5, 60.0, t) * 0.8);
   p.eyeOpen = t > 59 ? 0.3 + 0.7 * smoothstep(60.4, 61.8, t) * 0 + 0.7 * smoothstep(60.8, 61.8, t) : 1;
@@ -65,7 +65,7 @@ function camPath(keys, t) {
 }
 
 const SHOTS = [
-  { id: 'S01', t0: 0, t1: 9, keys: [[0, -50, 9, 215, 20, 100, -330, 26], [9, -34, 12, 190, 10, 75, -300, 24]], follow: (t) => 0.2 + 0.7 * smoothstep(0, 8, t) },
+  { id: 'S01', t0: 0, t1: 9, keys: [[0, -50, 9, 215, 20, 100, -260, 28], [9, -34, 12, 190, 10, 75, -200, 26]], follow: (t) => 0.2 + 0.7 * smoothstep(0, 8, t) },
   { id: 'S02', t0: 9, t1: 13, keys: [[9, 2, 1.75, 44, 0, 8, -40, 58], [13, 1, 1.75, 38, -1, 22, -10, 54]], follow: (t) => smoothstep(9.5, 11.5, t) },
   { id: 'S02b', t0: 13, t1: 18, keys: [[13, 3, 2.0, -34, 0, 38, 60, 50], [18, 2, 2.2, -30, -10, 40, 130, 46]], follow: (t) => 0.9 },
   { id: 'S03', t0: 18, t1: 30, keys: [[18, -100, 18, 190, 20, 30, 140, 36], [21, -96, 14, 110, 0, 16, 60, 34], [23.5, -92, 11, 50, 0, 12, 20, 34], [26, -90, 10, -5, 0, 10, -22, 34], [28.5, -84, 12, -55, 0, 14, -72, 36], [30, -70, 11, -60, 0, 15, -85, 40]], follow: (t) => 0.92 },
@@ -111,7 +111,7 @@ export async function createIntro(canvas, opts = {}) {
   const hemi = new THREE.HemisphereLight(0x7a8fb8, 0x3a2a1c, 0.9); scene.add(hemi);
   const fireLight = new THREE.PointLight(0xff7a20, 0, 120, 1.4); scene.add(fireLight);
   const fireLights = [0, 1, 2].map(() => { const l = new THREE.PointLight(0xff6a18, 0, 60, 1.5); scene.add(l); return l; });
-  const sunDir = V(0.12, 0.2, -0.97).normalize(); sky.material.uniforms.uSun.value.copy(sunDir);
+  const sunDir = V(0.19, 0.22, -0.96).normalize(); sky.material.uniforms.uSun.value.copy(sunDir);
   scene.fog = new THREE.FogExp2(0xb86a48, 0.0008);
 
   // plan village destruction from the dragon track
@@ -123,14 +123,14 @@ export async function createIntro(canvas, opts = {}) {
   const br = { o: new Float32Array(NB * 3), d: new Float32Array(NB * 3), b: new Float32Array(NB), s: new Float32Array(NB), v: new Float32Array(NB) };
   for (let i = 0; i < NB; i++) {
     const b = BT0 + (i / NB) * (BT1 - BT0); const hp = dragon.headPose(outdoor, b, dragonParams(b), {});
-    const dir = hp.T.clone(); const sp = 0.1 + 0.12 * rb(); const a = rb() * 6.28; dir.addScaledVector(hp.R, Math.cos(a) * sp * rb()).addScaledVector(hp.U, Math.sin(a) * sp * rb()).normalize();
-    br.o.set([hp.mouth.x, hp.mouth.y, hp.mouth.z], i * 3); br.d.set([dir.x, dir.y, dir.z], i * 3); br.b[i] = b; br.s[i] = rb(); br.v[i] = 30 + 16 * rb();
+    const dir = hp.T.clone(); const sp = 0.16 + 0.2 * rb(); const a = rb() * 6.28; dir.addScaledVector(hp.R, Math.cos(a) * sp * rb()).addScaledVector(hp.U, Math.sin(a) * sp * rb()).normalize();
+    br.o.set([hp.mouth.x, hp.mouth.y, hp.mouth.z], i * 3); br.d.set([dir.x, dir.y, dir.z], i * 3); br.b[i] = b; br.s[i] = rb(); br.v[i] = 34 + 22 * rb();
   }
   const bgeo = new THREE.BufferGeometry(); bgeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NB * 3), 3)); bgeo.setAttribute('aAge', new THREE.BufferAttribute(new Float32Array(NB).fill(-1), 1)); bgeo.setAttribute('aSz', new THREE.BufferAttribute(new Float32Array(NB), 1));
   const bmat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uPx: { value: 700 } },
     vertexShader: 'attribute float aAge; attribute float aSz; uniform float uPx; varying float vA; void main(){ vA=aAge; vec4 mv=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; gl_PointSize = aAge<0.?0.: aSz*uPx/max(1.,-mv.z); }',
-    fragmentShader: 'varying float vA; void main(){ vec2 c=gl_PointCoord-.5; float d=length(c); if(d>.5||vA<0.) discard; float a=smoothstep(.5,0.,d)*(1.-vA*vA); vec3 col=mix(vec3(1.,.95,.6),vec3(1.,.32,.04),smoothstep(0.,.55,vA)); col=mix(col,vec3(.5,.06,0.),smoothstep(.55,1.,vA)); gl_FragColor=vec4(col*1.1,a*.55); }',
+    fragmentShader: 'varying float vA; void main(){ vec2 c=gl_PointCoord-.5; float d=length(c); if(d>.5||vA<0.) discard; float a=smoothstep(.5,0.,d)*(1.-vA*vA); vec3 col=mix(vec3(1.,.95,.6),vec3(1.,.32,.04),smoothstep(0.,.55,vA)); col=mix(col,vec3(.5,.06,0.),smoothstep(.55,1.,vA)); gl_FragColor=vec4(col*1.0,a*.38); }',
   });
   const breathPts = new THREE.Points(bgeo, bmat); breathPts.frustumCulled = false; breathPts.renderOrder = 5; scene.add(breathPts);
   const updateBreath = (t) => {
@@ -188,7 +188,7 @@ export async function createIntro(canvas, opts = {}) {
     const px = renderer.getPixelRatio() * H * 0.9; village.update(t, px); bmat.uniforms.uPx.value = px; updateBreath(t);
     if (inCave) { const hp2 = dragon.headPose(cave, t, dp).pos; dragonFill.position.copy(hp2).add(V(6, 7, 8)); dragonFill.intensity = 260; } else dragonFill.intensity = 0;
     // cave lighting animation
-    if (inCave) { const L = caveG.userData.lights; L.torches.forEach((l, i) => { l.intensity = (i < 2 ? 260 : 180) * (0.9 + 0.1 * Math.sin(t * 17 + i * 3) * Math.sin(t * 9 + i)); }); scene.fog.density = 0.0022; scene.fog.color.setRGB(0.1, 0.06, 0.04); bloom.strength = 0.2; } else bloom.strength = 0.32;
+    if (inCave) { const L = caveG.userData.lights; L.torches.forEach((l, i) => { l.intensity = (i < 2 ? 260 : 180) * (0.9 + 0.1 * Math.sin(t * 17 + i * 3) * Math.sin(t * 9 + i)); }); scene.fog.density = 0.0022; scene.fog.color.setRGB(0.1, 0.06, 0.04); bloom.strength = 0.12; } else bloom.strength = 0.32;
     // fade in / out
     grade.uniforms.uFade.value = Math.min(smoothstep(0, 0.8, t), 1 - smoothstep(DURATION - 1.2, DURATION - 0.1, t) * (opts.fadeOut === false ? 0 : 1));
     composer.render();

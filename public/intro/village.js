@@ -142,7 +142,7 @@ export class Village {
           attribute float aSeed; attribute float aHouse; uniform float uTime; uniform float uPx; uniform float uIgnite[${this.houses.length}];
           varying float vAge; varying float vOn; varying float vSeed;
           void main(){
-            float ig = uIgnite[int(aHouse)]; float since = uTime - ig; float on = smoothstep(0.0, 2.5, since);
+            float ig = uIgnite[int(aHouse)]; float since = uTime - ig; float on = smoothstep(0.0, 1.2, since);
             float sp = ${smoke ? '0.11' : '0.55'} * (0.7 + aSeed*0.6);
             float age = fract(uTime*sp + aSeed*13.0); vAge = age; vSeed = aSeed;
             vec3 p = position;
@@ -179,7 +179,7 @@ export class Village {
     for (const h of this.houses) {
       let best = Infinity, bt = Infinity;
       for (const s of samples) { if (s.t < breathStart - 1.5 || s.t > breathEnd) continue; const d = Math.hypot(s.p.x - h.x, s.p.z - h.z) + Math.max(0, s.p.y - h.y - 10) * 0.8; if (d < best) { best = d; bt = s.t; } }
-      h.ignite = best < 24 ? bt + 0.5 + Math.abs(Math.sin(h.x * 13.1 + h.z * 7.7)) * 0.9 : Infinity;
+      h.ignite = best < 24 ? bt + 0.1 + Math.abs(Math.sin(h.x * 13.1 + h.z * 7.7)) * 0.5 : Infinity;
     }
     for (let pass = 0; pass < 3; pass++) for (const a of this.houses) for (const b of this.houses) { if (a === b) continue; const d = Math.hypot(a.x - b.x, a.z - b.z); if (d < 26 && b.ignite + 2 + d / 7 < a.ignite) a.ignite = b.ignite + 2 + d / 7; }
     this.houses.forEach((h, i) => { this.igniteArr[i] = h.ignite < 60 ? h.ignite : 1e9; });
