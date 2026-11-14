@@ -177,3 +177,5 @@ Rendered 1860 frames at 1920x1080, 30 fps with scripts/intro-render.mjs (3 paral
 File: cook/final/dragon-intro.mp4 (git-ignored). Checked with ffprobe: h264 1920x1080, 30/1 fps, 1860 frames, 62.000 s; aac audio 62.000 s. Measured loudness of the mixed file: -23.7 LUFS integrated, -5.2 dBFS peak. Spot-checked frames at t=2, 30 and 58 s in the encoded file: correct shots; the six near-empty JPEGs are the black fade-in and fade-out frames.
 Not done: motion blur by sub-frame accumulation (skipped for render time), nobody has listened to the audio, final scores stay at about 6-7 out of 10 against a 9 bar.
 Stop check: bar NO (reported honestly) | floor yes | stills approved yes | final rendered and file checked yes
+
+Published: user answered "lgtm, publish" and chose the repo option. Smaller encode (H.264 crf 23, 9 Mbit/s cap, AAC 160k, 52 MB, 1920x1080, 30 fps, 62.0 s, checked with ffprobe) committed to public/intro/dragon-intro.mp4 on main. The 144 MB crf 17 master stays local in cook/final/ (git-ignored).
