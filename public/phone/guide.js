@@ -6,7 +6,7 @@ import { failsRequired, teamSize, MAX_REJECTS } from '../../shared/avalon.js';
 export const HOW_TO = [
   { h: 'The story', p: 'The Lost Crown has been stolen. Most of you are Loyal Servants of Arthur. Some of you are secret Minions of Mordred. Nobody knows who is who, except the Minions and a few special roles.' },
   { h: 'Winning', p: 'Good wins by completing 3 of 5 quests. Evil wins by sabotaging 3 quests, or if 5 teams in a row get rejected. If good wins, the Assassin still gets one guess at Merlin. A correct guess steals the win.' },
-  { h: 'A round', p: '1. The leader picks a team.  2. Everyone votes Approve or Reject.  3. If approved, the team secretly plays Success or Fail cards.  4. Watch the TV: the quest plays out as a cutscene!' },
+  { h: 'A round', p: 'The leader picks a team. Everyone votes Approve or Reject. If the team is approved, its members secretly play Success or Fail cards. Then watch the TV: the quest plays out as a cutscene.' },
   { h: 'Success and Fail', p: 'Good players can only play Success. Evil players may play Fail. One Fail sinks the quest. (Quest 4 with 7+ players needs two.) The TV shows the outcome, never who played what.' },
   { h: 'Who stood out?', p: 'After playing your card you pick one teammate. On success, the most-picked player becomes the hero. On a failure, the culprit is drawn from what the Fail players picked, so Evil gets to frame someone!' },
   { h: 'Talk it out', p: 'Argue, accuse, defend. Say who you trust and why. Lying is part of the game, but only inside the game.' },
@@ -37,42 +37,54 @@ export const ROLE_TIPS = {
   oberon: ['You work alone. Your allies do not know you and you do not know them.', 'Merlin can see you, so be careful. Fail when you can.'],
 };
 
-/** Short advice for the screen the player is on. Returns { icon, text } or null. */
+/**
+ * Table-safe hint for the screen the player is on: says what to do, never anything that depends on the secret role
+ * (anyone glancing at the phone may read it). Returns a string or null.
+ */
 export function coachFor(screen, state) {
   if (!state || !state.pub) return null;
-  const { pub, me } = state;
-  const role = me && me.role; const team = role ? ROLE_INFO[role].team : null;
-  const g = pub.game; const n = pub.players.length;
+  const { pub, me } = state; const g = pub.game;
   switch (screen) {
-    case 'lobby':
-      return { icon: '🏕️', text: me && me.vip ? 'You are the VIP. Fill empty seats with bots, choose roles, then start. Tap ? any time for help.' : 'Pick your hero and colour. The VIP starts the game. New to this? Tap ? for a 1-minute guide.' };
-    case 'roleReveal':
-      return { icon: '🤫', text: 'Hold the "Hold to reveal" button to see your role privately. Tap "I\'m ready" once you know who you are.' };
-    case 'waitLeader':
-      return { icon: '👀', text: team === 'evil' ? 'Hoping the leader picks someone on your side? Do not look too hopeful.' : 'Watch who the leader picks. Do they choose themselves? Friends?' };
-    case 'propose': {
-      const t = team === 'evil' ? 'Put at least one Minion of Mordred on the team (maybe you!), but not so obvious that everyone rejects it.' : role === 'merlin' ? 'Pick players you know are good, but do not be too perfect or the Assassin will notice.' : 'Pick yourself and players you trust. You know you are loyal; the others you do not.';
-      return { icon: '👑', text: t };
-    }
+    case 'lobby': return me && me.vip ? 'You are the host. Fill empty seats with bots, choose the roles, then start.' : 'Pick your look. The host starts the game. New here? Tap ? for a one-minute guide.';
+    case 'roleReveal': return 'Press and hold the card to look at your role. Shield your screen. Let go to hide it.';
+    case 'waitLeader': return 'Talk it over. Tell the leader who you trust.';
+    case 'propose': return 'Choose who goes on the quest. Everyone votes on your team next.';
     case 'vote': {
       const left = g ? MAX_REJECTS - g.rejectCount : MAX_REJECTS;
-      const t = team === 'evil' ? 'Approve if a Minion is on the team. Rejecting too often looks suspicious.' : 'Approve teams you trust. Reject teams with anyone suspicious.';
-      return { icon: '🗳️', text: `${t} ${left <= 1 ? 'Careful: one more rejection and evil wins!' : `${left} rejections left before evil wins.`}` };
+      return left <= 1 ? 'Last chance: if this team is rejected, Evil wins the game.' : 'Approve to send this team. Reject to pass the crown to the next leader.';
     }
-    case 'voted': return { icon: '⏳', text: 'Your vote is locked. The TV will reveal everyone\'s votes together.' };
-    case 'quest-card': {
-      if (!me.quest.canFail) return { icon: '🛡️', text: 'You are good, so Success is the only card you can play. Tap it and move on!' };
-      const need = g ? failsRequired(n, g.questIndex) : 1;
-      return { icon: '🗡️', text: `You are a Minion of Mordred: you usually want to play Fail. ${need > 1 ? 'This quest needs TWO Fails, so coordinate with another Minion on the team. ' : ''}If you are the only Minion here, you could play Success to look trustworthy.` };
-    }
-    case 'quest-pick':
-      return { icon: '🎯', text: team === 'evil' ? 'If this quest fails, one Fail player\'s pick may decide who gets framed. Pick a good player.' : 'Pick the teammate who impressed you. On success, the most-picked player becomes the hero.' };
-    case 'quest-done': case 'watchQuest': return { icon: '🎬', text: 'The quest is underway. Nothing to do but watch the TV.' };
-    case 'assassinate':
-      return { icon: '🔪', text: 'Think back: who steered teams away from your allies? Who seemed to know too much? That is Merlin.' };
-    case 'waitAssassin':
-      return { icon: '😬', text: role === 'merlin' ? 'Hold your breath. Merlin lives or dies on this guess.' : 'The Assassin gets one guess at Merlin. Good wins only if they miss.' };
+    case 'voted': return 'Votes are revealed together once everyone is in.';
+    case 'quest-card': return 'Play one card face-down. Good must play Success. Only Evil may play Fail.';
+    case 'quest-pick': return 'Pick one teammate. Picks decide who the story singles out on the TV.';
+    case 'quest-done': case 'watchQuest': return 'The cards are being played in secret.';
+    case 'assassinate': return 'One guess. Name Merlin and Evil steals the win.';
+    case 'waitAssassin': return 'Evil gets one guess at Merlin. Good wins only if they miss.';
     default: return null;
+  }
+}
+
+/**
+ * Secret advice for the same moment, based on the player's own role. Only ever shown behind hold-to-reveal.
+ */
+export function counselFor(screen, state) {
+  if (!state || !state.pub || !state.me || !state.me.role) return null;
+  const { pub, me } = state;
+  const role = me.role; const team = ROLE_INFO[role].team; const evil = team === 'evil';
+  const g = pub.game; const n = pub.players.length;
+  switch (screen) {
+    case 'roleReveal': return evil ? 'Remember your allies. From now on, act like a loyal servant.' : role === 'merlin' ? 'Remember these faces. Guide the others without giving yourself away.' : 'You are loyal. Trust has to be earned: watch the votes and the quests.';
+    case 'waitLeader': return evil ? 'Hope for a Minion on the team, but do not look hopeful.' : 'Watch who the leader picks, and who they leave out.';
+    case 'propose': return evil ? 'Put at least one Minion of Mordred on the team (maybe you), without making it obvious.' : role === 'merlin' ? 'Pick players you know are good, but do not be too perfect or the Assassin will notice.' : 'Pick yourself and the players you trust most. You know you are loyal.';
+    case 'vote': return evil ? 'Approve if a Minion is on the team. Rejecting too often looks suspicious.' : role === 'merlin' ? 'Reject teams with a Minion on them, but have a reason ready.' : 'Approve teams you trust. Reject if anyone on it worries you.';
+    case 'quest-card': {
+      if (!evil) return 'You are Good: play Success. It is the only card you can play.';
+      const need = g ? failsRequired(n, g.questIndex) : 1;
+      return `You usually want to play Fail. ${need > 1 ? 'This quest needs TWO Fails, so it only sinks if another Minion fails too. ' : ''}If you are the only Minion here, a Success now can buy trust for later.`;
+    }
+    case 'quest-pick': return evil ? 'If the quest fails, a Fail player\'s pick decides who is framed. Pick a Good player.' : 'Pick whoever impressed you. On a success the most-picked player is the hero.';
+    case 'assassinate': return 'Who steered teams away from your allies? Who seemed to know too much? That is Merlin.';
+    case 'waitAssassin': return role === 'merlin' ? 'Hold your breath and keep a straight face.' : evil ? 'Help the Assassin: who seemed to know too much?' : 'Do not look at Merlin!';
+    default: return evil ? GENERAL_TIPS.evil[2] : GENERAL_TIPS.good[2];
   }
 }
 
@@ -81,5 +93,5 @@ export function questStrip(pub) {
   const g = pub.game; if (!g) return '';
   const n = pub.players.length;
   const need = failsRequired(n, g.questIndex);
-  return `Quest ${g.questIndex + 1} of 5 · ${teamSize(n, g.questIndex)} on the team · ${need} Fail${need > 1 ? 's' : ''} sinks it`;
+  return `Quest ${g.questIndex + 1} of 5 · team of ${teamSize(n, g.questIndex)} · ${need > 1 ? 'needs 2 Fails to sink' : '1 Fail sinks it'}`;
 }

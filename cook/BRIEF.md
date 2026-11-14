@@ -1,13 +1,12 @@
-# Brief: Dragon intro cinematic
+# Brief: Avalon phone UI/UX
 
-Target: ~60 s procedural intro scene for the game. A dragon flies in, burns and kills (implied, no gore) villagers, then flies to a mountain cave and settles on its gold hoard. Stack: three.js, code only, public/intro/.
-References: no references. First approved stills become the reference. User may attach some later.
-Bar: composition 9, light 9, color 9, materials 9, detail near/far 9, motion 9 (critic score /10, calibrated).
-Calibration offset: none yet.
-Rules: zero external assets, no texture files, everything procedural. Sound: code-made only if it holds up, else none. Slop ban list applies. Stylized low-poly / flat-shaded dark fantasy, dramatic sky, fog, instanced gold hoard, ember-lit cave.
-Time: floor 8h. Started: 2026-11-13 20:55 UTC.
-Hardware: weak GPU (software GL here). Realtime cheap, final quality offline.
-Deliverable: approved stills, then ~1 min 1080p30 video, plus realtime scene playable at /intro/.
-Permissions: download no, push no, publish no.
-Shots: S01 dragon silhouette over sunset peaks; S02 village from the ground; S03 fire pass; S04 burning aftermath; S05 flight to mountain; S06 cave hoard, dragon settles.
-User's words: "non texturized intro scene to my game! something like a setup where a dragon flies and kills people and then settles down by all the gold"
+Started 2026-11-14 03:13 UTC. User prompt: "fable take a hard look at the phone UI/UX here, make it awesome /cook".
+
+- **Build:** the phone controller in `public/phone/` (join, lobby, role reveal, propose, vote, quest, results, game over, help).
+- **References:** none supplied. Bar is set by rubric, scored by zero-context critics on screenshots.
+- **Bar (out of 10, critic median):** clarity of what to do 9 | visual hierarchy 9 | theme and craft 9 | consistency 9 | hidden-role privacy 9 | touch ergonomics 9.
+- **Rules:** code only, no external assets or fonts (works offline on LAN). No emoji as UI icons (inline SVG instead). Avalon terms (Loyal Servants of Arthur, Minions of Mordred). Secrets only behind hold-to-reveal. Protocol and server unchanged. Tests and the browser check must stay green.
+- **Time:** floor 2h, cap 6h (UI job).
+- **Deliverable:** the live phone UI in the repo, plus screenshot sheets in `cook/stills/`.
+- **Permissions:** commit and push to `main` (established earlier in this session). No downloads needed.
+- Intake questions were skipped: the prompt plus earlier session answers covered them; defaults logged in ROUNDS.md.
