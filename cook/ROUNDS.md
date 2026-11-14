@@ -171,3 +171,9 @@ Reading: the reference-informed palette and grain did not raise scores; dragon d
 ## Round 27
 Change: dragon scale 1.55 to 2.0 and head 1.5 to 1.7 so it is larger in every frame. Sheet: `cook/compare/r27-sheet.png`. Critic: not run (self-eyeballed: the opening and mountain shots read better, the dragon fills more of the frame; the cave closing frame is now crowded).
 Stop check: bar no (about 6-7 vs 9) | floor reached | stills approved no | final render not started
+
+## Final render (user approved the stills: "lgtm, approved")
+Rendered 1860 frames at 1920x1080, 30 fps with scripts/intro-render.mjs (3 parallel workers, software GL, 1.9-16 s per frame depending on shot), encoded with ffmpeg (H.264 crf 17, yuv420p) plus the code-made soundtrack (AAC 192k).
+File: cook/final/dragon-intro.mp4 (git-ignored). Checked with ffprobe: h264 1920x1080, 30/1 fps, 1860 frames, 62.000 s; aac audio 62.000 s. Measured loudness of the mixed file: -23.7 LUFS integrated, -5.2 dBFS peak. Spot-checked frames at t=2, 30 and 58 s in the encoded file: correct shots; the six near-empty JPEGs are the black fade-in and fade-out frames.
+Not done: motion blur by sub-frame accumulation (skipped for render time), nobody has listened to the audio, final scores stay at about 6-7 out of 10 against a 9 bar.
+Stop check: bar NO (reported honestly) | floor yes | stills approved yes | final rendered and file checked yes
