@@ -5,7 +5,7 @@ Time: floor 2h | cap 6h
 Bar (critic median, out of 10): clarity 9 | hierarchy 9 | theme and craft 9 | consistency 9 | privacy 9 | ergonomics 9
 Calibration offset: none yet (no user estimate)
 Gate: stills approved no | final deliverable is the live UI (no long render)
-Best so far: round 7, `cook/stills/r07/`
+Best so far: round 8, `cook/stills/r08/`
 
 ## Decisions
 
@@ -81,4 +81,16 @@ Focus: critic 5 findings.
 Changed: Success and Fail cards share one colour (chalice vs shattered sword and the label tell them apart); role card always shows a "who you know" row of the same height; player lists anchored above the action bar; larger tracker text ("2 fails"); game over grouped by team with a "won" tag; larger vote badges and aligned rows in Record; lobby shows "player"/"bot" on every row and a role count.
 Not taken: second hold control at the bottom edge (critic 2 asked for the opposite; one control, away from the primary button, stays).
 Measured: 97/97 tests, live-game check pass, 24 screens x 2 sizes with no overflow or console errors.
-Critic 6: pending.
+Critic 6 (zero context, eyeballed): clarity 7, hierarchy 6, theme 7, consistency 7, privacy 8, ergonomics 7. Main findings: Reject token reads as disabled; Change link small and close; dead space on waiting and result screens; role card height differs by role; Record votes wrap.
+
+## Round 08
+
+Time: 07:20 to 07:40 | total elapsed 4.5h
+Focus: critic 6 findings.
+Changed: black-and-red Reject token with the same rim weight as Approve; "Change my vote/card" is a full-width secondary above the primary, which now sits at one position on every screen; role card has a fixed height for every role; result screen leads with a chalice or shattered-sword emblem; Record fits seven votes on one row.
+Measured: 97/97 tests, live-game check pass, 24 screens x 2 sizes with no overflow or console errors.
+Critic: not run for this round.
+
+## Status at stop
+
+Below the bar of 9. Critic scores across rounds 4 to 7 (eyeballed, different zero-context critic each time): clarity 8/8/7, hierarchy 7/7/6, theme 6/7/7, consistency 8/8/7, privacy 8/7/8, ergonomics 7/7/7. Scores have plateaued at 7 to 8 and successive critics now contradict each other on placement (hold control top vs bottom, Change as link vs button). Not tested on a real phone. User has not approved the stills.

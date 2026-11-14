@@ -347,7 +347,7 @@ const SCREENS = {
     // once chosen the token turns face-down, so nobody can read the vote off the screen before the table reveal
     if (choice != null) return page({ kicker, title: 'Vote chosen', hint: false,
       body: [teamRow(g.team), h('div', { class: 'tokens one' }, h('div', { class: 'token down' }, h('span', { class: 'disc' }, icon('crown')), h('b', {}, 'Face-down')))],
-      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, 'Lock in my vote'), h('button', { class: 'linkbtn', onclick: () => { choice = null; render(); } }, 'Change my vote')] });
+      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, 'Lock in my vote'), h('button', { class: 'ghost change', onclick: () => { choice = null; render(); } }, 'Change my vote')] });
     return page({ kicker, title: 'Send this team?',
       body: [teamRow(g.team), h('div', { class: 'tokens' }, tok(true, 'Approve', 'check'), tok(false, 'Reject', 'cross'))],
       actions: [h('p', { class: 'armhint' }, 'Tap a token to choose')] });
@@ -381,7 +381,7 @@ const SCREENS = {
     const kicker = `Quest ${pub.game.questIndex + 1} · you are on the team`;
     if (choice) return page({ kicker, title: 'Card chosen', hint: false,
       body: [h('div', { class: 'qcards one' }, h('div', { class: 'qcard down' }, h('span', { class: 'qc-art' }, icon('crown')), h('b', {}, 'Face-down'))), h('p', { class: 'muted center small' }, 'Nobody can see which card this is.')],
-      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'play', card: me.quest.canFail ? choice : 'success' }) }, 'Play this card'), h('button', { class: 'linkbtn', onclick: () => { choice = null; render(); } }, 'Change my card')] });
+      actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'play', card: me.quest.canFail ? choice : 'success' }) }, 'Play this card'), h('button', { class: 'ghost change', onclick: () => { choice = null; render(); } }, 'Change my card')] });
     return page({ kicker, title: 'Play your card',
       body: [h('div', { class: 'qcards' }, pair)],
       actions: [h('p', { class: 'armhint' }, 'Tap a card to choose')] });
@@ -407,7 +407,7 @@ const SCREENS = {
     if (!r) return page({ hint: false, title: 'Eyes on the TV', body: [waiting('tv', '')] });
     const ok = r.outcome === 'success'; const who = byId(ok ? r.hero : r.culprit);
     return page({ hint: false, kicker: `Quest ${r.questIndex + 1}`, title: ok ? 'Quest succeeded' : 'Quest failed',
-      body: [h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xxl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'Suspicion falls on'), h('b', {}, who.name),
+      body: [h('div', { class: `emblem ${ok ? 'good' : 'bad'}` }, icon(ok ? 'chalice' : 'brokensword')), h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'Suspicion falls on'), h('b', {}, who.name),
         r.failCount != null ? h('small', {}, `${r.failCount} Fail card${r.failCount === 1 ? '' : 's'} played`) : null),
         ok ? null : h('p', { class: 'muted center small' }, 'That is who the story on the TV blamed. They may have been framed.')] });
   },
