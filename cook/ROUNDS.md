@@ -122,3 +122,6 @@ User: "yes keep cooking" (also answered the sound question with yes; code-made s
 Changes: cool rim light plus warm fill on the cave dragon, calmer coin colours, closing shot now pulls back to show the whole hoard, pines tinted warmer, stronger body undulation.
 Stills: `cook/stills/r16/`, sheet `cook/compare/r16-sheet.png`. Critic pass: not run this round (self-eyeballed: cave dragon separates much better; closing frame reads as a sleeping dragon on the hoard but the head is partly hidden by the wing at t=60-61).
 Next focus: head visibility in the closing frame, code-made sound test, clip render test, critic pass.
+
+## Round 17 (in progress)
+Added code-made soundtrack (public/intro/sound.js: synthesized pad, wind, wing thumps, bell, drums, roars, fire, cave chimes) with a click-to-play start in index.html (?mute to skip) and scripts/intro-audio.mjs for an offline WAV render. Closing camera moved to a side angle where the head is visible. Audio not yet verified: offline render still running, and I cannot listen to it, so only level/spectrum measurements will be reported.
