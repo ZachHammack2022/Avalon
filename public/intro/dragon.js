@@ -50,6 +50,15 @@ function radiusAt(s) {
   return 1.22 * Math.pow(1 - k(21, LEN, s), 1.25) + 0.05;
 }
 
+// shared rim light (fresnel emissive), driven per frame from intro.js
+export const rim = { color: new THREE.Color(1, 0.5, 0.2), k: { value: 0.9 } };
+export function addRim(mat) {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uRimC = { value: rim.color }; sh.uniforms.uRimK = rim.k;
+    sh.fragmentShader = 'uniform vec3 uRimC; uniform float uRimK;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  { float fr = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.2); totalEmissiveRadiance += uRimC * fr * uRimK; }');
+  };
+  return mat;
+}
 const v3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const S = 1.55; // dragon scale; the group is scaled, so internal space is world / S
 const M = {
@@ -61,6 +70,8 @@ const M = {
   mouth: new THREE.MeshBasicMaterial({ color: 0xff6a10 }),
   claw: new THREE.MeshStandardMaterial({ color: 0xcfc3a4, flatShading: true, roughness: 0.5 }),
 };
+
+for (const m of [M.scale, M.membrane, M.bone]) addRim(m);
 
 export class Dragon {
   constructor() {
@@ -86,12 +97,13 @@ export class Dragon {
     this.spikeCount = 30;
     this.spikes = new THREE.InstancedMesh(new THREE.ConeGeometry(0.3, 1, 4), M.horn, this.spikeCount); this.spikes.frustumCulled = false; this.group.add(this.spikes);
     this.buildHead(); this.buildWings(); this.buildLegs();
+    this.blade = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 4), M.horn); this.blade.frustumCulled = false; this.group.add(this.blade);
     this.spine = Array.from({ length: RINGS }, v3); this.frames = Array.from({ length: RINGS }, () => ({ T: v3(), U: v3(), R: v3() }));
   }
   buildHead() {
     const h = this.head = new THREE.Group(); this.group.add(h); h.scale.setScalar(1.5);
     const mk = (geo, mat, p, r, s) => { const m = new THREE.Mesh(geo, mat); if (p) m.position.set(...p); if (r) m.rotation.set(...r); if (s) m.scale.set(...s); m.castShadow = true; return m; };
-    const dark = new THREE.MeshStandardMaterial({ color: 0x6e2415, flatShading: true, roughness: 0.6 });
+    const dark = addRim(new THREE.MeshStandardMaterial({ color: 0x6e2415, flatShading: true, roughness: 0.6 }));
     // skull: tapered 5-sided prism lying along z
     const skull = new THREE.CylinderGeometry(0.62, 0.95, 1.9, 6); skull.rotateX(Math.PI / 2); // narrow end toward +z
     h.add(mk(skull, dark, [0, 0.05, 0.9], null, [1.0, 0.8, 1]));
@@ -247,7 +259,7 @@ export class Dragon {
       l.f.position.copy(foot).addScaledVector(f.T, 0.5); l.f.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(f.R, v3(0, 1, 0), f.T)); l.f.scale.setScalar(sz);
       l.claws.forEach((c, i) => { c.position.copy(foot).addScaledVector(f.T, 1.05 * sz).addScaledVector(f.R, (i - 1) * 0.3 * sz).addScaledVector(v3(0, -1, 0), 0.05); c.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(f.R, f.T.clone().negate(), v3(0, 1, 0).negate().cross(f.R).normalize())); });
     }
-    // tail blade
+    { const f = this.frames[RINGS - 1], nT = v3().copy(f.T).negate(), bq = new THREE.Matrix4().makeBasis(f.R, nT, v3().crossVectors(f.R, nT).normalize()); this.blade.quaternion.setFromRotationMatrix(bq); this.blade.position.copy(P[RINGS - 1]).addScaledVector(nT, 1.6); this.blade.scale.set(1.1, 3.4, 0.18); }
     return this;
   }
   place(mesh, a, b, thick, cone) {

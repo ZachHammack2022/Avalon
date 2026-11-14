@@ -104,5 +104,18 @@ export function makeTrees(count = 2600) {
     }
     n++;
   }
-  cones.count = k; trunks.count = n; cones.castShadow = false; g.add(cones, trunks); return g;
+  cones.count = k; trunks.count = n; cones.castShadow = false; g.add(cones, trunks);
+  // ground clutter: rocks, bushes, grass tufts around the village
+  const rockG = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ flatShading: true, roughness: 1 }), 900), bushG = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ flatShading: true, roughness: 1 }), 1200), tuft = new THREE.InstancedMesh(new THREE.ConeGeometry(0.28, 1, 4).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ flatShading: true, roughness: 1 }), 9000);
+  let a1 = 0, a2 = 0, a3 = 0; const cc = new THREE.Color();
+  for (let i = 0; i < 40000 && (a1 < 900 || a2 < 1200 || a3 < 9000); i++) {
+    const ang = rand() * 6.283, dist = 12 + Math.pow(rand(), 0.8) * 230, x = Math.cos(ang) * dist, z = Math.sin(ang) * dist;
+    if (Math.abs(x) < 8 && z > -85 && z < 105) continue; if (Math.hypot(x, z) < 20) continue;
+    const h = heightAt(x, z); if (h > 90) continue;
+    const r = rand();
+    if (r < 0.08 && a1 < 900) { const s = 0.5 + rand() * 1.6; rockG.setMatrixAt(a1, m4.compose(new THREE.Vector3(x, h + s * 0.25, z), q.setFromEuler(new THREE.Euler(rand() * 3, rand() * 3, rand() * 3)), new THREE.Vector3(s * 1.3, s * 0.8, s))); cc.setHSL(0.07, 0.1, 0.1 + rand() * 0.1); rockG.setColorAt(a1++, cc); }
+    else if (r < 0.2 && a2 < 1200) { const s = 0.7 + rand() * 1.3; bushG.setMatrixAt(a2, m4.compose(new THREE.Vector3(x, h + s * 0.35, z), q.identity(), new THREE.Vector3(s * 1.2, s * 0.8, s * 1.2))); cc.setHSL(0.18 + rand() * 0.1, 0.4, 0.16 + rand() * 0.08); bushG.setColorAt(a2++, cc); }
+    else if (a3 < 9000) { const s = 0.6 + rand() * 0.9; tuft.setMatrixAt(a3, m4.compose(new THREE.Vector3(x, h, z), q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * 6), new THREE.Vector3(1, s, 1))); cc.setHSL(0.16 + rand() * 0.08, 0.5, 0.2 + rand() * 0.12); tuft.setColorAt(a3++, cc); }
+  }
+  rockG.count = a1; bushG.count = a2; tuft.count = a3; g.add(rockG, bushG, tuft); return g;
 }

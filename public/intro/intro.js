@@ -5,7 +5,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { clamp, lerp, smoothstep, ease, fbm, rng } from './util.js';
-import { Track, Dragon } from './dragon.js';
+import { Track, Dragon, rim } from './dragon.js';
 import { makeSky, makeTerrain, makeTrees, heightAt, CAVE_PEAK } from './world.js';
 import { Village } from './village.js';
 import { makeCave, CAVE_X, heapH } from './cave.js';
@@ -69,7 +69,7 @@ const SHOTS = [
   { id: 'S01', t0: 0, t1: 9, keys: [[0, -50, 9, 215, 20, 100, -260, 28], [9, -34, 12, 190, 10, 75, -200, 26]], follow: (t) => 0.2 + 0.7 * smoothstep(0, 8, t) },
   { id: 'S02', t0: 9, t1: 13, keys: [[9, 2, 1.75, 44, 0, 8, -40, 58], [13, 1, 1.75, 38, -1, 22, -10, 54]], follow: (t) => smoothstep(9.5, 11.5, t) },
   { id: 'S02b', t0: 13, t1: 18, keys: [[13, 3, 2.0, -34, 0, 38, 60, 50], [18, 2, 2.2, -30, -10, 40, 130, 46]], follow: (t) => 0.9 },
-  { id: 'S03', t0: 18, t1: 30, keys: [[18, -100, 18, 190, 20, 30, 140, 36], [21, -96, 14, 110, 0, 16, 60, 34], [23.5, -92, 11, 50, 0, 12, 20, 34], [26, -90, 10, -5, 0, 10, -22, 34], [28.5, -84, 12, -55, 0, 14, -72, 36], [30, -70, 11, -60, 0, 15, -85, 40]], follow: (t) => 0.92 },
+  { id: 'S03', t0: 18, t1: 30, keys: [[18, -100, 18, 190, 20, 30, 140, 36], [21, -96, 14, 110, 0, 16, 60, 34], [23.5, -92, 11, 50, 0, 12, 20, 34], [26, -90, 10, -5, 0, 10, -22, 34], [28.5, -108, 12, -55, 0, 14, -72, 36], [30, -100, 11, -60, 0, 15, -85, 40]], follow: (t) => 0.92 },
   { id: 'S04', t0: 30, t1: 38, keys: [[30, 0, 2.6, -8, -10, 22, -112, 52], [34, 1, 3, -10, -40, 55, -140, 44], [38, 2, 4, -12, -90, 92, -200, 38]], follow: (t) => 0.35 + 0.55 * smoothstep(30, 34, t) },
   { id: 'S05', t0: 38, t1: 47, dyn: true, keys: [[38, -90, 128, -160, -200, 135, -270, 38], [43, -145, 150, -190, -250, 150, -295, 36], [47, -170, 160, -215, -268, 152, -302, 34]], follow: (t) => 0.75 },
   { id: 'S06', t0: 47, t1: 62, keys: [[47, 8, 4.8, 44, 4, 8, -10, 62], [51, 4, 4.8, 40, -4, 9, -14, 58], [54.8, 22, 5.5, 34, -8, 9, -8, 52], [58, 38, 16, 34, -2, 9, -4, 44], [62, 30, 11, 26, -3, 10, -6, 34]].map((k) => [k[0], k[1] + CAVE_X, k[2], k[3], k[4] + CAVE_X, k[5], k[6], k[7]]), follow: (t) => t < 49 ? 0 : t < 56 ? 0.75 * smoothstep(49, 51, t) : (0.3 * (1 - smoothstep(56, 58, t)) + 0.95 * smoothstep(58, 59.5, t)) },
@@ -104,7 +104,7 @@ export async function createIntro(canvas, opts = {}) {
     const ml = new THREE.PointLight(0xff9a3a, 9000, 160, 1.5); ml.position.set(0, 0, 8); mg.add(ml); world.add(mg); }
   { // final hero camera: close on the resting head
     const he = dragon.headPose(cave, 61.9, dragonParams(61.9)).pos; const k = SHOTS[5].keys;
-    k[k.length - 1] = [62, he.x + 13, he.y + 7.5, he.z - 3, he.x - 1, he.y + 3, he.z, 30]; k.splice(k.length - 1, 0, [60, he.x + 12, he.y + 7, he.z - 3, he.x, he.y + 2.6, he.z, 34]); }
+    k[k.length - 1] = [62, he.x + 10, he.y + 6, he.z - 2.5, he.x - 1, he.y + 2.8, he.z, 28]; k.splice(k.length - 1, 0, [60, he.x + 12, he.y + 7, he.z - 3, he.x, he.y + 2.6, he.z, 34]); }
   const dragonFill = new THREE.PointLight(0xff9a50, 0, 60, 1.6); scene.add(dragonFill);
   const dragonRim = new THREE.PointLight(0x7fa0ff, 0, 60, 1.6); scene.add(dragonRim);
   // lights
@@ -191,7 +191,9 @@ export async function createIntro(canvas, opts = {}) {
     const px = renderer.getPixelRatio() * H * 0.9; village.update(t, px); bmat.uniforms.uPx.value = px; updateBreath(t);
     if (inCave) { const hp2 = dragon.headPose(cave, t, dp).pos; dragonFill.position.copy(hp2).add(V(6, 7, 8)); dragonFill.intensity = 260; dragonRim.position.copy(hp2).add(V(-9, 7, -9)); dragonRim.intensity = 420; } else { dragonFill.intensity = 0; dragonRim.intensity = 0; }
     // cave lighting animation
-    if (inCave) { const L = caveG.userData.lights; L.torches.forEach((l, i) => { l.intensity = (i < 2 ? 260 : 180) * (0.9 + 0.1 * Math.sin(t * 17 + i * 3) * Math.sin(t * 9 + i)); }); scene.fog.density = 0.0022; scene.fog.color.setRGB(0.1, 0.06, 0.04); bloom.strength = 0.12; } else bloom.strength = 0.32;
+    if (inCave) { const L = caveG.userData.lights; L.torches.forEach((l, i) => { l.intensity = (i < 2 ? 260 : 180) * (0.9 + 0.1 * Math.sin(t * 17 + i * 3) * Math.sin(t * 9 + i)); }); scene.fog.density = 0.0022; scene.fog.color.setRGB(0.1, 0.06, 0.04); bloom.strength = 0.12; } else bloom.strength = 0.24;
+    { const fire = smoothstep(21, 26, t) * (1 - smoothstep(34, 40, t)), night = smoothstep(36, 46, t);
+      if (inCave) { rim.color.setRGB(1.0, 0.62, 0.25); rim.k.value = 0.07; } else { rim.color.setRGB(lerp(1.0, 0.45, night), lerp(0.5 - 0.07 * fire, 0.6, night), lerp(0.18, 1.0, night)); rim.k.value = lerp(0.3, 0.5, fire); } }
     // fade in / out
     grade.uniforms.uFade.value = Math.min(smoothstep(0, 0.8, t), 1 - smoothstep(DURATION - 1.2, DURATION - 0.1, t) * (opts.fadeOut === false ? 0 : 1));
     composer.render();

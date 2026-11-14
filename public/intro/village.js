@@ -22,8 +22,9 @@ export class Village {
     const addHouse = (x, z, rotY, w, d, h, kind = 'house') => {
       const g = new THREE.Group(), y = heightAt(x, z); g.position.set(x, y, z); g.rotation.y = rotY;
       const wc = new THREE.Color(WALLS[(rand() * WALLS.length) | 0]).multiplyScalar(0.8 + rand() * 0.3), rc = new THREE.Color(ROOFS[(rand() * ROOFS.length) | 0]);
-      const wm = new THREE.MeshStandardMaterial({ color: wc, flatShading: true, roughness: 0.9 }), rm = new THREE.MeshStandardMaterial({ color: rc, flatShading: true, roughness: 0.85 });
-      const walls = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wm); walls.position.y = h / 2; walls.castShadow = walls.receiveShadow = true; g.add(walls);
+      const wm = new THREE.MeshStandardMaterial({ color: wc, vertexColors: true, flatShading: true, roughness: 0.9 }), rm = new THREE.MeshStandardMaterial({ color: rc, flatShading: true, roughness: 0.85 });
+      const wg = new THREE.BoxGeometry(w, h, d, 1, 3, 1); { const pa = wg.attributes.position, ca = new Float32Array(pa.count * 3); for (let i = 0; i < pa.count; i++) { const k = (pa.getY(i) / h + 0.5); const v = 0.5 + 0.5 * Math.min(1, k * 1.6); ca.set([v, v, v], i * 3); } wg.setAttribute('color', new THREE.BufferAttribute(ca, 3)); }
+      const walls = new THREE.Mesh(wg, wm); walls.position.y = h / 2; walls.castShadow = walls.receiveShadow = true; g.add(walls);
       // timber frame
       const tm = new THREE.MeshStandardMaterial({ color: 0x2e2118, flatShading: true });
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.28, h, 0.28), tm); b.position.set(sx * w / 2, h / 2, sz * d / 2); g.add(b); }
@@ -164,7 +165,7 @@ export class Village {
             float yy = 1.0 - gl_PointCoord.y; float wob = sin(yy*9.0 + vSeed*40.0)*0.06*yy; float wdt = max(0.02, (1.0 - yy*0.92) * 0.42); float dx = abs(gl_PointCoord.x - 0.5 + wob) / wdt;
             float a = smoothstep(1.0, 0.2, dx) * smoothstep(0.0, 0.12, yy) * smoothstep(1.0, 0.7, yy); a *= (1.0 - vAge*vAge*0.8);
             vec3 col = mix(vec3(1.0,0.62,0.18), vec3(0.95,0.2,0.03), smoothstep(0.0,0.6,vAge)); col = mix(col, vec3(0.5,0.05,0.0), smoothstep(0.7,1.0,vAge));
-            gl_FragColor = vec4(col*1.0, a*0.42);`}
+            gl_FragColor = vec4(col*1.0, a*0.34);`}
           }`,
       });
       const p = new THREE.Points(g, mat); p.frustumCulled = false; return p;

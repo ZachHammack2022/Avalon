@@ -148,3 +148,8 @@ Round 20 critic (1 sonnet, fresh context, eyeballed, no calibration offset): com
 Plateau: scores have been flat for rounds 14, 18 and 20 (about 6-7 on light/color/composition, 4-5 on materials/detail/dragon).
 Gaps: final hoard shot has a small dark dragon and noisy coins; mid-flight frames show a flat red dragon cutout; frame 7 wing slab crops out and blocks the tower; opening dragon thin against the sun; fire frames overexposed.
 Stop check: bar no (about 6-7 vs 9) | floor reached | stills approved no | final render not started
+
+## Round 22 (bigger rebuild, "keep pushing")
+Changes: fresnel rim light on dragon (driven per phase: warm at sunset, hotter in fire, warm gold in cave), tail blade, shaded house walls (vertex colour gradient), ground clutter (900 rocks, 1200 bushes, 9000 grass tufts) around the village, cave hero props (giant chalice, crown, gem clusters), S03 camera pulled back so the wing no longer blocks the tower, bloom and flame alpha reduced, closer closing shot.
+First rim pass was too strong (dragon washed pink); reduced to 0.3-0.5 outdoors and 0.07 in the cave.
+Sheet: `cook/compare/r22-sheet.png`. Critic: pending.
