@@ -125,3 +125,7 @@ Next focus: head visibility in the closing frame, code-made sound test, clip ren
 
 ## Round 17 (in progress)
 Added code-made soundtrack (public/intro/sound.js: synthesized pad, wind, wing thumps, bell, drums, roars, fire, cave chimes) with a click-to-play start in index.html (?mute to skip) and scripts/intro-audio.mjs for an offline WAV render. Closing camera moved to a side angle where the head is visible. Audio not yet verified: offline render still running, and I cannot listen to it, so only level/spectrum measurements will be reported.
+
+Round 17 result: the page script was broken by my own edit (fixed, commit 314a1c0). Offline WAV render now works (scripts/intro-audio.mjs, about 4 min on this machine).
+Measured (ffmpeg, cook/audio/intro-r17.wav, 62 s): integrated -23.7 LUFS, true peak -5.0 dBFS, LRA 12.6 LU; RMS by 2 s window: t=5 -31 dB, t=20 -23.7, t=26 -19.7 (attack), t=40 -29, t=52 -29, t=60 -35. Loudness arc follows the story.
+Not verified: how it sounds. Nobody has listened. WAV is git-ignored (11 MB).
