@@ -66,7 +66,7 @@ function camPath(keys, t) {
 }
 
 const SHOTS = [
-  { id: 'S01', t0: 0, t1: 9, keys: [[0, -50, 9, 215, 20, 100, -260, 28], [9, -34, 12, 190, 10, 75, -200, 26]], follow: (t) => 0.2 + 0.7 * smoothstep(0, 8, t) },
+  { id: 'S01', t0: 0, t1: 9, keys: [[0, -50, 9, 215, 20, 100, -260, 22], [9, -34, 12, 190, 10, 75, -200, 22]], follow: (t) => 0.2 + 0.7 * smoothstep(0, 8, t) },
   { id: 'S02', t0: 9, t1: 13, keys: [[9, 2, 1.75, 44, 0, 8, -40, 58], [13, 1, 1.75, 38, -1, 22, -10, 54]], follow: (t) => smoothstep(9.5, 11.5, t) },
   { id: 'S02b', t0: 13, t1: 18, keys: [[13, 3, 2.0, -34, 0, 38, 60, 50], [18, 2, 2.2, -30, -10, 40, 130, 46]], follow: (t) => 0.9 },
   { id: 'S03', t0: 18, t1: 30, keys: [[18, -100, 18, 190, 20, 30, 140, 36], [21, -96, 14, 110, 0, 16, 60, 34], [23.5, -92, 11, 50, 0, 12, 20, 34], [26, -90, 10, -5, 0, 10, -22, 34], [28.5, -108, 12, -55, 0, 14, -72, 36], [30, -100, 11, -60, 0, 15, -85, 40]], follow: (t) => 0.92 },
@@ -97,9 +97,9 @@ export async function createIntro(canvas, opts = {}) {
   const dragon = new Dragon(); scene.add(dragon.group);
   // cave mouth on the mountain: dark arch + warm glow, plus a light
   { const mg = new THREE.Group(); mg.position.copy(MOUTH); const nrm = V(0.79, 0.12, 0.61).normalize(); { const e = 4, gx = heightAt(MOUTH.x + e, MOUTH.z) - heightAt(MOUTH.x - e, MOUTH.z), gz = heightAt(MOUTH.x, MOUTH.z + e) - heightAt(MOUTH.x, MOUTH.z - e); const tn = V(-gx / (2 * e), 1, -gz / (2 * e)).normalize(); nrm.lerp(tn, 0.5).normalize(); mg.lookAt(MOUTH.clone().add(nrm)); }
-    { const rock = new THREE.MeshStandardMaterial({ color: 0x3a2e28, flatShading: true, roughness: 1 }); const led = new THREE.Mesh(new THREE.BoxGeometry(30, 3, 16), rock); led.position.set(0, -15.5, 6); mg.add(led); for (let i = 0; i < 9; i++) { const a = Math.PI * (i / 8), r = new THREE.Mesh(new THREE.IcosahedronGeometry(3.2 + (i % 3), 0), rock); r.position.set(Math.cos(a) * 17.5, Math.sin(a) * 21 - 1, 0); r.rotation.set(i, i * 2, i * 3); mg.add(r); } }
+    { const rock = new THREE.MeshStandardMaterial({ color: 0x8a6a4a, emissive: 0x3a2814, flatShading: true, roughness: 1 }); const led = new THREE.Mesh(new THREE.BoxGeometry(30, 3, 7), rock); led.position.set(0, -15.5, 2.5); mg.add(led); for (let i = 0; i < 9; i++) { const a = Math.PI * (i / 8), r = new THREE.Mesh(new THREE.IcosahedronGeometry(3.2 + (i % 3), 0), rock); r.position.set(Math.cos(a) * 17.5, Math.sin(a) * 17 - 1, -2.5); r.rotation.set(i, i * 2, i * 3); r.scale.z = 0.45; mg.add(r); } }
     const glow = new THREE.Mesh(new THREE.CircleGeometry(15, 24), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.62, 0.18).multiplyScalar(2.3) })); glow.scale.set(0.8, 1.05, 1); glow.position.z = 0.5; mg.add(glow);
-    const arch = new THREE.Mesh(new THREE.TorusGeometry(15, 3.2, 5, 14, Math.PI), new THREE.MeshStandardMaterial({ color: 0x2c2420, flatShading: true, roughness: 1 })); arch.scale.set(0.8, 1.05, 1.4); arch.position.z = 0.3; mg.add(arch);
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(15, 3.2, 5, 14, Math.PI), new THREE.MeshStandardMaterial({ color: 0x7a5c44, emissive: 0x2c1c10, flatShading: true, roughness: 1 })); arch.scale.set(0.8, 1.05, 1.4); arch.position.z = 0.3; mg.add(arch);
     for (const s of [-1, 1]) { const col = new THREE.Mesh(new THREE.BoxGeometry(5, 18, 6), arch.material); col.position.set(s * 12.2, -9, 0.3); mg.add(col); }
     const ml = new THREE.PointLight(0xff9a3a, 9000, 160, 1.5); ml.position.set(0, 0, 8); mg.add(ml); world.add(mg); }
   { // final hero camera: close on the resting head
@@ -153,7 +153,7 @@ export async function createIntro(canvas, opts = {}) {
   composer.addPass(new RenderPass(scene, new THREE.PerspectiveCamera()));
   const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), 0.32, 0.6, 0.92); composer.addPass(bloom);
   composer.addPass(new OutputPass());
-  const grade = new ShaderPass({ uniforms: { tDiffuse: { value: null }, uVig: { value: 0.35 }, uFade: { value: 1 } }, vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }', fragmentShader: 'varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uVig; uniform float uFade; void main(){ vec3 c=texture2D(tDiffuse,vUv).rgb; vec2 q=vUv-.5; float v=1.-dot(q,q)*uVig*2.2; c*=v; float l=dot(c,vec3(.299,.587,.114)); c=mix(vec3(l),c,1.08); gl_FragColor=vec4(c*uFade,1.); }' });
+  const grade = new ShaderPass({ uniforms: { tDiffuse: { value: null }, uVig: { value: 0.35 }, uFade: { value: 1 }, uTime: { value: 0 } }, vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }', fragmentShader: 'varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uVig; uniform float uFade; uniform float uTime; float hh(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); } void main(){ vec3 c=texture2D(tDiffuse,vUv).rgb; c += (hh(floor(vUv*vec2(960.,540.))+uTime)-0.5)*0.012; vec2 q=vUv-.5; float v=1.-dot(q,q)*uVig*2.2; c*=v; float l=dot(c,vec3(.299,.587,.114)); c=mix(vec3(l),c,1.08); gl_FragColor=vec4(c*uFade,1.); }' });
   composer.addPass(grade);
   const camera = new THREE.PerspectiveCamera(40, W / H, 0.5, 6000);
   composer.passes[0].camera = camera;
@@ -171,7 +171,7 @@ export async function createIntro(canvas, opts = {}) {
     const c = camPath(shot.keys, t); const hh = dragon.headPose(track, t, dp).pos;
     let w = shot.follow(t); const look = V(c[4], c[5], c[6]).lerp(hh, w);
     let dynPos = null;
-    if (shot.dyn) { const a = outdoor.head(Math.max(outdoor.t0, t - 0.4), V(0, 0, 0)), b = outdoor.head(Math.min(outdoor.t1, t + 0.4), V(0, 0, 0)); const T = b.sub(a).normalize(), side = V().crossVectors(T, V(0, 1, 0)).normalize(); const k = smoothstep(38, 40, t); dynPos = hh.clone().addScaledVector(T, -105).addScaledVector(side, 42 + 8 * Math.sin(t * 0.4)).add(V(0, 22 + 6 * (1 - k), 0)); look.copy(hh).addScaledVector(T, 50).add(V(0, 4, 0)); }
+    if (shot.dyn) { const a = outdoor.head(Math.max(outdoor.t0, t - 0.4), V(0, 0, 0)), b = outdoor.head(Math.min(outdoor.t1, t + 0.4), V(0, 0, 0)); const T = b.sub(a).normalize(), side = V().crossVectors(T, V(0, 1, 0)).normalize(); const k = smoothstep(38, 40, t); const Th = V(T.x, T.y * 0.2, T.z).normalize(); dynPos = hh.clone().addScaledVector(Th, -150).addScaledVector(side, 55 + 8 * Math.sin(t * 0.4)).add(V(0, 28 + 6 * (1 - k), 0)); dynPos.y = Math.max(dynPos.y, heightAt(dynPos.x, dynPos.z) + 35); look.copy(hh).addScaledVector(T, 28).add(V(0, 14, 0)); }
     const sh = 0.05 * (shot.id === 'S06' ? 0.3 : 1); // handheld
     camera.position.set(c[1] + Math.sin(t * 1.3) * sh, c[2] + Math.sin(t * 1.7 + 1) * sh, c[3] + Math.cos(t * 1.1) * sh); if (dynPos) camera.position.copy(dynPos);
     camera.fov = c[7]; camera.aspect = W / H; camera.updateProjectionMatrix();
@@ -195,6 +195,7 @@ export async function createIntro(canvas, opts = {}) {
     { const fire = smoothstep(21, 26, t) * (1 - smoothstep(34, 40, t)), night = smoothstep(36, 46, t);
       if (inCave) { rim.color.setRGB(1.0, 0.62, 0.25); rim.k.value = 0.07; } else { rim.color.setRGB(lerp(1.0, 0.45, night), lerp(0.5 - 0.07 * fire, 0.6, night), lerp(0.18, 1.0, night)); rim.k.value = lerp(0.3, 0.5, fire); } }
     // fade in / out
+    grade.uniforms.uTime.value = Math.floor(t * 24) * 1.37;
     grade.uniforms.uFade.value = Math.min(smoothstep(0, 0.8, t), 1 - smoothstep(DURATION - 1.2, DURATION - 0.1, t) * (opts.fadeOut === false ? 0 : 1));
     composer.render();
   }

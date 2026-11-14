@@ -158,3 +158,9 @@ Round 22 critic (1 sonnet, fresh context, eyeballed, no calibration offset): com
 Result: no improvement after the "keep pushing" rebuild; plateau confirmed across rounds 14, 18, 20 and 22. Clutter and rim light did not move the scores.
 Gaps: S05 mountain frames (cave mouth reads as a prop, huge wing planes crop the frame), opening dragon small, dragon design inconsistent across shots (thin bat early, flat red slab later), saturated pure-red wing clashes with the palette.
 Stop check: bar no (about 6-7 vs 9) | floor reached | stills approved no | final render not started
+
+## Round 26 (research round, web now reachable via curl)
+User: "can you use rag, like just go look up some cool dragons or shots to inform your look here" and "you have access to any website now!". WebFetch could not resolve hosts (its own resolver), but curl through the session proxy worked, so pages were fetched with curl and read as text.
+Sources read: Definition magazine, "Behind the shot: House of the Dragon" (cinematography: clarity, "give chaos a shape", light motivated by fire/smoke/sky, a single day passing cool to warm to fiery sunset, atmosphere over clarity); 80.lv, Final Fantasy-inspired dragon workflow (line of action, mixed animal references, wings as thin slivers, early attempts "too red overall", three-point key/fill/rim, embers and grain added in post). Tuts+ page needs JavaScript, nothing extracted. Search snippets: silhouette first, warm amber rim on a dark dragon, membrane slack between fingers, visible elbow and wrist.
+Applied: dragon recoloured from saturated red to dark charcoal body, bronze membrane with a darker-to-lighter gradient, belly kept warm; elbow spurs and deeper slack scallops; light film grain; S05 chase camera fixed (it was inside the mountain at t=43, producing the black blobs) and kept above terrain; cave-mouth rocks and arch made visible instead of black.
+Sheet: `cook/compare/r26-sheet.png`. Critic: pending.

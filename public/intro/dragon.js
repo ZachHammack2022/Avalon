@@ -63,8 +63,8 @@ const v3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const S = 1.55; // dragon scale; the group is scaled, so internal space is world / S
 const M = {
   scale: new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.62, metalness: 0.08 }),
-  bone: new THREE.MeshStandardMaterial({ color: 0x4a2418, flatShading: true, roughness: 0.7 }),
-  membrane: new THREE.MeshStandardMaterial({ color: 0xa83522, emissive: 0x3a0e04, flatShading: true, roughness: 0.75, side: THREE.DoubleSide }),
+  bone: new THREE.MeshStandardMaterial({ color: 0x3a2c28, flatShading: true, roughness: 0.7 }),
+  membrane: new THREE.MeshStandardMaterial({ color: 0x7a5238, vertexColors: true, emissive: 0x1c0c04, flatShading: true, roughness: 0.75, side: THREE.DoubleSide }),
   horn: new THREE.MeshStandardMaterial({ color: 0xd9c9a0, flatShading: true, roughness: 0.5 }),
   eye: new THREE.MeshBasicMaterial({ color: 0xffb020 }),
   mouth: new THREE.MeshBasicMaterial({ color: 0xff6a10 }),
@@ -83,10 +83,10 @@ export class Dragon {
       const a = r * SIDES + j, b = r * SIDES + (j + 1) % SIDES, c = (r + 1) * SIDES + j, d = (r + 1) * SIDES + (j + 1) % SIDES;
       idx.push(a, c, b, b, c, d);
     }
-    const back = new THREE.Color(0x7a2616), belly = new THREE.Color(0xd9a04a), c = new THREE.Color();
+    const back = new THREE.Color(0x2e2c34), belly = new THREE.Color(0xa98a5a), c = new THREE.Color();
     for (let r = 0; r < RINGS; r++) for (let j = 0; j < SIDES; j++) {
       const phi = (j / SIDES) * Math.PI * 2, down = clamp(-Math.sin(phi) * 1.4 - 0.25, 0, 1); // belly weight
-      c.copy(back).lerp(belly, down * down); const stripe = ((r % 4 < 2) ? 1 : 0.88) * (0.9 + 0.2 * ((r * 7 + j * 13) % 5) / 4); c.multiplyScalar(stripe);
+      c.copy(back).lerp(belly, down * down); if (j % 3 === 0 && down < 0.2) c.lerp(new THREE.Color(0x6a3a22), 0.35); const stripe = ((r % 4 < 2) ? 1 : 0.88) * (0.9 + 0.2 * ((r * 7 + j * 13) % 5) / 4); c.multiplyScalar(stripe);
       col.set([c.r, c.g, c.b], (r * SIDES + j) * 3);
     }
     const g = new THREE.BufferGeometry();
@@ -103,7 +103,7 @@ export class Dragon {
   buildHead() {
     const h = this.head = new THREE.Group(); this.group.add(h); h.scale.setScalar(1.5);
     const mk = (geo, mat, p, r, s) => { const m = new THREE.Mesh(geo, mat); if (p) m.position.set(...p); if (r) m.rotation.set(...r); if (s) m.scale.set(...s); m.castShadow = true; return m; };
-    const dark = addRim(new THREE.MeshStandardMaterial({ color: 0x6e2415, flatShading: true, roughness: 0.6 }));
+    const dark = addRim(new THREE.MeshStandardMaterial({ color: 0x3a3238, flatShading: true, roughness: 0.6 }));
     // skull: tapered 5-sided prism lying along z
     const skull = new THREE.CylinderGeometry(0.62, 0.95, 1.9, 6); skull.rotateX(Math.PI / 2); // narrow end toward +z
     h.add(mk(skull, dark, [0, 0.05, 0.9], null, [1.0, 0.8, 1]));
@@ -133,11 +133,12 @@ export class Dragon {
     this.wings = [1, -1].map((side) => {
       const w = { side, bones: [], mem: null };
       const nT = 3 * 4 + 3 + 3; // membrane triangles: fingers scallops (6*... ) computed below
-      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(18 * 9), 3));
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(18 * 9), 3)); geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(18 * 9).fill(1), 3));
       w.mem = new THREE.Mesh(geo, M.membrane); w.mem.frustumCulled = false; w.mem.castShadow = true; this.group.add(w.mem);
       const bg = new THREE.CylinderGeometry(1, 1, 1, 5);
       for (let i = 0; i < 2 + 4; i++) { const b = new THREE.Mesh(bg, M.bone); b.frustumCulled = false; b.castShadow = true; this.group.add(b); w.bones.push(b); }
       w.claw = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.9, 4), M.claw); this.group.add(w.claw);
+      w.spur = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.0, 4), M.horn); this.group.add(w.spur);
       return w;
     });
   }
@@ -237,12 +238,14 @@ export class Dragon {
       const bones = [[S, Ew, 0.6], [Ew, Ww, 0.45], [Ww, Fw[0], 0.26], [Ww, Fw[1], 0.26], [Ww, Fw[2], 0.22], [Ww, Fw[3], 0.18]];
       w.bones.forEach((b, i) => this.place(b, bones[i][0], bones[i][1], bones[i][2]));
       // membrane triangles
-      const tri = []; const mid = (a, b) => v3().copy(a).lerp(b, 0.5).lerp(Ww, 0.12);
+      const tri = []; const mid = (a, b) => v3().copy(a).lerp(b, 0.5).lerp(Ww, 0.3);
       const chain = [Fw[0], Fw[1], Fw[2], Fw[3], Bw];
       for (let i = 0; i < chain.length - 1; i++) { const m = mid(chain[i], chain[i + 1]); tri.push([Ww, chain[i], m], [Ww, m, chain[i + 1]]); }
       tri.push([Ww, Bw, S], [S, Ew, Ww]);
-      const arr = w.mem.geometry.attributes.position.array; let o = 0;
-      for (const t3 of tri) for (const p3 of (sd > 0 ? t3 : [t3[0], t3[2], t3[1]])) { arr[o++] = p3.x; arr[o++] = p3.y; arr[o++] = p3.z; }
+      const arr = w.mem.geometry.attributes.position.array, carr = w.mem.geometry.attributes.color.array; let o = 0;
+      for (const t3 of tri) for (const p3 of (sd > 0 ? t3 : [t3[0], t3[2], t3[1]])) { const dd = Math.min(1, p3.distanceTo(Ww) / 16), cv = 0.5 + 0.7 * dd; carr[o] = cv; carr[o + 1] = cv * (0.85 + 0.2 * dd); carr[o + 2] = cv * 0.8; arr[o++] = p3.x; arr[o++] = p3.y; arr[o++] = p3.z; }
+      w.mem.geometry.attributes.color.needsUpdate = true;
+      this.place(w.spur, Ew, Ew.clone().addScaledVector(fw.U, 1.7).addScaledVector(fw.T, -1.1), 0.3, true);
       w.mem.geometry.setDrawRange(0, tri.length * 3); w.mem.geometry.attributes.position.needsUpdate = true; w.mem.geometry.computeVertexNormals(); w.mem.geometry.computeBoundingSphere();
       this.place(w.claw, Ww, Ww.clone().addScaledVector(fw.T, 0.9).addScaledVector(fw.U, 0.4), 0.18, true);
     }
