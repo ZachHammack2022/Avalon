@@ -96,3 +96,8 @@ Stills: `cook/stills/r11/` | Sheet: `cook/compare/r11-sheet.png`
 Critic scores: pending at time of writing. Measured: none beyond render times (~1-3 s per still, software GL).
 Still open: coin glare in S06 mid frames (t=60), pale fire bloom in S03/S04, dragon body stiff, near detail thin, no clip render, no sound.
 Next focus: dragon body/neck pose and legs, fire/smoke readability, S01 composition, then clip render test.
+
+Round 11 critic (1 sonnet, fresh context, eyeballed, no calibration yet): composition 6, light 7, color 6.5, materials 4, detail 5, dragon design 4, story clarity 6.
+Weakest frames: t=14 (dragon overhead reads upside-down, empty sky), t=44 (mountain faceted triangle, dragon cropped at bottom), t=8 (dragon like a paper cutout, thin wing), t=24 (orange wing crowds the tower and tree).
+Next focus: re-frame t=14 and t=44, thicker wing membranes and ribs, per-face colour variation on rock and scales, dragon neck/body pose.
+Stop check: bar no | floor no | stills approved no | final render not started
