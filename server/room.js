@@ -350,7 +350,12 @@ export class Room {
       config: v.config, roles, order: ids, leader: this.rng.int(ids.length), questIndex: 0, results: [], shown: 0,
       rejectCount: 0, team: [], votes: new Map(), proposals: [], quest: null, cutscene: null, reveal: null, lastApproved: null,
     };
-    for (const pl of this.players) pl.ready = pl.isBot;
+    for (const pl of this.players) {
+      pl.ready = pl.isBot;
+      // a phone that dropped in the lobby and whose grace ran out there gets its stand-in now, or the game would wait
+      // on it forever (one still inside its grace period gets the stand-in when that timer fires)
+      if (!pl.isBot && !pl.connected && pl.dcTimer == null) pl.takeover = true;
+    }
     this._enter('roleReveal');
     this._setPhaseTimer(this.timing.roleRevealMs, () => this._beginProposal());
     this._scheduleBots();
