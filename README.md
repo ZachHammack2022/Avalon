@@ -16,7 +16,8 @@ npm start          # prints the TV URL and the phone URL
 * **Intro:** the dragon intro (`public/intro/`, procedural three.js; video at `/intro/dragon-intro.mp4`) plays once when a game starts; any key skips, `I` replays it in the lobby, `?nointro` disables it. The live scene is at `/intro/`.
 * **The record:** every proposal, every vote and every quest result, as one board (players down the side, proposals across,
   grouped by quest). The TV keeps it beside the campfire all game; phones show it on every waiting and deciding screen, with
-  a **Record** button at the top left for the full view. Built from public state only (`shared/record.js`).
+  a **Record** button at the top left for the full view. While a team is picked or voted on, the TV card and the phone's record
+  say who leads next and who leads the fifth proposal. Built from public state only (`shared/record.js`).
 * **Cutscene preview harness:** `http://localhost:3000/preview` (no phones needed).
 * `npm run dev` restarts the server on change. `PORT=3001 npm start` changes the port.
 

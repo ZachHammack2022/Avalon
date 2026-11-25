@@ -202,6 +202,7 @@ export class Room {
       quest: this._questInfo(g.questIndex),
       teamSize: g.questIndex < QUEST_COUNT ? teamSize(n, g.questIndex) : null,
       leader: g.order[g.leader],
+      order: g.order.slice(), // seat order: the crown passes along it after every proposal
       rejectCount: g.rejectCount,
       team: g.team,
       results: g.results.slice(0, g.shown).map((r) => this._publicResult(r)),

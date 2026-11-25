@@ -37,6 +37,7 @@ const WITHOUT_RECORD = ['lobby', 'roleReveal', 'voteReveal', 'quest-card', 'ques
 test('phone: every screen of real games renders, with the record inline wherever players wait or decide', () => {
   const seen = new Set();
   const announced = new Set();
+  const sawCrown = new Set();
   let lastScreen = '';
   let sawStandIn = false;
   for (const seed of [3, 8, 21]) {
@@ -58,6 +59,14 @@ test('phone: every screen of real games renders, with the record inline wherever
       if (WITHOUT_RECORD.includes(screen)) assert.equal(panel, null, `${screen} keeps its focus`);
       if (WITH_RECORD.includes(screen)) assert.ok(panel, `record on ${screen}`);
       if (!panel) continue;
+      // while a team is picked or voted on, the panel says who leads next (and warns on the fifth proposal)
+      const crown = panel.querySelector('p.crown');
+      assert.equal(!!crown, s.pub.phase === 'propose' || s.pub.phase === 'vote', `${screen}: crown line`);
+      if (crown) {
+        assert.match(textOf(crown), s.pub.game.rejectCount === 4 ? /Evil wins/ : /fifth/);
+        assert.equal(crown.classList.contains('last'), s.pub.game.rejectCount === 4);
+        sawCrown.add(s.pub.game.rejectCount);
+      }
       const table = panel.querySelector('table');
       if (!s.pub.game.history.length && s.pub.phase !== 'vote') {
         assert.equal(table, null);
@@ -89,6 +98,7 @@ test('phone: every screen of real games renders, with the record inline wherever
     }
   }
   assert.ok(announced.size > 8, 'screen changes are announced');
+  assert.ok(sawCrown.has(0) && sawCrown.size > 1, `crown lines seen at reject counts ${[...sawCrown]}`);
   assert.ok(sawStandIn, 'the stand-in seat shows up on the record');
   for (const sc of [...WITH_RECORD.filter((x) => x !== 'assassinate' && x !== 'waitAssassin'), 'lobby', 'roleReveal', 'voteReveal', 'quest-card']) assert.ok(seen.has(sc), `saw ${sc}`);
 });

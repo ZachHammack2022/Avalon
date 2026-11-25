@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeColumn, recordFor } from '../shared/record.js';
+import { crownOrder, crownText, describeColumn, recordFor } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -134,4 +134,51 @@ test('record: a real game builds a consistent board from what phones receive, an
     assert.equal(sent.length, 1);
     assert.equal(sent[0].outcome, q.outcome);
   }
+});
+
+test('crown order: who leads each remaining proposal of this quest, ending with the fifth', () => {
+  const nm = (id) => players.find((p) => p.id === id).name;
+  const at = (phase, rejectCount, extra = {}) => ({ phase, players, game: { leader: 'p4', rejectCount, ...extra } });
+  assert.deepEqual(crownOrder(at('propose', 0)), ['p4', 'p5', 'p1', 'p2', 'p3']); // wraps around the table
+  assert.match(crownText(at('propose', 0), nm), /^Next to lead: Eli, Ann, Bo, then Cy for the fifth proposal\.$/);
+  assert.deepEqual(crownOrder(at('vote', 2)), ['p4', 'p5', 'p1']);
+  assert.equal(crownText(at('vote', 2), nm), 'Next to lead: Eli, then Ann for the fifth proposal.');
+  assert.equal(crownText(at('vote', 3), nm), 'If rejected, Eli leads the fifth and final proposal.');
+  assert.equal(crownText(at('propose', 4), nm), 'Fifth proposal: if this team is rejected, Evil wins.');
+  // the server's seat order wins over the player list
+  assert.deepEqual(crownOrder(at('propose', 3, { order: ['p4', 'p2', 'p5', 'p1', 'p3'] })), ['p4', 'p2']);
+  // only while a team is being picked or voted on
+  for (const phase of ['roleReveal', 'voteReveal', 'questPlay', 'cutscene', 'questResult', 'assassination', 'gameover']) {
+    assert.equal(crownOrder(at(phase, 0)), null, phase);
+    assert.equal(crownText(at(phase, 0), nm), '', phase);
+  }
+  assert.equal(crownOrder({ phase: 'lobby', players }), null);
+  assert.equal(crownOrder(at('propose', 0, { leader: 'nobody' })), null);
+});
+
+test('crown order: in real games it names the actual next leaders and the fifth proposal\'s leader', () => {
+  const { room, clock } = makeRoom({ seed: 5 });
+  const [h] = fill(room, 1, 6);
+  room.handle(room.vip.id, { t: 'start' });
+  room.detachPhone(h.p.id, h.conn); // its stand-in plays
+  let checked = 0;
+  let last = null;
+  const broadcast = room.broadcast.bind(room);
+  room.broadcast = () => {
+    broadcast();
+    const pub = room.publicState();
+    assert.deepEqual(pub.game ? pub.game.order : room.playerIds(), room.playerIds());
+    if (pub.phase === 'propose' && (!last || last.leader !== pub.game.leader)) {
+      if (last && last.crown && last.questIndex === pub.game.questIndex) {
+        // the crown moved exactly where the record said it would
+        assert.equal(pub.game.leader, last.crown[1]);
+        assert.deepEqual(crownOrder(pub), last.crown.slice(1));
+        checked++;
+      }
+      last = { leader: pub.game.leader, questIndex: pub.game.questIndex, crown: crownOrder(pub) };
+      assert.equal(last.crown.length, 5 - pub.game.rejectCount);
+    }
+  };
+  assert.ok(runUntil(room, clock, 'gameover'));
+  assert.ok(checked > 0, 'saw a rejected team pass the crown on');
 });

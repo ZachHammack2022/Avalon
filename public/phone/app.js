@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, ROLE_TIPS, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -321,10 +321,13 @@ function recordPanel() {
   const board = recordBoard();
   const rec = board ? null : recordFor(state.pub);
   if (!board && !rec) return null;
+  // where the crown goes if this team is rejected: the record shows who led, this says who leads next
+  const crown = crownText(state.pub, (id) => nameOf(state.pub, id));
   return h('div', { class: 'panel record' },
     h('div', { class: 'row' }, h('div', { class: 'label grow' }, icon('scroll'), ' The record'),
       board ? h('button', { class: 'ghost more', type: 'button', onclick: () => openSheet('record') }, 'Full record') : null),
-    board || h('p', { class: 'muted small' }, 'Every proposal and vote will show up here, so you can see who backed whom.'));
+    board || h('p', { class: 'muted small' }, 'Every proposal and vote will show up here, so you can see who backed whom.'),
+    crown ? h('p', { class: `crown${state.pub.game.rejectCount >= MAX_REJECTS - 1 ? ' last' : ''}` }, icon('leader'), h('span', {}, crown)) : null);
 }
 
 /** Keep the inline record on the newest proposal unless the player scrolled back to look at an older one.
@@ -573,7 +576,7 @@ function drawSheet() {
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Good'), h('ul', {}, GENERAL_TIPS.good.map((t) => h('li', {}, t)))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Evil'), h('ul', {}, GENERAL_TIPS.evil.map((t) => h('li', {}, t)))));
     if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, `Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.${pub.config && pub.config.classic ? ' Classic mode is on, so a played quest shows how many Fail cards were in it.' : ''}`)),
-      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed. A star marks the hero of a success, and a skull the player the story blamed for a failure. A striped vote was cast by a stand-in while that player was away.')));
+      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed. A star marks the hero of a success, and a skull the player the story blamed for a failure. A striped vote was cast by a stand-in while that player was away. The crown passes down the rows in order; while a team is picked or voted on, the line under the record says who leads next.')));
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: `toggle${off ? '' : ' on'}`, role: 'switch', 'aria-checked': String(!off), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', { class: 'grow' }, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
   } else if (sheetTab === 'how') {
