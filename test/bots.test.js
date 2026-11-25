@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { botAssassinate, botCard, botPick, botPropose, botVote } from '../server/bots.js';
+import { botAssassinate, botCard, botPick, botPropose, botVote, distrust } from '../server/bots.js';
 import { seeded } from '../shared/rng.js';
 
 const ids = ['a', 'b', 'c', 'd', 'e'];
@@ -57,4 +57,33 @@ test('assassin bot: never itself or a known ally', () => {
     const t = botAssassinate(base({ rng: seeded(s), allyIds: ['b'] }));
     assert.ok(!['a', 'b'].includes(t));
   }
+});
+
+test('good bots read the record: they leave players off failed quests out of their teams and vote against them', () => {
+  const failedWith = { b: 1, c: 2 };
+  for (let s = 1; s < 200; s++) {
+    // a clean team is possible (a + d + e), so it is the one proposed
+    assert.deepEqual(botPropose(base({ rng: seeded(s), failedWith })).sort(), ['a', 'd', 'e']);
+    // with only one clean seat left, the least-suspected of the rest fills the team
+    assert.deepEqual(botPropose(base({ rng: seeded(s), size: 4, failedWith })).sort(), ['a', 'b', 'd', 'e']);
+    // evil bots are not swayed by it
+    const ev = botPropose(base({ rng: seeded(s), team: 'evil', allyIds: ['b'], failedWith }));
+    assert.ok(ev.includes('a') && ev.length === 3);
+  }
+  const rate = (o) => { const rng = seeded(7); let y = 0; for (let i = 0; i < 4000; i++) if (botVote(base({ rng, failedWith, ...o }))) y++; return y / 4000; };
+  assert.ok(Math.abs(rate({ proposedTeam: ['d', 'e'] }) - 0.65) < 0.03, 'a clean team: as before');
+  assert.ok(Math.abs(rate({ proposedTeam: ['b', 'd'] }) - 0.3) < 0.03, 'someone from a failed quest: mostly rejected');
+  assert.equal(rate({ proposedTeam: ['b', 'd'], rejectCount: 4 }), 1, 'but never the fifth proposal');
+  assert.equal(rate({ proposedTeam: ['a', 'c'] }), 1, 'and always when the bot itself is on it');
+});
+
+test('a Merlin bot steers away from the evil it can see', () => {
+  const evilSeen = ['d'];
+  for (let s = 1; s < 200; s++) assert.ok(!botPropose(base({ rng: seeded(s), evilSeen })).includes('d'));
+  assert.equal(distrust(base({ evilSeen }), 'd'), 3);
+  assert.equal(distrust(base({ evilSeen, failedWith: { a: 3 } }), 'a'), 0, 'never distrusts itself');
+  const rng = seeded(11);
+  let y = 0;
+  for (let i = 0; i < 4000; i++) if (botVote(base({ rng, evilSeen, proposedTeam: ['b', 'd'] }))) y++;
+  assert.ok(Math.abs(y / 4000 - 0.1) < 0.02, `got ${y / 4000}`);
 });

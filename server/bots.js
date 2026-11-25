@@ -4,11 +4,27 @@
 const NAMES = ['Barnaby', 'Mabel', 'Gruff', 'Pip', 'Dorothea', 'Wilfred', 'Tansy', 'Ox', 'Fennel', 'Bramble', 'Nettle', 'Quill'];
 export const botNames = () => NAMES.slice();
 
-/** ctx: { selfId, team: 'good'|'evil', allyIds: [], size, playerIds, rng } */
+/**
+ * How much a good bot distrusts a player, from what it may know: the record (every failed quest they went on) and,
+ * for Merlin, who is evil. 0 = nothing against them.
+ */
+export function distrust(ctx, id) {
+  if (id === ctx.selfId) return 0;
+  const failed = (ctx.failedWith && ctx.failedWith[id]) || 0;
+  const seen = ctx.evilSeen && ctx.evilSeen.includes(id) ? 3 : 0;
+  return failed + seen;
+}
+
+/** ctx: { selfId, team: 'good'|'evil', allyIds: [], size, playerIds, rng, failedWith?: {id: n}, evilSeen?: [] } */
 export function botPropose(ctx) {
   const { selfId, size, playerIds, rng } = ctx;
   const others = playerIds.filter((id) => id !== selfId);
   const team = [selfId];
+  if (ctx.team === 'good') {
+    // good bots read the record: the people they trust most go first (ties broken at random)
+    const ranked = rng.shuffle(others).map((id, i) => ({ id, i, d: distrust(ctx, id) })).sort((a, b) => a.d - b.d || a.i - b.i);
+    return team.concat(ranked.slice(0, size - 1).map((x) => x.id));
+  }
   const evilKnown = ctx.team === 'evil' ? ctx.allyIds : [];
   if (ctx.team === 'evil' && evilKnown.length && size > 1) {
     // Evil bots prefer including one evil player (here: self counts, plus sometimes an ally).
@@ -32,6 +48,10 @@ export function botVote(ctx) {
     // approve if an evil player (known to this bot, or itself) is on the team
     return proposedTeam.some((id) => ctx.allyIds.includes(id));
   }
+  // good: a team with someone the record (or Merlin's sight) speaks against is usually rejected
+  const worst = Math.max(0, ...proposedTeam.map((id) => distrust(ctx, id)));
+  if (worst >= 3) return rng.chance(0.1);
+  if (worst > 0) return rng.chance(0.3);
   return rng.chance(0.65);
 }
 

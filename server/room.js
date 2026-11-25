@@ -592,11 +592,15 @@ export class Room {
     const k = knowledgeFor(p.id, g.roles, this.playerIds());
     const last = g.results[g.results.length - 1];
     const allyIds = k.team === 'evil' ? k.knows : [];
+    // the record as the table sees it: how many failed quests each player went on (results whose cutscene has played)
+    const failedWith = {};
+    for (const r of g.results.slice(0, g.shown)) if (r.outcome === 'fail') for (const id of r.team) failedWith[id] = (failedWith[id] || 0) + 1;
     return {
       selfId: p.id, team: k.team, role: k.role, allyIds, rng: this.rng, playerIds: this.playerIds(), size: g.questIndex < QUEST_COUNT ? teamSize(this.players.length, g.questIndex) : 0,
       proposedTeam: g.team, rejectCount: g.rejectCount,
       teamIds: g.quest ? g.quest.teamIds : [],
       lastTeamFailed: !!(last && last.outcome === 'fail' && last.team.includes(p.id)),
+      failedWith, evilSeen: k.kind === 'evil' ? k.knows : [],
     };
   }
 
