@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import WebSocket from 'ws';
 import fs from 'node:fs';
-import { createGameServer, parseRange, resolveStatic } from '../server/index.js';
+import { Writable } from 'node:stream';
+import { createGameServer, parseRange, resolveStatic, sendFile } from '../server/index.js';
 
 async function boot(opts = {}) {
   const app = createGameServer({ port: 0, host: '127.0.0.1', publicHost: '127.0.0.1', ...opts });
@@ -91,6 +92,36 @@ test('the intro video is served as video with byte ranges (Safari will not play 
     assert.equal((await page.text()).length, 15);
     fs.closeSync(fd);
   } finally { await app.close(); }
+});
+
+test('a download the browser cuts off closes its file (video players abort range requests all the time)', async () => {
+  const fdDir = '/proc/self/fd';
+  const { app, info } = await boot();
+  try {
+    const openFiles = () => fs.readdirSync(fdDir).length;
+    const before = fs.existsSync(fdDir) ? openFiles() : 0;
+    for (let i = 0; i < 12; i++) {
+      await new Promise((resolve) => {
+        const req = http.get({ host: '127.0.0.1', port: info.port, path: '/intro/dragon-intro.mp4' }, (res) => {
+          res.once('data', () => { req.destroy(); setTimeout(resolve, 20); });
+        });
+        req.on('error', () => {});
+      });
+    }
+    await new Promise((r) => setTimeout(r, 200));
+    // Linux shows open files under /proc; elsewhere this still proves the server survives the aborts
+    if (fs.existsSync(fdDir)) assert.ok(openFiles() - before < 6, `${openFiles() - before} files left open`);
+    assert.equal((await fetch(`http://127.0.0.1:${info.port}/healthz`)).status, 200);
+  } finally { await app.close(); }
+});
+
+test('a file that cannot be read ends its response instead of crashing the server', async () => {
+  const ended = await new Promise((resolve) => {
+    const res = new Writable({ write(chunk, enc, cb) { cb(); } });
+    res.on('close', () => resolve(true));
+    sendFile('/no/such/file.mp4', res);
+  });
+  assert.equal(ended, true);
 });
 
 test('parseRange follows the Range header rules', () => {
