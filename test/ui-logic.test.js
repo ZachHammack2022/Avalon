@@ -94,6 +94,8 @@ test('TV: game over card lists every role and the recap with framing', () => {
   assert.match(text, /Ann: Merlin/);
   assert.match(text, /Cy \(framed!\)/);
   assert.match(text, /found Merlin/);
+  const miss = cardFor(pub('gameover', {}, { reveal: { ...rv, winner: 'good', reason: 'assassination-miss', assassination: { assassin: 'p2', target: 'p3', hit: false } } }));
+  assert.equal(miss.lines[0], 'The Assassin struck Cy, but Merlin was Ann.');
 });
 
 test('whole game via the exact public state the TV cards consume: every phase of a real game renders', () => {

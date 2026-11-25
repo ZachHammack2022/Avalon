@@ -94,6 +94,25 @@ export function describeColumn(col, nameOf) {
   return `${head} ${verdict}${outcome}`;
 }
 
+/**
+ * Why the game ended, in one sentence, for the TV and every phone. `reveal` is pub.reveal; `nameOf(id)` -> display name.
+ * An assassination names who was struck and, on a miss, who Merlin really was (roles are public once the game is over).
+ */
+export function endReason(reveal, nameOf) {
+  if (!reveal) return '';
+  const a = reveal.assassination;
+  const merlin = Object.keys(reveal.roles || {}).find((id) => reveal.roles[id] === 'merlin');
+  switch (reveal.reason) {
+    case 'quests': return reveal.winner === 'good' ? 'Three quests succeeded.' : 'Three quests failed.';
+    case 'rejects': return 'Five proposals in a row were rejected.';
+    case 'assassination-hit': return a && a.target ? `The Assassin struck ${nameOf(a.target)}, who was Merlin.` : 'The Assassin found Merlin.';
+    case 'assassination-miss':
+      if (!a || !a.target) return 'The Assassin missed Merlin.';
+      return `The Assassin struck ${nameOf(a.target)}, but Merlin was ${merlin ? nameOf(merlin) : 'someone else'}.`;
+    default: return '';
+  }
+}
+
 /** "1 Fail card" / "2 Fail cards" */
 export const failText = (n) => `${n} Fail card${n === 1 ? '' : 's'}`;
 

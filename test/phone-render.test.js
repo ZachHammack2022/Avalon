@@ -205,3 +205,25 @@ test('phone: in the lobby every player, not only the host, sees which roles are 
   sq.inject(host);
   assert.doesNotMatch(textOf($('main')), /Roles this game/);
 });
+
+test('phone: game over says why the game ended and lists only the quests that were played', () => {
+  const end = gameStates(3, 6, { classic: true }).filter((s) => s.pub.phase === 'gameover').pop();
+  const nm = (id) => end.pub.players.find((p) => p.id === id).name;
+  const merlin = Object.keys(end.pub.reveal.roles).find((id) => end.pub.reveal.roles[id] === 'merlin');
+  sq.inject(end);
+  const text = textOf($('main'));
+  const why = { quests: /Three quests (succeeded|failed)\./, rejects: /Five proposals in a row were rejected\./,
+    'assassination-hit': new RegExp(`struck ${nm(merlin)}, who was Merlin\\.`), 'assassination-miss': new RegExp(`but Merlin was ${nm(merlin)}\\.`) }[end.pub.reveal.reason];
+  assert.match(text, why);
+  const played = end.pub.reveal.recap.length;
+  assert.match(text, played === 1 ? /The quest/ : new RegExp(`The ${played} quests played`));
+  assert.doesNotMatch(text, /The five quests/);
+  // Classic: each quest's Fail count is in the recap
+  assert.equal((text.match(/\d Fail cards?/g) || []).length >= played, true);
+  // an assassination miss names the real Merlin
+  const miss = clone(end);
+  const other = miss.pub.players.find((p) => p.id !== merlin).id;
+  Object.assign(miss.pub.reveal, { winner: 'good', reason: 'assassination-miss', assassination: { assassin: other, target: other, hit: false } });
+  sq.inject(miss);
+  assert.match(textOf($('main')), new RegExp(`The Assassin struck ${nm(other)}, but Merlin was ${nm(merlin)}\\.`));
+});
