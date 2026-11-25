@@ -3,7 +3,7 @@
 import { QUEST_COUNT } from '../../shared/avalon.js';
 import { ROLE_INFO } from '../../shared/roles-info.js';
 import { QUESTS } from '../../shared/campaign-lost-crown.js';
-import { crownText } from '../../shared/record.js';
+import { crownText, endReason } from '../../shared/record.js';
 
 const name = (pub, id) => { const p = pub.players.find((x) => x.id === id); return p ? p.name : '?'; };
 const names = (pub, ids) => ids.map((id) => name(pub, id));
@@ -49,7 +49,7 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
       return { kind: 'assassination', title: 'The Assassin steps from the shadows…', tone: 'bad', lines: ['Good has won three quests, but the Assassin gets one guess at Merlin.'] };
     case 'gameover': {
       const rv = pub.reveal;
-      const why = { quests: rv.winner === 'good' ? 'Three quests succeeded.' : 'Three quests failed.', rejects: 'Five proposals in a row were rejected.', 'assassination-hit': 'The Assassin found Merlin!', 'assassination-miss': 'The Assassin missed Merlin!' }[rv.reason];
+      const why = endReason(rv, (id) => name(pub, id));
       return { kind: 'gameover', title: rv.winner === 'good' ? 'Good wins!' : 'Evil wins!', tone: rv.winner === 'good' ? 'good' : 'bad',
         lines: [why, ...pub.players.map((p) => `${p.name}: ${ROLE_INFO[rv.roles[p.id]].name}`), ...rv.recap.map((q) => `${QUESTS[q.questIndex].name}: ${q.outcome === 'success' ? `Success. Hero: ${name(pub, q.hero)}` : `Failed. Culprit: ${name(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}`}${q.failCount != null ? ` [${q.failCount} Fail]` : ''}`), ...awards(pub, rv.recap)] };
     }

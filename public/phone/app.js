@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -565,11 +565,11 @@ const SCREENS = {
     return page({ tracker: false, hint: false, kicker: won ? 'Victory' : 'Defeat', title: goodWon ? 'Good wins' : 'Evil wins',
       body: [
         h('div', { class: `result ${goodWon ? 'good' : 'bad'}` }, h('span', { class: `sigil team-${mine.team}` }, icon(rv.roles[me.id])), h('div', { class: 'label' }, 'You were'), h('b', {}, mine.name), h('small', {}, won ? 'Your side took the realm.' : 'Better luck next time.')),
-        rv.assassination && rv.assassination.target ? h('p', { class: 'center' }, `The Assassin struck ${nameOf(pub, rv.assassination.target)}. ${rv.winner === 'evil' ? 'It was Merlin.' : 'Merlin survives.'}`) : null,
+        h('p', { class: 'center why' }, endReason(rv, (id) => nameOf(pub, id))),
         ...['good', 'evil'].map((tm) => h('div', { class: `panel teamlist team-${tm}` }, h('div', { class: 'tl-head' }, icon(tm === 'good' ? 'loyal' : 'mordred'), tm === 'good' ? 'Loyal Servants of Arthur' : 'Minions of Mordred', (rv.winner === tm) ? h('span', { class: 'won' }, 'won') : null),
           h('div', { class: 'reveal' }, pub.players.filter((p) => ROLE_INFO[rv.roles[p.id]].team === tm).map((p) => { const r = ROLE_INFO[rv.roles[p.id]]; return h('div', { class: 'person' }, avatar(p), h('span', { class: 'pname' }, p.name, youTag(p.id) ? h('small', {}, 'you') : null), h('span', { class: 'rtag' }, icon(rv.roles[p.id]), r.name)); })))),
-        h('div', { class: 'panel' }, h('div', { class: 'label' }, 'The five quests'),
-          h('div', { class: 'recap' }, rv.recap.map((q) => { const ok = q.outcome === 'success'; return h('div', { class: ok ? 'good' : 'bad' }, h('span', { class: 'qn' }, icon(ok ? 'check' : 'cross'), `Quest ${q.questIndex + 1}`), h('span', {}, ok ? `Hero: ${nameOf(pub, q.hero)}` : `Suspected: ${nameOf(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}`)); }))),
+        rv.recap.length ? h('div', { class: 'panel' }, h('div', { class: 'label' }, rv.recap.length === 1 ? 'The quest' : `The ${rv.recap.length} quests played`),
+          h('div', { class: 'recap' }, rv.recap.map((q) => { const ok = q.outcome === 'success'; const fails = q.failCount != null ? ` · ${failText(q.failCount)}` : ''; return h('div', { class: ok ? 'good' : 'bad' }, h('span', { class: 'qn' }, icon(ok ? 'check' : 'cross'), `Quest ${q.questIndex + 1}`), h('span', {}, ok ? `Hero: ${nameOf(pub, q.hero)}${fails}` : `Suspected: ${nameOf(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}${fails}`)); }))) : null,
       ],
       record: true,
       actions: [me.vip ? h('button', { class: 'primary big', onclick: () => send({ t: 'again' }) }, 'Play again') : h('p', { class: 'muted center' }, 'Waiting for the host…')] });

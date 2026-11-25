@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { crownOrder, crownText, describeColumn, recordFor } from '../shared/record.js';
+import { crownOrder, crownText, describeColumn, endReason, recordFor } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -181,4 +181,17 @@ test('crown order: in real games it names the actual next leaders and the fifth 
   };
   assert.ok(runUntil(room, clock, 'gameover'));
   assert.ok(checked > 0, 'saw a rejected team pass the crown on');
+});
+
+test('end reason: one sentence on why the game ended, naming the Assassin\'s target and the real Merlin', () => {
+  const nm = (id) => players.find((p) => p.id === id).name;
+  const roles = { p1: 'merlin', p2: 'assassin', p3: 'loyal', p4: 'minion', p5: 'loyal' };
+  const rv = (winner, reason, assassination = null) => ({ winner, reason, roles, assassination });
+  assert.equal(endReason(rv('good', 'quests'), nm), 'Three quests succeeded.');
+  assert.equal(endReason(rv('evil', 'quests'), nm), 'Three quests failed.');
+  assert.equal(endReason(rv('evil', 'rejects'), nm), 'Five proposals in a row were rejected.');
+  assert.equal(endReason(rv('evil', 'assassination-hit', { assassin: 'p2', target: 'p1', hit: true }), nm), 'The Assassin struck Ann, who was Merlin.');
+  assert.equal(endReason(rv('good', 'assassination-miss', { assassin: 'p2', target: 'p3', hit: false }), nm), 'The Assassin struck Cy, but Merlin was Ann.');
+  assert.equal(endReason(rv('good', 'assassination-miss'), nm), 'The Assassin missed Merlin.');
+  assert.equal(endReason(null, nm), '');
 });
