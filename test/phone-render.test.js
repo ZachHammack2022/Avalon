@@ -181,6 +181,8 @@ test('phone: the record is one tap away from the top bar during a game, and has 
   assert.match(textOf(sheet), /The Votes row under each column/);
   assert.match(textOf(sheet), /The record in one line/);
   assert.match(textOf(sheet), /never on or behind a failed quest/);
+  assert.match(textOf(sheet), /Right after a quest fails/);
+  assert.match(textOf(sheet), /private read of the record on their role card/);
   // How to play teaches the record as part of the game
   sheet.querySelectorAll('button').find((b) => textOf(b) === 'How to play').click();
   assert.match(textOf(sheet), /The record.*best evidence/);
