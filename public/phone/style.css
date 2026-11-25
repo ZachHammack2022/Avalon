@@ -397,6 +397,10 @@ input.code::placeholder { letter-spacing: .25em; }
 .rb-legend .lg.yes { background: #e9d7ae; color: #245a2b; } .rb-legend .lg.no { background: #2a262e; color: var(--evil); }
 .rb-legend .lg.team { outline: 2px solid var(--gold); outline-offset: -2px; } .rb-legend .lg.fail { outline: 2px solid var(--evil); outline-offset: -2px; }
 .rb-legend .lg.lead { width: auto; color: var(--gold); font-size: 15px; }
+/* a vote a stand-in cast for an absent player: striped, so nobody reads the player's intent into it */
+.rb td.c.auto, .rb-legend .lg.auto { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.3) 0 3px, transparent 3px 7px); }
+.rb-legend .lg.auto { background-color: #8b8478; }
+.rb tr.away th.nm .n { opacity: .55; } .rb th.nm .aw { margin-left: 4px; font-size: 10.5px; font-weight: 700; color: var(--muted); }
 .rb-legend .lg.hero, .rb-legend .lg.blamed { width: auto; font-size: 13px; } .rb-legend .lg.hero { color: var(--gold); } .rb-legend .lg.blamed { color: #fff; }
 .rb-title { display: inline-flex; align-items: center; gap: 8px; } .rb-title .ic { color: var(--gold); }
 .rb-sub { margin-top: 6px; }

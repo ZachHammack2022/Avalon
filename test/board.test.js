@@ -74,6 +74,19 @@ test('board: Classic mode keeps the Fail count under each played shield', () => 
   assert.deepEqual(fc.map((n) => has(n, 'some')), [false, true]);
 });
 
+test('board: stand-in votes are striped and explained, and an away seat is tagged', () => {
+  assert.equal(find(boardTree(pub('propose')), 'auto').length, 0);
+  assert.doesNotMatch(text(find(boardTree(pub('propose')), 'bd-legend')[0]), /stand-in/);
+  const hist = [history[0], { ...history[1], standIn: ['p4'] }, history[2]];
+  const tree = boardTree({ ...pub('propose', { history: hist }), players: players.map((p) => ({ ...p, connected: p.id !== 'p4' })) });
+  const auto = find(tree, 'auto').filter((n) => n.tag === 'td');
+  assert.equal(auto.length, 1);
+  assert.equal(text(auto[0]).slice(0, 1), '✔');
+  assert.match(text(find(tree, 'bd-legend')[0]), /stand-in vote/);
+  assert.deepEqual(find(tree, 'aw').map(text), ['away']);
+  assert.equal(walk(tree).filter((n) => n.tag === 'tr' && has(n, 'away')).length, 1);
+});
+
 test('board: the team under vote shows live, with face-down marks for who has voted', () => {
   const tree = boardTree(pub('vote', { team: ['p4', 'p5'], voted: ['p2'] }));
   const live = find(tree, 'live');

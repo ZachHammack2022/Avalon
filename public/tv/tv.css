@@ -67,6 +67,10 @@ html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } h
 .bd-grid td.c.team { outline: .38vh solid var(--gold); outline-offset: -.38vh; }
 .bd-grid td.c.went.success { outline-color: var(--good); } .bd-grid td.c.went.fail { outline-color: var(--bad); }
 .bd-grid td.c.rej { opacity: .6; }
+/* a vote a stand-in cast for an absent player: striped, so nobody reads the player's intent into it */
+.bd-grid td.c.auto, .bd-legend b.auto { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.28) 0 .35vh, transparent .35vh .9vh); }
+.bd-legend b.auto { background-color: #8b8478; }
+.bd-grid tr.away th.nm .n { opacity: .55; } .bd-grid th.nm .aw { margin-left: .8vh; font-size: 1.6vh; font-weight: 800; color: #d9cbb4; opacity: .8; }
 .bd-grid td.c.qs::before { content: ""; position: absolute; left: -.6vh; top: -.2vh; bottom: -.2vh; width: .15vh; background: rgba(255,255,255,.18); }
 .bd-grid td.c sup.crown { position: absolute; top: -.9vh; left: -.6vh; font-size: max(1.5vh, calc(var(--cell) * .45)); color: var(--gold); text-shadow: 0 .2vh .4vh #000; }
 .bd-grid td.c sub.mk { position: absolute; right: -.6vh; bottom: -.8vh; font-size: max(1.5vh, calc(var(--cell) * .45)); text-shadow: 0 .2vh .4vh #000; }

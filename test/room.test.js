@@ -542,6 +542,35 @@ test('a human disconnected for >15s is played by a bot, and gets control back on
   assert.equal(back.state.me.takeover, false);
 });
 
+test('votes a stand-in casts for an absent player are marked on the record, and the player hears about it on return', () => {
+  const t = table(5, { seed: 33 });
+  toPropose(t.room, t.clock);
+  const { room, clock } = t;
+  const away = t.hs.find((x) => x.p.id !== leaderOf(room).id);
+  room.detachPhone(away.p.id, away.conn);
+  clock.advance(16000); // grace runs out: a stand-in takes the seat
+  assert.equal(room.player(away.p.id).takeover, true);
+  // everyone else plays by hand
+  const L = leaderOf(room);
+  act(room, L, { t: 'propose', team: room.playerIds().slice(0, room.publicState().game.teamSize) });
+  for (const h of t.hs) if (h !== away) act(room, h.p, { t: 'vote', approve: false });
+  clock.advance(500); // the stand-in votes
+  assert.equal(room.phase, 'voteReveal');
+  const entry = room.publicState().game.history.at(-1);
+  assert.deepEqual(entry.standIn, [away.p.id], 'only the absent seat, not the hand-played ones');
+  // on return the phone is told a stand-in played for it; its own later votes are its own
+  const back = new FakeConn();
+  const r = room.join({ name: 'x', token: away.token }, back);
+  assert.equal(r.standIn, true);
+  assert.equal(room.join({ name: 'x', token: away.token }, new FakeConn()).standIn, false, 'only once');
+  clock.advance(6000);
+  assert.equal(room.phase, 'propose', 'four rejects sank the first team');
+  act(room, leaderOf(room), { t: 'propose', team: room.playerIds().slice(0, room.publicState().game.teamSize) });
+  for (const h of t.hs) act(room, h.p, { t: 'vote', approve: false });
+  assert.equal(room.publicState().game.history.length, 2);
+  assert.equal(room.publicState().game.history.at(-1).standIn, undefined, 'nobody was away');
+});
+
 test('a game never stalls when every human disconnects: stand-ins finish it', () => {
   const t = table(5, { seed: 32 });
   toPropose(t.room, t.clock);

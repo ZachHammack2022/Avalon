@@ -97,6 +97,7 @@ function onMessage(m) {
       roomCode = m.room;
       store.set(`sq.token.${m.room}`, m.token);
       requestWakeLock();
+      if (m.standIn) toast('Welcome back! A stand-in played for you; its votes are striped on the record.');
       break;
     case 'state':
       state = m;
@@ -279,23 +280,24 @@ function recordBoard({ big = false } = {}) {
   const groups = rec.quests.filter((q) => q.cols.length);
   const firstOfQuest = new Set(groups.map((q) => q.cols[0]));
   const said = { yes: 'approved', no: 'rejected', in: 'has voted', null: 'not voted yet' };
-  const marks = { hero: false, blamed: false };
+  const marks = { hero: false, blamed: false, auto: false };
   const table = h('table', { class: `rb ${big ? 'big' : ''}`, 'aria-label': 'The record' },
     h('thead', {}, h('tr', {}, h('th', { class: 'nm', scope: 'col' }, h('span', { class: 'sr' }, 'Player')),
       groups.map((q) => h('th', { class: `qh qs ${q.outcome || (q.current ? 'cur' : '')}`, colspan: String(q.cols.length), scope: 'colgroup' },
         q.outcome ? icon(q.outcome === 'success' ? 'check' : 'cross') : null, `Q${q.index + 1}`)))),
     h('tbody', {}, rec.rows.map((r) => {
       const role = r.role ? ROLE_INFO[r.role] : null;
-      return h('tr', { class: [r.id === state.me.id ? 'me' : '', role ? `team-${role.team}` : ''].filter(Boolean).join(' ') || null },
-        h('th', { class: 'nm', scope: 'row' }, avatar(r, 'xs'), h('span', { class: 'n' }, r.name), role ? h('small', { class: 'rl' }, role.name) : null),
+      return h('tr', { class: [r.id === state.me.id ? 'me' : '', role ? `team-${role.team}` : '', r.away ? 'away' : ''].filter(Boolean).join(' ') || null },
+        h('th', { class: 'nm', scope: 'row' }, avatar(r, 'xs'), h('span', { class: 'n' }, r.name),
+          role ? h('small', { class: 'rl' }, role.name) : r.away ? h('small', { class: 'aw' }, 'away') : null),
         rec.columns.map((c, ci) => {
           const cell = r.cells[ci]; const sent = c.approved === true; const q = rec.quests[c.questIndex];
           const blamed = sent && cell.onTeam && c.outcome === 'fail' && q.culprit === r.id;
           const hero = sent && cell.onTeam && c.outcome === 'success' && q.hero === r.id;
-          if (blamed) marks.blamed = true; if (hero) marks.hero = true;
+          if (blamed) marks.blamed = true; if (hero) marks.hero = true; if (cell.standIn) marks.auto = true;
           const cls = ['c', cell.vote || 'none', cell.onTeam ? 'team' : '', c.live ? 'live' : '', c.approved === false ? 'rej' : '',
-            sent && cell.onTeam ? `went ${c.outcome || 'pending'}` : '', firstOfQuest.has(c.key) ? 'qs' : ''].filter(Boolean).join(' ');
-          const label = `${r.name}, quest ${c.questIndex + 1} proposal ${c.attempt}: ${said[cell.vote]}${cell.onTeam ? ', on the team' : ''}${cell.leader ? ', leader' : ''}${blamed ? ', blamed for the fail' : ''}${hero ? ', hero' : ''}`;
+            sent && cell.onTeam ? `went ${c.outcome || 'pending'}` : '', firstOfQuest.has(c.key) ? 'qs' : '', cell.standIn ? 'auto' : ''].filter(Boolean).join(' ');
+          const label = `${r.name}, quest ${c.questIndex + 1} proposal ${c.attempt}: ${said[cell.vote]}${cell.standIn ? ' (by a stand-in)' : ''}${cell.onTeam ? ', on the team' : ''}${cell.leader ? ', leader' : ''}${blamed ? ', blamed for the fail' : ''}${hero ? ', hero' : ''}`;
           return h('td', { class: cls, 'aria-label': label, title: describeColumn(c, nm) },
             cell.vote === 'yes' ? icon('check') : cell.vote === 'no' ? icon('cross') : cell.vote === 'in' ? h('i', { class: 'dot' }) : null,
             cell.leader ? icon('leader', 'crown') : null,
@@ -310,7 +312,8 @@ function recordBoard({ big = false } = {}) {
       h('span', {}, h('b', { class: 'lg team' }), 'on the team'), h('span', {}, h('b', { class: 'lg lead' }, icon('leader')), 'leader'),
       big ? h('span', {}, h('b', { class: 'lg fail' }), 'went, quest failed') : null,
       marks.hero ? h('span', {}, h('b', { class: 'lg hero' }, '★'), 'hero') : null,
-      marks.blamed ? h('span', {}, h('b', { class: 'lg blamed' }, '☠'), 'blamed') : null));
+      marks.blamed ? h('span', {}, h('b', { class: 'lg blamed' }, '☠'), 'blamed') : null,
+      marks.auto ? h('span', {}, h('b', { class: 'lg auto' }), 'stand-in vote') : null));
 }
 
 /** The record as it sits on a screen: a panel with the board, or a line saying it will fill up. */
@@ -570,7 +573,7 @@ function drawSheet() {
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Good'), h('ul', {}, GENERAL_TIPS.good.map((t) => h('li', {}, t)))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Evil'), h('ul', {}, GENERAL_TIPS.evil.map((t) => h('li', {}, t)))));
     if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, `Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.${pub.config && pub.config.classic ? ' Classic mode is on, so a played quest shows how many Fail cards were in it.' : ''}`)),
-      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed. A star marks the hero of a success, and a skull the player the story blamed for a failure.')));
+      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed. A star marks the hero of a success, and a skull the player the story blamed for a failure. A striped vote was cast by a stand-in while that player was away.')));
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: `toggle${off ? '' : ' on'}`, role: 'switch', 'aria-checked': String(!off), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', { class: 'grow' }, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
   } else if (sheetTab === 'how') {

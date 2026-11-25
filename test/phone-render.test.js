@@ -38,6 +38,7 @@ test('phone: every screen of real games renders, with the record inline wherever
   const seen = new Set();
   const announced = new Set();
   let lastScreen = '';
+  let sawStandIn = false;
   for (const seed of [3, 8, 21]) {
     for (const s of gameStates(seed)) {
       sq.inject(s);
@@ -76,6 +77,11 @@ test('phone: every screen of real games renders, with the record inline wherever
       const legend = textOf(panel.querySelector('.rb-legend'));
       assert.equal(/hero/.test(legend), table.querySelectorAll('.mk.hero').length > 0, `${screen}: ${legend}`);
       assert.equal(/blamed/.test(legend), table.querySelectorAll('.mk.blamed').length > 0, `${screen}: ${legend}`);
+      // the human seat in these games is played by a stand-in once its grace runs out: its votes are striped
+      const autos = table.querySelectorAll('td.auto');
+      assert.equal(/stand-in vote/.test(legend), autos.length > 0, `${screen}: ${legend}`);
+      for (const td of autos) assert.match(td.getAttribute('aria-label'), /by a stand-in/);
+      if (autos.length) sawStandIn = true;
       // roles are never on a phone's record before the game is over
       assert.equal(table.querySelectorAll('.rl').length, s.pub.phase === 'gameover' ? s.pub.players.length : 0, screen);
       // while the votes are face-down only "has voted" shows for the live proposal
@@ -83,6 +89,7 @@ test('phone: every screen of real games renders, with the record inline wherever
     }
   }
   assert.ok(announced.size > 8, 'screen changes are announced');
+  assert.ok(sawStandIn, 'the stand-in seat shows up on the record');
   for (const sc of [...WITH_RECORD.filter((x) => x !== 'assassinate' && x !== 'waitAssassin'), 'lobby', 'roleReveal', 'voteReveal', 'quest-card']) assert.ok(seen.has(sc), `saw ${sc}`);
 });
 

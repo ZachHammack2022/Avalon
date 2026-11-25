@@ -100,13 +100,14 @@ export class Room {
     const existing = token && this.players.find((p) => p.token === token && !p.isBot);
     if (existing) {
       if (existing.conn && existing.conn !== conn) { try { existing.conn.close && existing.conn.close(); } catch { /* ignore */ } }
+      const standIn = existing.takeover && this.inGame();
       existing.conn = conn;
       existing.connected = true;
       existing.takeover = false;
       if (existing.dcTimer != null) { this.clock.clearTimeout(existing.dcTimer); existing.dcTimer = null; }
       this._ensureVip();
       this.broadcast();
-      return { ok: true, player: existing, token: existing.token, resumed: true };
+      return { ok: true, player: existing, token: existing.token, resumed: true, standIn };
     }
     if (this.inGame()) return { ok: false, error: 'This game is already in progress.' };
     if (this.players.length >= MAX_PLAYERS) return { ok: false, error: 'This room is full.' };
@@ -343,7 +344,7 @@ export class Room {
     const roles = assignRoles(ids, v.config, this.rng);
     this.g = {
       config: v.config, roles, order: ids, leader: this.rng.int(ids.length), questIndex: 0, results: [], shown: 0,
-      rejectCount: 0, team: [], votes: new Map(), proposals: [], quest: null, cutscene: null, reveal: null, lastApproved: null,
+      rejectCount: 0, team: [], votes: new Map(), standIn: new Set(), proposals: [], quest: null, cutscene: null, reveal: null, lastApproved: null,
     };
     for (const pl of this.players) {
       pl.ready = pl.isBot;
@@ -369,6 +370,7 @@ export class Room {
     const g = this.g;
     g.team = [];
     g.votes = new Map();
+    g.standIn = new Set();
     this._enter('propose');
     this._scheduleBots();
     this.broadcast();
@@ -385,6 +387,7 @@ export class Room {
     }
     g.team = this.playerIds().filter((id) => team.includes(id)); // stable seat order
     g.votes = new Map();
+    g.standIn = new Set();
     this._enter('vote');
     this._scheduleBots();
   }
@@ -403,7 +406,11 @@ export class Room {
     const approvals = [...g.votes.values()].filter(Boolean).length;
     const approved = approvals * 2 > this.players.length; // ties reject
     g.lastApproved = approved;
-    g.proposals.push({ questIndex: g.questIndex, leader: g.order[g.leader], team: g.team.slice(), votes: Object.fromEntries(g.votes), approved });
+    const entry = { questIndex: g.questIndex, leader: g.order[g.leader], team: g.team.slice(), votes: Object.fromEntries(g.votes), approved };
+    // votes a stand-in cast for an absent player: public (everyone can see who is away), and the table should not read
+    // the player's intent into them
+    if (g.standIn.size) entry.standIn = this.playerIds().filter((id) => g.standIn.has(id));
+    g.proposals.push(entry);
     if (!approved) g.rejectCount++;
     this._enter('voteReveal');
     this._setPhaseTimer(this.timing.voteRevealMs, () => this._afterVoteReveal());
@@ -584,7 +591,7 @@ export class Room {
     switch (this.phase) {
       case 'roleReveal': res = this._ready(p); break;
       case 'propose': res = this._propose(p, { team: botPropose(ctx) }); break;
-      case 'vote': res = this._vote(p, { approve: botVote(ctx) }); break;
+      case 'vote': if (!p.isBot) this.g.standIn.add(p.id); res = this._vote(p, { approve: botVote(ctx) }); break;
       case 'questPlay': {
         const q = this.g.quest;
         let card = q.cards.get(p.id);
