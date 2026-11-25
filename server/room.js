@@ -624,6 +624,7 @@ export class Room {
       teamIds: g.quest ? g.quest.teamIds : [],
       lastTeamFailed: !!(last && last.outcome === 'fail' && last.team.includes(p.id)),
       failedWith, evilSeen: k.kind === 'evil' ? k.knows : [],
+      history: g.proposals, // the public vote record, which an Assassin bot reads for Merlin
     };
   }
 
