@@ -316,8 +316,27 @@ export function sharpestEye(pub) {
 }
 
 /**
+ * The evil player whose votes looked most like a good player's, for a game-over award: {id, right, of}, where `right`
+ * counts the votes that matched what a good player who knew everything would have cast (so voting down a team with an
+ * ally on it counts). At least three counted votes, more than half of them that way (an evil player who backs an ally's
+ * team now and then still has good cover); ties go to the earlier seat.
+ */
+export function bestDisguise(pub) {
+  const reads = voteReads(pub);
+  if (!reads) return null;
+  let best = null;
+  for (const p of pub.players) {
+    const role = pub.reveal.roles[p.id]; const r = reads[p.id];
+    if (!r || !EVIL_ROLES.has(role) || r.of < 3 || r.right * 2 <= r.of) continue;
+    if (!best || r.right > best.right || (r.right === best.right && r.of < best.of)) best = { id: p.id, ...r };
+  }
+  return best;
+}
+
+/**
  * End-of-game superlatives, for the TV card and every phone: the hero, the scapegoat (framed and innocent), the walking
- * disaster (most blamed) and the sharpest eye (best votes among good players who could not see evil).
+ * disaster (most blamed), the sharpest eye (best votes among good players who could not see evil) and the best
+ * disguise (the evil player whose votes looked most like Good's).
  */
 export function awards(pub, recap) {
   const nameOf = (id) => { const p = pub.players.find((x) => x.id === id); return p ? p.name : '?'; };
@@ -331,5 +350,7 @@ export function awards(pub, recap) {
   if (blamed && !(framed && framed[0] === blamed[0] && framed[1] === blamed[1])) out.push(`★ Walking disaster: ${nameOf(blamed[0])} (${blamed[1]} ${blamed[1] === 1 ? 'catastrophe' : 'catastrophes'})`);
   const eye = sharpestEye(pub);
   if (eye) out.push(`★ Sharpest eye: ${nameOf(eye.id)}, who read ${eye.right} of ${eye.of} teams right`);
+  const cover = bestDisguise(pub);
+  if (cover) out.push(`★ Best disguise: ${nameOf(cover.id)}, who voted like Good on ${cover.right} of ${cover.of} teams`);
   return out;
 }
