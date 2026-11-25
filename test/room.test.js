@@ -494,6 +494,51 @@ test('play again: VIP only; same players back to the lobby, game state cleared',
   assert.equal(room.phase, 'roleReveal');
 });
 
+test('play again: a phone that only just dropped keeps its seat; one that left long ago gets its avatar back on return', () => {
+  const t = table(6, { seed: 24 });
+  playQuests(t, { wins: 'evil' });
+  const { room, clock, hs } = t;
+  assert.equal(room.phase, 'gameover');
+  // hs[1] left mid-reveal a while ago (grace over); hs[2]'s screen locked just now
+  const [gone, locked] = [hs[1], hs[2]];
+  const goneLook = { cls: gone.p.cls, color: gone.p.color };
+  room.detachPhone(gone.p.id, gone.conn);
+  clock.advance(60000);
+  room.detachPhone(locked.p.id, locked.conn);
+  clock.advance(3000);
+  act(room, hs[0].p, { t: 'again' });
+  assert.equal(room.phase, 'lobby');
+  assert.deepEqual(room.players.map((p) => p.id), hs.filter((h) => h !== gone).map((h) => h.p.id));
+  // the locked phone wakes up and is simply back in its seat
+  const back = room.join({ name: 'Human3', token: locked.token }, new FakeConn());
+  assert.ok(back.ok && back.resumed);
+  assert.equal(back.player.id, locked.p.id);
+  assert.equal(room.players.length, 5);
+  // the one who left returns with a new seat but the same look
+  const ret = room.join({ name: 'Human2', token: gone.token }, new FakeConn());
+  assert.ok(ret.ok && !ret.resumed);
+  assert.notEqual(ret.player.id, gone.p.id);
+  assert.deepEqual({ cls: ret.player.cls, color: ret.player.color }, goneLook);
+  assert.equal(room.departed.size, 0);
+  // a stale token never gives anyone else's look, and an explicit choice still wins
+  const other = room.join({ name: 'Newbie', token: 'nope', cls: 'mage' }, new FakeConn());
+  assert.equal(other.player.cls, 'mage');
+  assert.equal(room.players.length, 7);
+});
+
+test('play again: a seat still inside its grace period gets a stand-in if the next game starts before it returns', () => {
+  const t = table(5, { seed: 24 });
+  playQuests(t, { wins: 'evil' });
+  const { room, clock, hs } = t;
+  room.detachPhone(hs[3].p.id, hs[3].conn);
+  act(room, hs[0].p, { t: 'again' });
+  assert.equal(room.players.length, 5);
+  act(room, hs[0].p, { t: 'start' });
+  clock.advance(60000); // its grace runs out during the role reveal
+  assert.equal(room.player(hs[3].p.id).takeover, true);
+  assert.notEqual(room.phase, 'roleReveal', 'the game did not wait for the absent phone');
+});
+
 // ---------- reconnect, takeover ----------
 test('a phone that refreshes rejoins its seat with its token and receives the current state + private role', () => {
   const t = table(5, { seed: 30 });
