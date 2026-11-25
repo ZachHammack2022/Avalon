@@ -177,6 +177,8 @@ test('phone: the record is one tap away from the top bar during a game, and has 
   assert.deepEqual(tabs, ['Now', 'How to play', 'Roles']);
   assert.match(textOf(sheet), /Reading the record/);
   assert.match(textOf(sheet), /The Votes row under each column/);
+  assert.match(textOf(sheet), /The record in one line/);
+  assert.match(textOf(sheet), /never on or behind a failed quest/);
   // How to play teaches the record as part of the game
   sheet.querySelectorAll('button').find((b) => textOf(b) === 'How to play').click();
   assert.match(textOf(sheet), /The record.*best evidence/);
@@ -440,6 +442,11 @@ test('phone: the vote screen reads the record against the proposed team', () => 
   const line = $('main').querySelector('.teamcase');
   assert.ok(line, 'the case line is shown');
   assert.equal(textOf(line).trim(), teamCase(found.pub, found.pub.game.team, nm));
+  // the line stays once the vote is locked in, while the table finishes voting
+  const locked = { ...found, me: { ...found.me, legal: { action: 'wait' } }, pub: { ...found.pub, game: { ...found.pub.game, voted: [found.me.id] } } };
+  assert.equal(screenFor(locked), 'voted');
+  sq.inject(locked);
+  assert.equal(textOf($('main').querySelector('.teamcase')).trim(), teamCase(found.pub, found.pub.game.team, nm));
   const early = gameStates(1).find((s) => screenFor(s) === 'vote' && !s.pub.game.results.length);
   sq.inject(early);
   assert.equal($('main').querySelector('.teamcase'), null);
