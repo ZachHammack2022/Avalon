@@ -54,9 +54,13 @@ export class CutscenePlayer {
   update(dt) {
     if (!this.playing) { this.stage.update(dt); return; }
     this.time += dt;
-    this.timeline.update(dt, (b) => this.stage.exec(b));
-    this.stage.update(dt);
-    if (this.time >= this.duration) { this.playing = false; this.onDone && this.onDone(); }
+    try {
+      this.timeline.update(dt, (b) => this.stage.exec(b)); // stage.exec already reports and skips a beat that throws
+      this.stage.update(dt);
+    } finally {
+      // whatever happened this frame, a finished cutscene always hands control back (the TV moves on with the game)
+      if (this.time >= this.duration && this.playing) { this.playing = false; this.onDone && this.onDone(); }
+    }
   }
 
   /** Rebuild the world and fast-forward silently to `t` seconds (used by the scrubber and reconnects). */

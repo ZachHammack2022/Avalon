@@ -5,6 +5,7 @@ import { TvNet } from './net.js';
 import { cardFor } from './cards.js';
 import { GameAudio } from './engine/audio.js';
 import { narrate } from './engine/narrate.js';
+import { frameLoop } from './engine/guard.js';
 
 const params = new URLSearchParams(location.search);
 const hud = new Hud(document);
@@ -39,15 +40,12 @@ class App {
   queue(fn) { this.chain = this.chain.then(fn).catch((e) => console.error('[tv]', e)); return this.chain; }
 
   loop() {
-    let last = performance.now();
-    const tick = (now) => {
-      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    // one bad frame is reported and skipped; it can never stop the loop (and with it every later cutscene)
+    frameLoop((dt) => {
       if (this.view === 'cutscene' || this.view === 'ending') this.player.update(dt); else this.stage.update(dt);
       this.stage.render(dt);
       if (params.has('fps')) { const f = document.getElementById('fps'); f.hidden = false; f.textContent = `${this.stage.stats.fps.toFixed(0)} fps`; }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
+    });
   }
 
   onState(pub) {
@@ -123,14 +121,15 @@ class App {
     const rv = pub.reveal;
     const ids = pub.players.map((p) => p.id);
     const { assassinationScript, victoryScript } = await import('./engine/endings.js');
-    const play = (script) => new Promise(async (resolve) => {
+    // an ending that fails to load is skipped (the error reaches the queue's log) instead of leaving a promise that
+    // never settles: that would hold every later state, Play again included, behind it
+    const play = async (script) => {
       this.view = 'ending';
       hud.fade('black', 0.3); await sleep(300);
       this.applySafeArea(true);
-      await this.player.loadCustom({ ...script, players: this.players });
-      hud.fade('clear', 0.4);
-      this.player.onDone = resolve; this.player.start();
-    });
+      try { await this.player.loadCustom({ ...script, players: this.players }); } finally { hud.fade('clear', 0.4); }
+      await new Promise((resolve) => { this.player.onDone = resolve; this.player.start(); });
+    };
     if (!skipEndings && !this.endingsDone) {
       this.endingsDone = true;
       if (rv.assassination) await play(assassinationScript(rv, ids));
