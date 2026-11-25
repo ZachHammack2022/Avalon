@@ -5,6 +5,7 @@ import { TvNet } from './net.js';
 import { cardFor } from './cards.js';
 import { GameAudio } from './engine/audio.js';
 import { narrate } from './engine/narrate.js';
+import { bindSettings } from './settings.js';
 import { frameLoop } from './engine/guard.js';
 
 const params = new URLSearchParams(location.search);
@@ -155,12 +156,8 @@ const unlock = () => {
   if (app.view === 'campfire') audio.music('camp'); // start the music the first time the browser lets us
 };
 for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, unlock);
-const muteBtn = document.getElementById('btn-mute');
-const toggleMute = () => { audio.setMuted(!audio.muted); muteBtn.textContent = audio.muted ? '🔇' : '🔊'; };
-muteBtn.addEventListener('click', toggleMute);
-document.getElementById('btn-caps').addEventListener('click', () => narrate(`Caption size: ${hud.cycleCaptionScale()}`, { dur: 1.5, silent: true }));
-document.getElementById('btn-full').addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()));
-window.addEventListener('keydown', (e) => { if (e.key === 'm' || e.key === 'M') toggleMute(); if (e.key === 'c' || e.key === 'C') document.getElementById('btn-caps').click(); if (e.key === 'f' || e.key === 'F') document.getElementById('btn-full').click();
+const settings = bindSettings({ audio, hud, narrate });
+window.addEventListener('keydown', (e) => { if (e.key === 'm' || e.key === 'M') settings.toggleMute(); if (e.key === 'c' || e.key === 'C') settings.cycleCaptions(); if (e.key === 'f' || e.key === 'F') settings.toggleFullscreen();
   if ((e.key === 'i' || e.key === 'I') && app.pub && app.pub.phase === 'lobby') import('./intro-overlay.js').then((m) => m.playIntro()); });
 
 app.init();
