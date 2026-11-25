@@ -1,6 +1,6 @@
 // A deliberately tiny DOM, just enough to run public/phone/app.js in Node so tests can render every phone screen
 // without a browser. Supports what the phone code uses: element trees, classes, attributes, `hidden`, events
-// (stored, not dispatched), and querySelector/closest for simple selectors (`tag`, `.class`, `#id`, combined).
+// (stored; tests run them with el.fire(type)), and querySelector/closest for simple selectors (`tag`, `.class`, `#id`, combined).
 import { readFileSync } from 'node:fs';
 import { register } from 'node:module';
 import { pathToFileURL } from 'node:url';
@@ -68,7 +68,13 @@ class Element extends Node {
   querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
   closest(sel) { for (let n = this; n && n.nodeType === 1; n = n.parentNode) if (n.matches(sel)) return n; return null; }
   /** test helper: click handlers registered with onclick */
-  click() { for (const fn of this.listeners.click || []) fn({ target: this, preventDefault() {} }); }
+  click() { this.fire('click'); }
+  /** test helper: run this element's listeners for `type` with an event carrying `props`. Returns the event. */
+  fire(type, props = {}) {
+    const ev = { type, target: this, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...props };
+    for (const fn of this.listeners[type] || []) fn(ev);
+    return ev;
+  }
 }
 
 /** Install the globals the phone app expects, with the elements of public/phone.html. */
