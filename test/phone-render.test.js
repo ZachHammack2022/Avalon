@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { installDom, textOf } from './fake-dom.js';
 import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
+import { ROLE_INFO } from '../shared/roles-info.js';
 
 const document = installDom();
 await import('../public/phone/app.js');
@@ -289,4 +290,49 @@ test('phone: the vote reveal marks a vote that a stand-in cast for an absent pla
     const tag = row.querySelector('small');
     assert.equal(tag ? textOf(tag) : null, s.pub.players[i].id === away ? 'stand-in vote' : null);
   });
+});
+
+test('phone: the role is revealed by holding a finger, Space or Enter, and hides on release', async () => {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const states = gameStates(8);
+  const reveal = states.find((s) => s.pub.phase === 'roleReveal');
+  const roleName = ROLE_INFO[reveal.me.role].name;
+  sq.inject(reveal);
+  const card = $('main').querySelector('.cardback');
+  assert.equal(card.getAttribute('tabindex'), '0');
+  const secret = $('secret');
+  // a tap that is let go at once never flashes the role
+  card.fire('keydown', { key: ' ' }); await wait(40); card.fire('keyup', { key: ' ' }); await wait(300);
+  assert.equal(secret.hidden, true);
+  // other keys do nothing
+  assert.equal(card.fire('keydown', { key: 'a' }).defaultPrevented, false); await wait(300);
+  assert.equal(secret.hidden, true);
+  // hold Space: the card appears, a held key's repeats change nothing, letting go hides it
+  assert.equal(card.fire('keydown', { key: ' ' }).defaultPrevented, true, 'Space does not scroll the page');
+  await wait(300);
+  assert.equal(secret.hidden, false);
+  assert.match(textOf(secret), new RegExp(`Your role.*${roleName}`));
+  card.fire('keydown', { key: ' ', repeat: true }); await wait(300);
+  assert.equal(secret.hidden, false);
+  card.fire('keyup', { key: ' ' });
+  assert.equal(secret.hidden, true);
+  assert.equal(textOf(secret), '', 'nothing secret stays in the page');
+  // moving focus away hides it too
+  card.fire('keydown', { key: 'Enter' }); await wait(300);
+  assert.equal(secret.hidden, false);
+  card.fire('blur');
+  assert.equal(secret.hidden, true);
+
+  // later in the game the name at the top does the same, by finger or by key
+  sq.inject(states.find((s) => s.pub.phase === 'propose'));
+  const peek = $('peek');
+  assert.equal(peek.disabled, false);
+  peek.fire('pointerdown', { pointerId: 1 }); await wait(300);
+  assert.equal(secret.hidden, false);
+  peek.fire('pointerup', { pointerId: 1 });
+  assert.equal(secret.hidden, true);
+  peek.fire('keydown', { key: 'Enter' }); await wait(300);
+  assert.match(textOf(secret), new RegExp(roleName));
+  peek.fire('keyup', { key: 'Enter' });
+  assert.equal(secret.hidden, true);
 });

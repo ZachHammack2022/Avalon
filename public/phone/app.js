@@ -187,17 +187,29 @@ function showSecret() {
   if (card.offsetHeight > room) { card.style.animation = 'none'; card.style.transform = `scale(${room / card.offsetHeight})`; }
 }
 function hideSecret() { secret.hidden = true; secret.replaceChildren(); peekBtn.classList.remove('revealing'); document.body.classList.remove('peeking'); }
-/** Press-and-hold on `el` shows the role card; any release hides it. */
+/** Press-and-hold on `el` shows the role card; any release hides it. Holding Space or Enter works the same way, so a
+ * player on a keyboard or a switch can see their role too. */
 const HOLD_MS = 260; // long enough that a resting thumb or a stray tap never flashes the role
+const HOLD_KEYS = [' ', 'Enter'];
 function bindHold(el) {
   let timer = null;
+  const arm = () => {
+    clearTimeout(timer); el.classList.add('arming');
+    timer = setTimeout(() => { timer = null; el.classList.remove('arming'); buzz(HAPTIC.tap); showSecret(); }, HOLD_MS);
+  };
   const cancel = () => { clearTimeout(timer); timer = null; el.classList.remove('arming'); hideSecret(); };
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch { /* ignore */ }
-    el.classList.add('arming');
-    timer = setTimeout(() => { el.classList.remove('arming'); buzz(HAPTIC.tap); showSecret(); }, HOLD_MS);
+    arm();
   });
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture', 'pointerleave']) el.addEventListener(ev, cancel);
+  el.addEventListener('keydown', (e) => {
+    if (!HOLD_KEYS.includes(e.key)) return;
+    e.preventDefault(); // a held key repeats: only the first press arms
+    if (!e.repeat && timer == null && !secretOpen()) arm();
+  });
+  el.addEventListener('keyup', (e) => { if (HOLD_KEYS.includes(e.key)) cancel(); });
+  el.addEventListener('blur', cancel);
   return el;
 }
 bindHold(peekBtn);
