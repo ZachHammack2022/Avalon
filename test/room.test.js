@@ -828,3 +828,15 @@ test('an Assassin bot is handed the public vote record to read for Merlin', () =
   assert.ok(ctx.history.length >= 3);
   assert.equal(ctx.history, t.room.g.proposals);
 });
+
+test('bots are told who voted to send each failed team without going on it', () => {
+  const t = table(5, { seed: 20 });
+  playQuests(t, { wins: 'evil' }); // three failed quests, every team approved by everyone
+  const { room } = t;
+  const ctx = room._botCtx(room.players[0]);
+  const fails = room.g.results.filter((r) => r.outcome === 'fail');
+  assert.equal(fails.length, 3);
+  const total = Object.values(ctx.backedFail).reduce((a, b) => a + b, 0);
+  assert.equal(total, fails.reduce((n, r) => n + room.players.length - r.team.length, 0));
+  for (const r of fails) for (const id of r.team) assert.ok((ctx.failedWith[id] || 0) >= 1);
+});

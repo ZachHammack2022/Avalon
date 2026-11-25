@@ -615,15 +615,22 @@ export class Room {
     const k = knowledgeFor(p.id, g.roles, this.playerIds());
     const last = g.results[g.results.length - 1];
     const allyIds = k.team === 'evil' ? k.knows : [];
-    // the record as the table sees it: how many failed quests each player went on (results whose cutscene has played)
+    // the record as the table sees it (results whose cutscene has played): how many failed quests each player went on,
+    // and how many of those failed teams they voted to send without going themselves (stand-in votes left out)
     const failedWith = {};
-    for (const r of g.results.slice(0, g.shown)) if (r.outcome === 'fail') for (const id of r.team) failedWith[id] = (failedWith[id] || 0) + 1;
+    const backedFail = {};
+    for (const r of g.results.slice(0, g.shown)) {
+      if (r.outcome !== 'fail') continue;
+      for (const id of r.team) failedWith[id] = (failedWith[id] || 0) + 1;
+      const sent = g.proposals.filter((h) => h.questIndex === r.questIndex && h.approved).pop();
+      if (sent) for (const [id, yes] of Object.entries(sent.votes)) if (yes && !sent.team.includes(id) && !(sent.standIn || []).includes(id)) backedFail[id] = (backedFail[id] || 0) + 1;
+    }
     return {
       selfId: p.id, team: k.team, role: k.role, allyIds, rng: this.rng, playerIds: this.playerIds(), size: g.questIndex < QUEST_COUNT ? teamSize(this.players.length, g.questIndex) : 0,
       proposedTeam: g.team, rejectCount: g.rejectCount,
       teamIds: g.quest ? g.quest.teamIds : [],
       lastTeamFailed: !!(last && last.outcome === 'fail' && last.team.includes(p.id)),
-      failedWith, evilSeen: k.kind === 'evil' ? k.knows : [],
+      failedWith, backedFail, evilSeen: k.kind === 'evil' ? k.knows : [],
       history: g.proposals, // the public vote record, which an Assassin bot reads for Merlin
     };
   }
