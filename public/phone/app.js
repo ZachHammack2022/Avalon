@@ -4,7 +4,7 @@ import { screenFor, toggleSelection, canConfirm, knownPlayers, leaderName, nameO
 import { ROLE_INFO, ROLE_TOGGLE_INFO, KNOW_LABELS } from '/shared/roles-info.js';
 import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
-import { HOW_TO, GENERAL_TIPS, ROLE_TIPS, coachFor, counselFor, questStrip } from './guide.js';
+import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
 import { recordFor, describeColumn, failText, crownText } from '/shared/record.js';
 
@@ -597,7 +597,7 @@ function drawSheet() {
     content.push(h('h2', {}, 'How to play'), ...HOW_TO.map((x, i) => h('div', { class: 'panel step' }, h('span', { class: 'num' }, String(i + 1)), h('div', {}, h('h3', {}, x.h), h('p', {}, x.p)))));
   } else {
     const cfg = pub && pub.config ? pub.config.roles : null;
-    const row = ([id, info]) => { const on = id === 'loyal' || id === 'minion' || (cfg && cfg[id]); return h('div', { class: `panel rolerow team-${info.team} ${cfg && !on ? 'out' : ''}` }, h('span', { class: 'sigil' }, icon(id)), h('div', {}, h('b', {}, info.name), cfg && !on ? h('small', { class: 'outtag' }, 'not in this game') : null, h('p', { class: 'muted small' }, info.blurb), h('ul', { class: 'small' }, ROLE_TIPS[id].map((t) => h('li', {}, t))))); };
+    const row = ([id, info]) => { const on = id === 'loyal' || id === 'minion' || (cfg && cfg[id]); return h('div', { class: `panel rolerow team-${info.team} ${cfg && !on ? 'out' : ''}` }, h('span', { class: 'sigil' }, icon(id)), h('div', {}, h('b', {}, info.name), cfg && !on ? h('small', { class: 'outtag' }, 'not in this game') : null, h('p', { class: 'muted small' }, info.blurb), h('ul', { class: 'small' }, roleTips(id, on ? cfg : null).map((t) => h('li', {}, t))))); };
     const all = Object.entries(ROLE_INFO);
     content.push(h('h2', {}, 'Roles'), h('h3', { class: 'team-good' }, 'Loyal Servants of Arthur (Good)'), ...all.filter(([, r]) => r.team === 'good').map(row), h('h3', { class: 'team-evil' }, 'Minions of Mordred (Evil)'), ...all.filter(([, r]) => r.team === 'evil').map(row));
   }

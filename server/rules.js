@@ -35,24 +35,25 @@ export function knowledgeFor(selfId, assignment, order = [...assignment.keys()])
   const team = ROLES[role].team;
   const ids = order.filter((id) => id !== selfId);
   const roleOf = (id) => assignment.get(id);
+  const inPlay = (r) => [...assignment.values()].includes(r);
   let kind = 'none';
   let knows = [];
   let note = '';
   if (role === 'merlin') {
     kind = 'evil';
     knows = ids.filter((id) => isEvilRole(roleOf(id)) && roleOf(id) !== 'mordred');
-    note = 'These players are evil. Guide your team without being found out.';
+    note = `These players are evil.${inPlay('mordred') ? ' Mordred is evil too, but hidden from you.' : ''} Guide your team without being found out.`;
   } else if (role === 'percival') {
     kind = 'merlins';
     knows = ids.filter((id) => roleOf(id) === 'merlin' || roleOf(id) === 'morgana');
-    const hasMorgana = [...assignment.values()].includes('morgana');
-    note = hasMorgana
+    note = inPlay('morgana')
       ? 'One of these is Merlin and one is Morgana. You do not know which is which.'
       : 'This is Merlin.';
   } else if (team === 'evil' && role !== 'oberon') {
     kind = 'allies';
     knows = ids.filter((id) => isEvilRole(roleOf(id)) && roleOf(id) !== 'oberon');
     note = knows.length ? 'These are your fellow Minions of Mordred.' : 'You have no known allies.';
+    if (inPlay('oberon')) note += ' Oberon is evil too, but hidden from you.';
   } else if (role === 'oberon') {
     note = 'You work alone. The other Minions do not know you, and you do not know them.';
   } else if (role === 'loyal') {

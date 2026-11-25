@@ -38,6 +38,18 @@ export const ROLE_TIPS = {
 };
 
 /**
+ * Tips for one role as it plays in this game (`cfg` = the room's role toggles; without it, the general tips).
+ * The Roles sheet is a public reference, so this depends on the game's roles only, never on anyone's secret.
+ */
+export function roleTips(role, cfg) {
+  if (!cfg) return ROLE_TIPS[role];
+  if (role === 'percival' && !cfg.morgana) return ['You see Merlin. Morgana is not in this game, so it really is them.', 'Protect Merlin: back their judgement without making it obvious who they are.'];
+  if (role === 'merlin') return ROLE_TIPS.merlin.filter((t) => !t.startsWith('Mordred')).concat(cfg.mordred ? ['Mordred is in this game and hidden from you: one Minion you cannot see.'] : []);
+  if (cfg.oberon && ['minion', 'assassin', 'morgana', 'mordred'].includes(role)) return ROLE_TIPS[role].concat(['Oberon is in this game: one of your allies is hidden from you, and does not know you.']);
+  return ROLE_TIPS[role];
+}
+
+/**
  * Table-safe hint for the screen the player is on: says what to do, never anything that depends on the secret role
  * (anyone glancing at the phone may read it). Returns a string or null.
  */
