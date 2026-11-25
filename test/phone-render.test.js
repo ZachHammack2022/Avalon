@@ -35,6 +35,8 @@ const WITHOUT_RECORD = ['lobby', 'roleReveal', 'voteReveal', 'quest-card', 'ques
 
 test('phone: every screen of real games renders, with the record inline wherever players wait or decide', () => {
   const seen = new Set();
+  const announced = new Set();
+  let lastScreen = '';
   for (const seed of [3, 8, 21]) {
     for (const s of gameStates(seed)) {
       sq.inject(s);
@@ -42,6 +44,14 @@ test('phone: every screen of real games renders, with the record inline wherever
       seen.add(screen);
       const main = $('main');
       assert.equal(main.dataset.screen, screen);
+      // the screen is announced by its heading when it changes; the screen itself is not a live region
+      assert.equal(main.getAttribute('aria-live'), null);
+      if (screen !== lastScreen && main.querySelector('h1')) {
+        const said = textOf($('announce'));
+        assert.ok(said.includes(textOf(main.querySelector('h1'))), `${screen}: "${said}"`);
+        announced.add(said);
+      }
+      lastScreen = screen;
       const panel = main.querySelector('.record');
       if (WITHOUT_RECORD.includes(screen)) assert.equal(panel, null, `${screen} keeps its focus`);
       if (WITH_RECORD.includes(screen)) assert.ok(panel, `record on ${screen}`);
@@ -67,6 +77,7 @@ test('phone: every screen of real games renders, with the record inline wherever
       if (s.pub.phase === 'vote') assert.ok(table.querySelectorAll('td.live').every((td) => !td.classList.contains('yes') && !td.classList.contains('no')));
     }
   }
+  assert.ok(announced.size > 8, 'screen changes are announced');
   for (const sc of [...WITH_RECORD.filter((x) => x !== 'assassinate' && x !== 'waitAssassin'), 'lobby', 'roleReveal', 'voteReveal', 'quest-card']) assert.ok(seen.has(sc), `saw ${sc}`);
 });
 
