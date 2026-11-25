@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { crownOrder, crownText, describeColumn, endReason, recordFor } from '../shared/record.js';
+import { crownOrder, crownText, describeColumn, endReason, recordFor, rejectText } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -194,4 +194,11 @@ test('end reason: one sentence on why the game ended, naming the Assassin\'s tar
   assert.equal(endReason(rv('good', 'assassination-miss', { assassin: 'p2', target: 'p3', hit: false }), nm), 'The Assassin struck Cy, but Merlin was Ann.');
   assert.equal(endReason(rv('good', 'assassination-miss'), nm), 'The Assassin missed Merlin.');
   assert.equal(endReason(null, nm), '');
+});
+
+test('reject text: the crown passes on, with a warning before the fifth, and the fifth rejection ends the game', () => {
+  assert.equal(rejectText(1), 'The crown passes on. 1 of 5 teams rejected.');
+  assert.equal(rejectText(3), 'The crown passes on. 3 of 5 teams rejected.');
+  assert.equal(rejectText(4), 'The crown passes on. 4 of 5 teams rejected: one more and Evil wins.');
+  assert.equal(rejectText(5), '5 teams in a row were rejected. Evil wins.');
 });
