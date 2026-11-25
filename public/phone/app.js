@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -625,6 +625,7 @@ const SCREENS = {
           h('div', { class: 'reveal' }, pub.players.filter((p) => ROLE_INFO[rv.roles[p.id]].team === tm).map((p) => { const r = ROLE_INFO[rv.roles[p.id]]; return h('div', { class: 'person' }, avatar(p), h('span', { class: 'pname' }, p.name, youTag(p.id) ? h('small', {}, 'you') : null), h('span', { class: 'rtag' }, icon(rv.roles[p.id]), r.name)); })))),
         rv.recap.length ? h('div', { class: 'panel' }, h('div', { class: 'label' }, rv.recap.length === 1 ? 'The quest' : `The ${rv.recap.length} quests played`),
           h('div', { class: 'recap' }, rv.recap.map((q) => { const ok = q.outcome === 'success'; const fails = q.failCount != null ? ` · ${failText(q.failCount)}` : ''; return h('div', { class: ok ? 'good' : 'bad' }, h('span', { class: 'qn' }, icon(ok ? 'check' : 'cross'), `Quest ${q.questIndex + 1}`), h('span', {}, ok ? `Hero: ${nameOf(pub, q.hero)}${fails}` : `Suspected: ${nameOf(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}${fails}`)); }))) : null,
+        ...[awards(pub, rv.recap)].filter((a) => a.length).map((a) => h('div', { class: 'panel' }, h('div', { class: 'label' }, 'Awards'), h('ul', { class: 'awards' }, a.map((line) => h('li', {}, line.replace(/^★ /, '')))))),
       ],
       record: true,
       actions: [me.vip ? h('button', { class: 'primary big', onclick: () => send({ t: 'again' }) }, 'Play again') : h('p', { class: 'muted center' }, 'Waiting for the host…')] });
