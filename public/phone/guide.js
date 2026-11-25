@@ -132,13 +132,15 @@ export function merlinRead(state) {
 }
 
 /**
- * The Assassin's private read of the record during the game, the other side of Merlin's: who has voted down the
- * largest share of teams with a known Minion on them (at least two such votes, three in four or more). Null when
- * nobody's votes stand out yet, or for anyone but the Assassin. Ties go to the earlier seat.
+ * The Minions' private read of the record during the game, the other side of Merlin's: who has voted down the
+ * largest share of teams with a known Minion on them (at least two such votes, three in four or more). Every Minion
+ * who knows the others gets it, so they can steer their Assassin; Oberon, who knows nobody, does not. Null when
+ * nobody's votes stand out yet, or for anyone else. Ties go to the earlier seat.
  */
 export function assassinRead(state) {
   const me = state && state.me; const pub = state && state.pub;
-  if (!me || me.role !== 'assassin' || !pub || !pub.game || pub.phase === 'assassination' || pub.phase === 'gameover') return null;
+  if (!me || !me.role || ROLE_INFO[me.role].team !== 'evil' || me.role === 'oberon') return null;
+  if (!pub || !pub.game || pub.phase === 'assassination' || pub.phase === 'gameover') return null;
   const reads = noToEvil(pub, [me.id, ...(me.knows || [])]);
   let best = null;
   for (const p of pub.players) {
@@ -149,7 +151,7 @@ export function assassinRead(state) {
   return best ? `Votes most like Merlin's so far: ${best.name}, who voted down ${best.no} of ${best.of} teams with a Minion you know on them.` : null;
 }
 
-/** The record, read for the viewer's own role, for the held role card: Percival's, Merlin's or the Assassin's, else null. */
+/** The record, read for the viewer's own role, for the held role card: Percival's, Merlin's or the Minions', else null. */
 export function secretRead(state) {
   return percivalRead(state) || merlinRead(state) || assassinRead(state);
 }

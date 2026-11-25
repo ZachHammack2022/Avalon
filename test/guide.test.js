@@ -94,6 +94,8 @@ test('the Assassin reads the record during the game: whose votes look most like 
   const st2 = (history, extra = {}) => ({ pub: { phase: 'propose', players, game: { questIndex: 0, results: [], history } }, me: { id: 'p0', role: 'assassin', knows: ['p1'], ...extra } });
   assert.equal(assassinRead(st2(hist)), "Votes most like Merlin's so far: P5, who voted down 3 of 3 teams with a Minion you know on them.");
   assert.equal(assassinRead(st2(hist.slice(0, 1))), null, 'one vote is not a pattern');
-  assert.equal(assassinRead(st2(hist, { role: 'minion' })), null, 'the Assassin only');
+  assert.equal(assassinRead(st2(hist, { role: 'minion' })), assassinRead(st2(hist)), 'every Minion who knows the others');
+  assert.equal(assassinRead(st2(hist, { role: 'loyal' })), null);
+  assert.equal(assassinRead(st2(hist, { role: 'oberon', knows: [] })), null, 'Oberon knows nobody');
   assert.equal(secretRead(st2(hist)), assassinRead(st2(hist)));
 });
