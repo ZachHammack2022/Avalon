@@ -158,6 +158,14 @@ test('TV: the game over card fits a full table: two lines for the sides, however
   assert.equal(c.lines[2], 'Minions of Mordred: Player 7 (Assassin), Player 8 (Morgana), Player 9 (Mordred) and Player 10 (Oberon)');
 });
 
+test('TV: while a leader picks, the card names who the record has nothing against', () => {
+  const failed = { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'], hero: null, culprit: 'p1' }],
+    history: [{ questIndex: 0, leader: 'p2', team: ['p1', 'p3'], votes: { p1: true, p2: true, p3: true, p4: false, p5: false }, approved: true }] };
+  const c = cardFor(pub('propose', { ...failed, questIndex: 1 }));
+  assert.equal(c.lines[1], 'Never on or behind a failed quest: Dee and Eli.', c.lines.join(' | '));
+  assert.ok(!cardFor(pub('propose')).lines.some((l) => /failed/.test(l)), 'nothing before a quest fails');
+});
+
 test('TV: the vote card reads the record against the proposed team once a quest has failed', () => {
   const failed = { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'], hero: null, culprit: 'p1' }],
     history: [{ questIndex: 0, leader: 'p2', team: ['p1', 'p3'], votes: { p1: true, p2: true, p3: true, p4: false, p5: false }, approved: true }] };

@@ -203,6 +203,21 @@ export function teamCase(pub, team, nameOf) {
 }
 
 /**
+ * While a leader picks a team: who the record has nothing against, in one line. "Never on or behind a failed quest:
+ * Bo and Dee." A player counts when they went on no failed quest and voted to send no failed team from outside it.
+ * Nothing before any quest has failed. `nameOf(id)` -> display name.
+ */
+export function cleanText(pub, nameOf) {
+  const g = pub && pub.game;
+  const fails = ((g && g.results) || []).filter((r) => r.outcome === 'fail');
+  if (!fails.length) return null;
+  const backed = backedFailures(pub);
+  const clean = pub.players.filter((p) => !backed[p.id] && !fails.some((r) => r.team.includes(p.id)));
+  if (!clean.length) return 'Everyone has gone on or voted for a failed quest.';
+  return `Never on or behind a failed quest: ${list(clean.map((p) => nameOf(p.id)))}.`;
+}
+
+/**
  * How many failed teams each player voted to send without going on them: {id: n}. Evil players wave their allies'
  * teams through, so this is evidence the table can use when picking a team. Only quests whose result is public count,
  * and a vote a stand-in cast for an absent player is left out.

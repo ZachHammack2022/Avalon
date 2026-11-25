@@ -3,7 +3,7 @@
 import { QUEST_COUNT } from '../../shared/avalon.js';
 import { ROLE_INFO, rolesText } from '../../shared/roles-info.js';
 import { QUESTS } from '../../shared/campaign-lost-crown.js';
-import { awards, crownText, endReason, rejectText, teamCase } from '../../shared/record.js';
+import { awards, cleanText, crownText, endReason, rejectText, teamCase } from '../../shared/record.js';
 
 export { awards }; // shared with the phones' game-over screen
 
@@ -27,7 +27,7 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
     case 'roleReveal':
       return { kind: 'roleReveal', title: 'Check your phones', lines: ['Keep them secret.', `${pub.players.filter((p) => p.ready).length} of ${pub.players.length} ready`] };
     case 'propose':
-      return { kind: 'propose', title: qline, lines: [`${name(pub, g.leader)} is choosing a team of ${g.teamSize}`, `Rejected proposals: ${g.rejectCount} of 5`, crownText(pub, (id) => name(pub, id))].filter(Boolean) };
+      return { kind: 'propose', title: qline, lines: [`${name(pub, g.leader)} is choosing a team of ${g.teamSize}`, cleanText(pub, (id) => name(pub, id)), `Rejected proposals: ${g.rejectCount} of 5`, crownText(pub, (id) => name(pub, id))].filter(Boolean) };
     case 'vote': {
       // near the end the table wants to know who it is waiting for, not who is done
       const left = pub.players.filter((p) => !g.voted.includes(p.id)).map((p) => p.name);
