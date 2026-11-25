@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canConfirm, knownPlayers, screenFor, startHint, toggleSelection, leaderName } from '../public/phone/model.js';
-import { awards, cardFor, trackFor } from '../public/tv/cards.js';
+import { awards, cardFor } from '../public/tv/cards.js';
 import { Room } from '../server/room.js';
 import { FakeClock, FakeConn, fill, makeRoom, playBotGame } from './helpers.js';
 
@@ -59,7 +59,8 @@ test('TV cards: every phase renders plain text, without secrets, and the fail co
   assert.match(cardFor(pub('vote', { voted: ['p1'] })).lines.join(' '), /1 of 5/);
   const rev = cardFor(pub('voteReveal', { approved: false, votes: { p1: true, p2: false, p3: false, p4: false, p5: true }, rejectCount: 1 }));
   assert.equal(rev.title, 'Team rejected!');
-  assert.ok(rev.lines.some((l) => l.includes('Bo: ✘')));
+  assert.equal(rev.lines[0], '2 approve · 3 reject');
+  assert.ok(rev.lines.some((l) => l.includes('1 of 5')));
   assert.match(cardFor(pub('questPlay', { waitingOn: 2 })).lines.join(' '), /Waiting on 2/);
   const fail = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, team: ['p1', 'p3'] }] }));
   assert.equal(fail.title, 'Quest failed!');
@@ -76,11 +77,6 @@ test('TV: a refresh mid-cutscene shows the result card (skip to result)', () => 
   const card = cardFor(pub('cutscene', {}, { cutscene: { outcome: 'fail', culprit: 'p2', hero: null } }));
   assert.equal(card.kind, 'result');
   assert.match(card.lines[0], /Bo/);
-});
-
-test('TV: quest track shows only revealed results (no spoilers during the cutscene)', () => {
-  assert.deepEqual(trackFor(pub('cutscene', { questIndex: 1, results: [{ outcome: 'success' }] })), ['success', 'current', 'pending', 'pending', 'pending']);
-  assert.deepEqual(trackFor({ phase: 'lobby' }), []);
 });
 
 test('TV: game over card lists every role and the recap with framing', () => {

@@ -14,6 +14,9 @@ npm start          # prints the TV URL and the phone URL
 * **Phones:** open `http://<your-LAN-IP>:3000` (the console prints it) on the same Wi-Fi and enter the 4-letter room code.
   The first person in is the **VIP** (start, bots, role toggles). Bots fill empty seats, so 1–2 humans can play.
 * **Intro:** the dragon intro (`public/intro/`, procedural three.js; video at `/intro/dragon-intro.mp4`) plays once when a game starts; any key skips, `I` replays it in the lobby, `?nointro` disables it. The live scene is at `/intro/`.
+* **The record:** every proposal, every vote and every quest result, as one board (players down the side, proposals across,
+  grouped by quest). The TV keeps it beside the campfire all game; phones show it on every waiting and deciding screen, with
+  a **Record** button at the top left for the full view. Built from public state only (`shared/record.js`).
 * **Cutscene preview harness:** `http://localhost:3000/preview` (no phones needed).
 * `npm run dev` restarts the server on change. `PORT=3001 npm start` changes the port.
 
@@ -33,7 +36,7 @@ server/index.js    HTTP static + WebSocket routing, room codes, heartbeat, GC
 server/room.js     one game: phase state machine, timers, reconnect/takeover, per-client state (injectable clock)
 server/rules.js    role assignment, knowledge, quest resolution + framing (pure)
 server/bots.js     bot decisions (pure)
-shared/            avalon tables + validation, campaign data, cutscene op contract, anims, rng, role/avatar info
+shared/            avalon tables + validation, campaign data, cutscene op contract, anims, rng, role/avatar info, record board model
 public/phone.html, phone/    controller UI (plain DOM) + pure view-model
 public/tv.html, tv/          TV app: HUD cards, campfire view, net; tv/engine = three.js stage, actors, camera, fx, audio, player
 public/tv/scenes/            campfire + quest environments (placeholder-quality) and rigs
@@ -47,7 +50,7 @@ docs/CUTSCENES.md            authoring guide for the cutscene content
 
 | Command | What it does |
 |---|---|
-| `npm test` | ~90 unit/integration tests, no browser (≈10 s) |
+| `npm test` | ~110 unit/integration tests, no browser (≈10 s); phone screens render in a tiny fake DOM (`test/fake-dom.js`) |
 | `npm run test:browser` | Headless Chromium: plays **every cutscene** in the preview harness (seek through all segments, fail on any console warning/error or blank frame) then a **full live game** through the real TV + phone pages. Needs Playwright (`--quick`, `--shots`, `--live-only`) |
 | `npm run sim -- 200` | Bot-only soak/balance simulation per player count on a virtual clock |
 | `npm run assets` / `assets:check` | Re-download+copy the KayKit packs / verify files and animation lists |

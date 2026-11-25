@@ -6,6 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, ROLE_TIPS, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
+import { recordFor, describeColumn } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -186,9 +187,12 @@ let choice = null; // pending vote / card / pick / assassination target on the c
 function render() {
   const screen = screenFor(state);
   if (screen !== lastScreen) choice = null;
-  $('roomtag').replaceChildren(roomCode && state ? h('span', {}, 'Room ', h('b', {}, roomCode)) : '');
   const meP = state && state.me && state.pub.players.find((p) => p.id === state.me.id);
   const inGame = !!(state && state.pub.phase !== 'lobby' && state.me && state.me.role);
+  // in a game the top-left corner is the record (always one tap away); before it, the room code
+  $('roomtag').replaceChildren(inGame
+    ? h('button', { class: 'recbtn', type: 'button', 'aria-label': 'Open the record: every proposal, vote and quest', onclick: () => openSheet('record') }, icon('scroll'), h('span', {}, 'Record'))
+    : roomCode && state ? h('span', {}, 'Room ', h('b', {}, roomCode)) : '');
   const canPeek = inGame && state.pub.phase !== 'gameover';
   peekBtn.hidden = !meP; peekBtn.disabled = !canPeek; peekBtn.classList.toggle('live', canPeek);
   if (meP) peekBtn.replaceChildren(...[avatar(meP, 'sm'), h('span', { class: 'nm' }, meP.name), canPeek ? h('span', { class: 'holdtag' }, icon('eye'), 'Hold') : null].filter(Boolean));
@@ -197,9 +201,11 @@ function render() {
   const body = [].concat(fn ? fn() : [h('p', { class: 'muted center' }, 'One moment…')]).flat().filter(Boolean);
   const acts = body.filter((el) => el.classList && el.classList.contains('actions'));
   const keep = screen === lastScreen ? (main.querySelector('.scroll') || {}).scrollTop || 0 : 0;
+  const rx = recordScroll(main, screen === lastScreen);
   const scroll = h('div', { class: 'scroll' }, body.filter((el) => !acts.includes(el)));
   main.replaceChildren(scroll, ...acts);
   scroll.scrollTop = keep;
+  rx();
   main.dataset.screen = screen;
   const phase = state ? state.pub.phase : '';
   if (phase !== lastPhase) {
@@ -216,15 +222,75 @@ function render() {
 
 // ---------- building blocks ----------
 /** Standard screen: tracker, heading, table-safe hint, content, then actions pinned to the thumb zone. */
-function page({ kicker, title, sub, body = [], actions = [], tracker = true, hint = true }) {
+function page({ kicker, title, sub, body = [], actions = [], tracker = true, hint = true, record = false }) {
   const tip = hint && store.get('sq.coach') !== 'off' ? coachFor(screenFor(state), state) : null;
   return [
     tracker ? trackerBar() : null,
     h('div', { class: 'head' }, kicker ? h('div', { class: 'kicker' }, kicker) : null, h('h1', {}, title), sub ? h('p', { class: 'sub' }, sub) : null),
     tip ? h('p', { class: 'hint' }, tip) : null,
     ...[].concat(body),
+    record ? recordPanel() : null,
     actions.length ? h('div', { class: 'actions' }, actions) : null,
   ];
+}
+
+// ---------- the record: every proposal and vote, players down the side (shared/record.js) ----------
+/** The board itself. `big` = the full-screen sheet (bigger cells, legend). Public knowledge only. */
+function recordBoard({ big = false } = {}) {
+  const rec = recordFor(state.pub);
+  if (!rec || rec.empty) return null;
+  const nm = (id) => nameOf(state.pub, id);
+  const groups = rec.quests.filter((q) => q.cols.length);
+  const firstOfQuest = new Set(groups.map((q) => q.cols[0]));
+  const said = { yes: 'approved', no: 'rejected', in: 'has voted', null: 'not voted yet' };
+  const table = h('table', { class: `rb ${big ? 'big' : ''}`, 'aria-label': 'The record' },
+    h('thead', {}, h('tr', {}, h('th', { class: 'nm', scope: 'col' }, h('span', { class: 'sr' }, 'Player')),
+      groups.map((q) => h('th', { class: `qh qs ${q.outcome || (q.current ? 'cur' : '')}`, colspan: String(q.cols.length), scope: 'colgroup' },
+        q.outcome ? icon(q.outcome === 'success' ? 'check' : 'cross') : null, `Q${q.index + 1}`)))),
+    h('tbody', {}, rec.rows.map((r) => {
+      const role = r.role ? ROLE_INFO[r.role] : null;
+      return h('tr', { class: [r.id === state.me.id ? 'me' : '', role ? `team-${role.team}` : ''].filter(Boolean).join(' ') || null },
+        h('th', { class: 'nm', scope: 'row' }, avatar(r, 'xs'), h('span', { class: 'n' }, r.name), role ? h('small', { class: 'rl' }, role.name) : null),
+        rec.columns.map((c, ci) => {
+          const cell = r.cells[ci]; const sent = c.approved === true; const q = rec.quests[c.questIndex];
+          const blamed = sent && cell.onTeam && c.outcome === 'fail' && q.culprit === r.id;
+          const hero = sent && cell.onTeam && c.outcome === 'success' && q.hero === r.id;
+          const cls = ['c', cell.vote || 'none', cell.onTeam ? 'team' : '', c.live ? 'live' : '', c.approved === false ? 'rej' : '',
+            sent && cell.onTeam ? `went ${c.outcome || 'pending'}` : '', firstOfQuest.has(c.key) ? 'qs' : ''].filter(Boolean).join(' ');
+          const label = `${r.name}, quest ${c.questIndex + 1} proposal ${c.attempt}: ${said[cell.vote]}${cell.onTeam ? ', on the team' : ''}${cell.leader ? ', leader' : ''}${blamed ? ', blamed for the fail' : ''}${hero ? ', hero' : ''}`;
+          return h('td', { class: cls, 'aria-label': label, title: describeColumn(c, nm) },
+            cell.vote === 'yes' ? icon('check') : cell.vote === 'no' ? icon('cross') : cell.vote === 'in' ? h('i', { class: 'dot' }) : null,
+            cell.leader ? icon('leader', 'crown') : null,
+            blamed ? h('b', { class: 'mk blamed' }, '☠') : hero ? h('b', { class: 'mk hero' }, '★') : null);
+        }));
+    })));
+  return h('div', { class: 'rb-wrap' },
+    h('div', { class: 'rb-scroll', tabindex: '0', role: 'region', 'aria-label': 'The record, scrolls sideways' }, table),
+    h('ul', { class: 'sr' }, rec.columns.map((c) => h('li', {}, describeColumn(c, nm)))),
+    h('p', { class: 'rb-legend', 'aria-hidden': 'true' },
+      h('span', {}, h('b', { class: 'lg yes' }, icon('check')), 'approve'), h('span', {}, h('b', { class: 'lg no' }, icon('cross')), 'reject'),
+      h('span', {}, h('b', { class: 'lg team' }), 'on the team'), h('span', {}, h('b', { class: 'lg lead' }, icon('leader')), 'leader'),
+      big ? h('span', {}, h('b', { class: 'lg fail' }), 'went, quest failed') : null));
+}
+
+/** The record as it sits on a screen: a panel with the board, or a line saying it will fill up. */
+function recordPanel() {
+  const board = recordBoard();
+  const rec = board ? null : recordFor(state.pub);
+  if (!board && !rec) return null;
+  return h('div', { class: 'panel record' },
+    h('div', { class: 'row' }, h('div', { class: 'label grow' }, icon('scroll'), ' The record'),
+      board ? h('button', { class: 'ghost more', type: 'button', onclick: () => openSheet('record') }, 'Full record') : null),
+    board || h('p', { class: 'muted small' }, 'Every proposal and vote will show up here, so you can see who backed whom.'));
+}
+
+/** Keep the inline record on the newest proposal unless the player scrolled back to look at an older one.
+ * Call before redrawing `root`; call the returned function after. */
+function recordScroll(root, sameScreen) {
+  const old = root.querySelector('.rb-scroll');
+  const pinned = !old || !sameScreen || old.scrollLeft >= old.scrollWidth - old.clientWidth - 4;
+  const x = old ? old.scrollLeft : 0;
+  return () => { const sc = root.querySelector('.rb-scroll'); if (sc) sc.scrollLeft = pinned ? sc.scrollWidth : x; };
 }
 
 function trackerBar() {
@@ -329,13 +395,13 @@ const SCREENS = {
   waitLeader() {
     const { pub } = state; const L = byId(pub.game.leader);
     return page({ kicker: `Quest ${pub.game.questIndex + 1}`, title: `${L.name} is choosing`, sub: `A team of ${pub.game.teamSize} will go.`,
-      body: [h('div', { class: 'spot' }, avatar(L, 'xxl'), icon('leader', 'spotcrown'), h('b', {}, L.name))] });
+      body: [h('div', { class: 'spot' }, avatar(L, 'xxl'), icon('leader', 'spotcrown'), h('b', {}, L.name))], record: true });
   },
 
   propose() {
     const { pub, me } = state; const size = me.legal.size;
     return page({ kicker: 'You wear the crown', title: `Pick ${size} for the quest`,
-      body: [h('div', { class: 'people' }, pub.players.map((p) => personChip(p, { sel: selected.includes(p.id), tag: youTag(p.id), mark: icon('check', 'selmark'), onclick: () => { selected = toggleSelection(selected, p.id, size); render(); } })))],
+      body: [h('div', { class: 'people' }, pub.players.map((p) => personChip(p, { sel: selected.includes(p.id), tag: youTag(p.id), mark: icon('check', 'selmark'), onclick: () => { selected = toggleSelection(selected, p.id, size); render(); } })))], record: true,
       actions: [h('div', { class: 'slots', 'aria-hidden': 'true' }, Array.from({ length: size }, (_, i) => (selected[i] ? avatar(byId(selected[i])) : h('span', { class: 'av empty' })))),
         canConfirm(selected, size) ? h('button', { class: 'primary big', onclick: () => send({ t: 'propose', team: selected }) }, 'Send this team') : h('p', { class: 'armhint' }, `Choose ${size - selected.length} more`)] });
   },
@@ -346,10 +412,10 @@ const SCREENS = {
     const kicker = `${byId(g.leader).name} proposes`;
     // once chosen the token turns face-down, so nobody can read the vote off the screen before the table reveal
     if (choice != null) return page({ kicker, title: 'Vote chosen', hint: false,
-      body: [teamRow(g.team), h('div', { class: 'tokens one' }, h('div', { class: 'token down' }, h('span', { class: 'disc' }, icon('crown')), h('b', {}, 'Face-down')))],
+      body: [teamRow(g.team), h('div', { class: 'tokens one' }, h('div', { class: 'token down' }, h('span', { class: 'disc' }, icon('crown')), h('b', {}, 'Face-down')))], record: true,
       actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, 'Lock in my vote'), h('button', { class: 'ghost change', onclick: () => { choice = null; render(); } }, 'Change my vote')] });
     return page({ kicker, title: 'Send this team?',
-      body: [teamRow(g.team), h('div', { class: 'tokens' }, tok(true, 'Approve', 'check'), tok(false, 'Reject', 'cross'))],
+      body: [teamRow(g.team), h('div', { class: 'tokens' }, tok(true, 'Approve', 'check'), tok(false, 'Reject', 'cross'))], record: true,
       actions: [h('p', { class: 'armhint' }, 'Tap a token to choose')] });
   },
   voted() {
@@ -357,7 +423,7 @@ const SCREENS = {
     return page({ kicker: 'Vote locked', title: 'Waiting for the table',
       body: [teamRow(g.team, 'Proposed team'),
         h('div', { class: 'panel' }, h('div', { class: 'label' }, `${voted.size} of ${pub.players.length} have voted`),
-          h('div', { class: 'dots' }, pub.players.map((p) => h('span', { class: `vdot ${voted.has(p.id) ? 'in' : ''}`, title: p.name }, avatar(p, 'sm')))))] });
+          h('div', { class: 'dots' }, pub.players.map((p) => h('span', { class: `vdot ${voted.has(p.id) ? 'in' : ''}`, title: p.name }, avatar(p, 'sm')))))], record: true });
   },
 
   voteReveal() {
@@ -394,13 +460,13 @@ const SCREENS = {
   },
   'quest-done'() {
     const g = state.pub.game;
-    return page({ kicker: 'Card played', title: 'Waiting for the team', body: [teamRow(g.team), waiting('hourglass', g.waitingOn ? `${g.waitingOn} still deciding…` : 'Almost there…')] });
+    return page({ kicker: 'Card played', title: 'Waiting for the team', body: [teamRow(g.team), waiting('hourglass', g.waitingOn ? `${g.waitingOn} still deciding…` : 'Almost there…')], record: true });
   },
   watchQuest() {
     const g = state.pub.game;
-    return page({ kicker: `Quest ${g.questIndex + 1}`, title: 'The team has set out', body: [teamRow(g.team, 'On the quest'), waiting('hourglass', g.waitingOn ? `${g.waitingOn} still choosing a card…` : 'Almost there…')] });
+    return page({ kicker: `Quest ${g.questIndex + 1}`, title: 'The team has set out', body: [teamRow(g.team, 'On the quest'), waiting('hourglass', g.waitingOn ? `${g.waitingOn} still choosing a card…` : 'Almost there…')], record: true });
   },
-  cutscene() { return page({ hint: false, kicker: 'Quest underway', title: 'Eyes on the TV', body: [waiting('tv', 'The story is playing out on the big screen.')] }); },
+  cutscene() { return page({ hint: false, kicker: 'Quest underway', title: 'Eyes on the TV', body: [waiting('tv', 'The story is playing out on the big screen.')], record: true }); },
 
   questResult() {
     const { pub } = state; const r = lastResult(pub);
@@ -409,16 +475,17 @@ const SCREENS = {
     return page({ hint: false, kicker: `Quest ${r.questIndex + 1}`, title: ok ? 'Quest succeeded' : 'Quest failed',
       body: [h('div', { class: `emblem ${ok ? 'good' : 'bad'}` }, icon(ok ? 'chalice' : 'brokensword')), h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'Suspicion falls on'), h('b', {}, who.name),
         r.failCount != null ? h('small', {}, `${r.failCount} Fail card${r.failCount === 1 ? '' : 's'} played`) : null),
-        ok ? null : h('p', { class: 'muted center small' }, 'That is who the story on the TV blamed. They may have been framed.')] });
+        ok ? null : h('p', { class: 'muted center small' }, 'That is who the story on the TV blamed. They may have been framed.')], record: true });
   },
 
   assassinate() {
     const { me } = state;
     return page({ tracker: false, kicker: 'Good won three quests', title: 'Find Merlin',
       body: [h('div', { class: 'people' }, me.legal.options.map((id) => personChip(byId(id), { sel: choice === id, mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
+      record: true,
       actions: [choice ? h('button', { class: 'danger big', 'data-buzz': 'bad', onclick: () => send({ t: 'assassinate', id: choice }) }, `Strike ${byId(choice).name}`) : h('p', { class: 'armhint' }, 'Tap a name to choose your target')] });
   },
-  waitAssassin() { return page({ tracker: false, kicker: 'The last gamble', title: 'The Assassin strikes', body: [waiting('assassin', 'Someone steps from the shadows… watch the TV.')] }); },
+  waitAssassin() { return page({ tracker: false, kicker: 'The last gamble', title: 'The Assassin strikes', body: [waiting('assassin', 'Someone steps from the shadows… watch the TV.')], record: true }); },
 
   gameover() {
     const { pub, me } = state; const rv = pub.reveal;
@@ -433,6 +500,7 @@ const SCREENS = {
         h('div', { class: 'panel' }, h('div', { class: 'label' }, 'The five quests'),
           h('div', { class: 'recap' }, rv.recap.map((q) => { const ok = q.outcome === 'success'; return h('div', { class: ok ? 'good' : 'bad' }, h('span', { class: 'qn' }, icon(ok ? 'check' : 'cross'), `Quest ${q.questIndex + 1}`), h('span', {}, ok ? `Hero: ${nameOf(pub, q.hero)}` : `Suspected: ${nameOf(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}`)); }))),
       ],
+      record: true,
       actions: [me.vip ? h('button', { class: 'primary big', onclick: () => send({ t: 'again' }) }, 'Play again') : h('p', { class: 'muted center' }, 'Waiting for the host…')] });
   },
 };
@@ -440,12 +508,17 @@ const SCREENS = {
 // ---------- help sheet (table-safe: never shows your role) ----------
 const sheet = $('sheet'); const sheetBody = $('sheetbody');
 let sheetTab = 'now';
-function openSheet(tab) { sheetTab = tab || sheetTab; drawSheet(); sheet.hidden = false; hideSecret(); }
+function openSheet(tab) { sheetTab = tab === 'log' ? 'record' : tab || sheetTab; drawSheet(); sheet.hidden = false; hideSecret(); }
 function closeSheet() { sheet.hidden = true; sheetBody.replaceChildren(); }
 function drawSheet() {
   const pub = state && state.pub;
   const inGame = !!(state && state.me && state.me.role && pub.phase !== 'lobby');
-  const tabs = [['now', 'Now'], ...(inGame ? [['log', 'Record']] : []), ['how', 'How to play'], ['roles', 'Roles']];
+  if (sheetTab === 'record') {
+    if (inGame) return drawRecord();
+    sheetTab = 'now';
+  }
+  sheet.setAttribute('aria-label', 'Help');
+  const tabs = [['now', 'Now'], ['how', 'How to play'], ['roles', 'Roles']];
   if (!tabs.some(([k]) => k === sheetTab)) sheetTab = 'now';
   const content = [];
   if (sheetTab === 'now') {
@@ -454,25 +527,10 @@ function drawSheet() {
     if (inGame) content.push(h('div', { class: 'panel secretnote' }, icon('eye'), h('div', {}, h('b', {}, 'Forgot who you are?'), h('p', { class: 'muted small' }, 'Press and hold your name at the top of the screen. Your role, who you know, and private advice for this moment appear only while you hold.'))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Good'), h('ul', {}, GENERAL_TIPS.good.map((t) => h('li', {}, t)))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Evil'), h('ul', {}, GENERAL_TIPS.evil.map((t) => h('li', {}, t)))));
-    if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, 'Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.')));
+    if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, 'Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.')),
+      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed.')));
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: `toggle${off ? '' : ' on'}`, role: 'switch', 'aria-checked': String(!off), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', { class: 'grow' }, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
-  } else if (sheetTab === 'log') {
-    // public table knowledge only: who proposed whom, how everyone voted, how each quest ended
-    const g = pub.game; const hist = g.history || [];
-    content.push(h('h2', {}, 'The record so far'));
-    if (!hist.length) content.push(h('p', { class: 'muted' }, 'Nothing yet. Every proposal, vote and quest result will be kept here so you can check who backed whom.'));
-    for (let qi = 0; qi <= Math.min(g.questIndex, QUEST_COUNT - 1); qi++) {
-      const rows = hist.filter((x) => x.questIndex === qi); const r = g.results[qi];
-      if (!rows.length && !r) continue;
-      content.push(h('div', { class: 'panel logq' },
-        h('div', { class: 'row' }, h('h3', { class: 'grow' }, `Quest ${qi + 1}`), r ? h('span', { class: `minitoken ${r.outcome === 'success' ? 'ok' : 'ko'}` }, icon(r.outcome === 'success' ? 'check' : 'cross'), r.outcome === 'success' ? 'Succeeded' : 'Failed') : h('span', { class: 'muted small' }, 'in progress')),
-        ...rows.map((x) => h('div', { class: `prop ${x.approved ? 'yes' : 'no'}` },
-          h('div', { class: 'row' }, avatar(byId(x.leader), 'sm'), h('span', { class: 'grow' }, h('b', {}, byId(x.leader).name), ' proposed'), h('span', { class: 'small' }, x.approved ? 'Approved' : 'Rejected')),
-          h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Team'), x.team.map((id) => h('span', { class: 'pill' }, avatar(byId(id), 'sm'), byId(id).name))),
-          h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Votes'), pub.players.map((pl) => h('span', { class: `vt ${x.votes[pl.id] ? 'y' : 'n'}`, title: `${pl.name}: ${x.votes[pl.id] ? 'approve' : 'reject'}` }, avatar(pl, 'sm'), icon(x.votes[pl.id] ? 'check' : 'cross')))))),
-        r ? h('p', { class: 'small muted' }, r.outcome === 'success' ? `Hero: ${nameOf(pub, r.hero)}` : `Suspicion fell on ${nameOf(pub, r.culprit)}`) : null));
-    }
   } else if (sheetTab === 'how') {
     content.push(h('h2', {}, 'How to play'), ...HOW_TO.map((x, i) => h('div', { class: 'panel step' }, h('span', { class: 'num' }, String(i + 1)), h('div', {}, h('h3', {}, x.h), h('p', {}, x.p)))));
   } else {
@@ -486,6 +544,34 @@ function drawSheet() {
       h('button', { class: 'close', 'aria-label': 'Close help', onclick: closeSheet }, icon('cross'))),
     h('div', { class: 'sheetscroll' }, content));
 }
+/** The record sheet: the board at full size, then every proposal spelled out. */
+function drawRecord() {
+  const pub = state.pub; const g = pub.game; const hist = g.history || [];
+  sheet.setAttribute('aria-label', 'The record');
+  const content = [];
+  const board = recordBoard({ big: true });
+  content.push(board || h('p', { class: 'muted' }, 'Nothing yet. Every proposal, vote and quest result will be kept here so you can check who backed whom.'));
+  if (hist.length) content.push(h('h3', { class: 'rb-sub' }, 'Proposal by proposal'));
+  // newest quest first: that is what the table is arguing about
+  for (let qi = Math.min(g.questIndex, QUEST_COUNT - 1); qi >= 0; qi--) {
+    const rows = hist.filter((x) => x.questIndex === qi); const r = g.results.find((x) => x.questIndex === qi);
+    if (!rows.length && !r) continue;
+    content.push(h('div', { class: 'panel logq' },
+      h('div', { class: 'row' }, h('h3', { class: 'grow' }, `Quest ${qi + 1}`), r ? h('span', { class: `minitoken ${r.outcome === 'success' ? 'ok' : 'ko'}` }, icon(r.outcome === 'success' ? 'check' : 'cross'), r.outcome === 'success' ? 'Succeeded' : 'Failed') : h('span', { class: 'muted small' }, 'in progress')),
+      ...rows.map((x) => h('div', { class: `prop ${x.approved ? 'yes' : 'no'}` },
+        h('div', { class: 'row' }, avatar(byId(x.leader), 'sm'), h('span', { class: 'grow' }, h('b', {}, byId(x.leader).name), ' proposed'), h('span', { class: 'small' }, x.approved ? 'Approved' : 'Rejected')),
+        h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Team'), x.team.map((id) => h('span', { class: 'pill' }, avatar(byId(id), 'sm'), byId(id).name))),
+        h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Votes'), pub.players.map((pl) => h('span', { class: `vt ${x.votes[pl.id] ? 'y' : 'n'}`, title: `${pl.name}: ${x.votes[pl.id] ? 'approve' : 'reject'}` }, avatar(pl, 'sm'), icon(x.votes[pl.id] ? 'check' : 'cross')))))),
+      r ? h('p', { class: 'small muted' }, r.outcome === 'success' ? `Hero: ${nameOf(pub, r.hero)}` : `Suspicion fell on ${nameOf(pub, r.culprit)}`) : null));
+  }
+  const rx = recordScroll(sheetBody, false);
+  sheetBody.replaceChildren(
+    h('div', { class: 'sheethead' }, h('h2', { class: 'grow rb-title' }, icon('scroll'), ' The record'), roomCode ? h('span', { class: 'muted small' }, 'Room ', h('b', {}, roomCode)) : null,
+      h('button', { class: 'close', 'aria-label': 'Close the record', onclick: closeSheet }, icon('cross'))),
+    h('div', { class: 'sheetscroll' }, content));
+  rx();
+}
+
 $('helpbtn').replaceChildren(icon('help'));
 $('helpbtn').addEventListener('click', () => openSheet('now'));
 sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); });

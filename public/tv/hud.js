@@ -1,5 +1,6 @@
-// DOM heads-up display over the 3D canvas: room code, quest track, phase cards, captions, freeze-frame, fades.
+// DOM heads-up display over the 3D canvas: room code, the record board, phase cards, captions, freeze-frame, fades.
 import { onNarrate } from './engine/narrate.js';
+import { boardTree, flipKeyFor, toDom } from './board.js';
 
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -9,8 +10,9 @@ const store = {
 export class Hud {
   constructor(root = document) {
     const $ = (id) => root.getElementById(id);
-    this.el = { code: $('code'), joinurl: $('joinurl'), roombar: $('roombar'), track: $('track'), card: $('card'), caption: $('caption'), title: $('titlecard'), freeze: $('freeze'), fade: $('fade'), fps: $('fps'), status: $('status'), unlock: $('unlock') };
+    this.el = { code: $('code'), joinurl: $('joinurl'), roombar: $('roombar'), board: $('board'), card: $('card'), caption: $('caption'), title: $('titlecard'), freeze: $('freeze'), fade: $('fade'), fps: $('fps'), status: $('status'), unlock: $('unlock') };
     this.capTimer = null; this.titleTimer = null; this.freezeTimer = null;
+    this.boardSig = ''; this.boardRevealed = null; this.boardMode = 'hidden';
     this.capScale = store.get('sq.capScale') || 'medium';
     this.setCaptionScale(this.capScale);
     this.unsub = onNarrate((text, o) => this._caption(text, o.dur, o.style));
@@ -22,9 +24,38 @@ export class Hud {
   }
   setStatus(s) { this.el.status.textContent = s === 'online' ? '' : 'Reconnecting…'; this.el.status.hidden = s === 'online'; }
 
-  setTrack(items) {
-    this.el.track.replaceChildren(...items.map((s, i) => { const d = document.createElement('div'); d.className = `q ${s}`; d.textContent = s === 'success' ? '✔' : s === 'fail' ? '✘' : String(i + 1); return d; }));
-    this.el.track.hidden = items.length === 0;
+  /**
+   * The record board. 'full' = quest shields + every proposal and vote (beside the campfire, the result and the
+   * game-over cards); 'compact' = just the quest shields (during cutscenes, so the story has the screen);
+   * 'hidden' = lobby. Only touches the DOM when something visible changed, so a running flip is never restarted.
+   */
+  setBoard(pub, mode = 'full') {
+    const b = this.el.board;
+    const tree = mode !== 'hidden' && pub && pub.game ? boardTree(pub) : null;
+    if (!tree) {
+      b.hidden = true; b.replaceChildren(); this.boardSig = ''; this.boardMode = 'hidden';
+      document.body.classList.remove('board-on');
+      if (!pub || !pub.game) this.boardRevealed = null;
+      return;
+    }
+    const revealed = (pub.game.history || []).length;
+    const sig = `${mode}|${JSON.stringify(tree)}`;
+    const flip = flipKeyFor(pub, this.boardRevealed);
+    this.boardRevealed = revealed;
+    this.boardMode = mode;
+    document.body.classList.toggle('board-on', mode === 'full');
+    if (sig === this.boardSig) return;
+    this.boardSig = sig;
+    b.className = mode;
+    b.replaceChildren(...(flip ? boardTree(pub, { flip }) : tree).map((n) => toDom(n)));
+    b.hidden = false;
+  }
+
+  /** Fraction of the screen width the full board covers, measured from the right edge (0 when not full). */
+  boardFraction() {
+    const b = this.el.board;
+    if (b.hidden || this.boardMode !== 'full' || !window.innerWidth) return 0;
+    return Math.max(0, Math.min(0.45, (window.innerWidth - b.getBoundingClientRect().left) / window.innerWidth));
   }
 
   showCard(card) {

@@ -56,7 +56,7 @@ const SHOTS = [
   ['19-assassinate', { pub: pub('assassination', { results: [...results, { questIndex: 2, outcome: 'success', hero: 'p6' }, { questIndex: 3, outcome: 'success', hero: 'p0' }] }), me: evil({ action: 'assassinate', options: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'] }) }, (p) => p.click('.people button >> nth=3')],
   ['20-gameover', { pub: pub('gameover', {}, { reveal }), me: good({ action: 'again' }) }],
   ['21-help-now', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('now'))],
-  ['21b-help-record', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('log'))],
+  ['21b-record', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('record'))],
   ['22-help-how', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('how'))],
   ['23-help-roles', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('roles'))],
 ];
