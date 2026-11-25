@@ -45,7 +45,23 @@ let retryTimer = null;
 
 function url() { return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`; }
 
-function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+function send(o) {
+  if (ws && ws.readyState === 1) { ws.send(JSON.stringify(o)); return; }
+  toast('Reconnecting… tap again in a moment.');
+  connect();
+}
+
+/** Drop the current socket (even if the browser still thinks it is open) and dial again. */
+function reconnect() {
+  clearTimeout(retryTimer);
+  if (ws) {
+    ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null;
+    try { ws.close(); } catch { /* ignore */ }
+    ws = null;
+  }
+  retry = 0;
+  connect();
+}
 
 function connect() {
   clearTimeout(retryTimer);
@@ -104,9 +120,20 @@ function toast(msg) {
 async function requestWakeLock() {
   try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch { /* optional */ }
 }
+// A locked or backgrounded phone usually loses its socket without the page being told: the server
+// drops it (heartbeat), but readyState can still say OPEN on wake. Trusting that left phones stuck on
+// "Watch the TV!" after the first cutscene, unable to vote on the next team. So after any real time
+// away, always dial a fresh socket; the stored token puts the player back in their seat.
+let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') { hideSecret(); connect(); if (joined) requestWakeLock(); }
+  if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); hideSecret(); return; }
+  hideSecret();
+  if (joined && hiddenAt && Date.now() - hiddenAt > 2000) reconnect(); else connect();
+  hiddenAt = 0;
+  if (joined) requestWakeLock();
 });
+window.addEventListener('pageshow', (e) => { if (e.persisted) reconnect(); });
+window.addEventListener('online', () => reconnect());
 
 // ---------- hold-to-reveal ----------
 const peekBtn = $('peek');
