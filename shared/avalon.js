@@ -79,5 +79,6 @@ export function validateRoleConfig(playerCount, cfgIn) {
   if (cfg.morgana && !cfg.merlin) errors.push('Morgana needs Merlin.');
   if (cfg.morgana && !cfg.percival) warnings.push('Morgana without Percival has no one to fool.');
   if (!cfg.merlin && cfg.assassin) warnings.push('The Assassin has no Merlin to hunt, so they act as a plain Minion.');
+  if (!cfg.merlin && cfg.mordred) warnings.push('Mordred hides from Merlin, so without Merlin he plays as a plain Minion.');
   return { ok: errors.length === 0, errors, warnings, config: cfg };
 }
