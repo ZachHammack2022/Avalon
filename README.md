@@ -20,7 +20,8 @@ npm start          # prints the TV URL and the phone URL
   say who leads next and who leads the fifth proposal. Wherever a phone asks someone to pick or vote on players (the leader's
   team, the vote, the Assassin's target), each name carries a tick or cross for every quest that player went on; the leader also
   sees how many failed teams each player voted to send, and the Assassin how often each suspect voted down a team with a known Minion on it.
-  Percival's held role card says how each of the two players Percival sees voted on the teams that failed (Merlin tends to vote them down).
+  Percival's held role card says how each of the two players Percival sees voted on the teams that failed (Merlin tends to vote them down),
+  and Merlin's how often Merlin voted down a team with a visible Minion on it, the pattern the Assassin hunts for.
   Once a quest has failed, the vote screen and the TV's vote card sum up the case against the proposed team in one line, and while
   a leader picks, the TV and the waiting phones name everyone never on or behind a failed quest. Votes a
   stand-in cast for an absent player are marked. At game over, once roles are public, the TV and every phone show the awards,

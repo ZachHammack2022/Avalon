@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { installDom, textOf } from './fake-dom.js';
 import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
-import { percivalRead } from '../public/phone/guide.js';
+import { merlinRead, percivalRead } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
 import { awards, backedFailures, cleanText, noToEvil, teamCase } from '../shared/record.js';
 
@@ -484,6 +484,16 @@ test("phone: Percival's held role card reads the record for telling Merlin from 
   assert.equal(textOf(read).trim(), percivalRead(found));
   sq.hideSecret();
   assert.equal(textOf($('secret')), '', 'nothing secret stays in the page');
+});
+
+test("phone: Merlin's held role card says how much the record gives Merlin away", () => {
+  let found = null;
+  for (let seed = 1; seed < 60 && !found; seed++) found = gameStates(seed).find((s) => s.me.role === 'merlin' && s.pub.phase === 'propose' && merlinRead(s));
+  assert.ok(found, 'Merlin after voting on a team with a Minion on it');
+  sq.inject(found);
+  sq.showSecret();
+  assert.equal(textOf($('secret').querySelector('.rc-read')).trim(), merlinRead(found));
+  sq.hideSecret();
 });
 
 test('phone: in the full record every vote chip says whose vote it was and how they voted, stand-ins marked', () => {
