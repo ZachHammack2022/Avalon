@@ -15,7 +15,7 @@ A `token` that matches a seat resumes it (the old socket for that seat is closed
 
 ## Phone → server (after joining)
 
-`setAvatar {cls?, color?}` · VIP/lobby: `start`, `addBot`, `removeBot {id?}`, `kick {id}`, `setRoles {roles:{merlin,assassin,percival,morgana,mordred,oberon}}`, `setClassic {on}` ·
+`setAvatar {cls?, color?}` (lobby; `color` is one of the ten palette colours and nobody else's: another person's is refused, a bot's swaps with the bot) · VIP/lobby: `start`, `addBot`, `removeBot {id?}`, `kick {id}`, `setRoles {roles:{merlin,assassin,percival,morgana,mordred,oberon}}`, `setClassic {on}` ·
 `leave` (lobby) · `ready` · `propose {team:[ids]}` · `vote {approve}` · `play {card:'success'|'fail'}` · `pick {id}` · `assassinate {id}` · `again` (VIP, game over).
 Illegal actions get `{t:'error', code:'action', msg}` and change nothing.
 
