@@ -218,11 +218,11 @@ export function cleanText(pub, nameOf) {
 }
 
 /**
- * How many failed teams each player voted to send without going on them: {id: n}. Evil players wave their allies'
- * teams through, so this is evidence the table can use when picking a team. Only quests whose result is public count,
- * and a vote a stand-in cast for an absent player is left out.
+ * How each player voted on the teams that went and failed: {id: {against, of}}. Votes on a team the player was on
+ * (everyone approves those) and votes a stand-in cast for an absent player are left out, and only quests whose result
+ * is public count. Merlin sees evil, so Merlin tends to vote against teams that go on to fail.
  */
-export function backedFailures(pub) {
+export function failedTeamVotes(pub) {
   const g = pub && pub.game;
   const out = {};
   if (!g || !Array.isArray(g.history)) return out;
@@ -231,9 +231,22 @@ export function backedFailures(pub) {
     const sent = g.history.filter((h) => h.questIndex === r.questIndex && h.approved).pop();
     if (!sent) continue;
     for (const [id, yes] of Object.entries(sent.votes || {})) {
-      if (yes && !sent.team.includes(id) && !(sent.standIn && sent.standIn.includes(id))) out[id] = (out[id] || 0) + 1;
+      if (sent.team.includes(id) || (sent.standIn && sent.standIn.includes(id))) continue;
+      const v = out[id] || (out[id] = { against: 0, of: 0 });
+      v.of++;
+      if (!yes) v.against++;
     }
   }
+  return out;
+}
+
+/**
+ * How many failed teams each player voted to send without going on them: {id: n}. Evil players wave their allies'
+ * teams through, so this is evidence the table can use when picking a team. Same rules as failedTeamVotes.
+ */
+export function backedFailures(pub) {
+  const out = {};
+  for (const [id, v] of Object.entries(failedTeamVotes(pub))) if (v.of > v.against) out[id] = v.of - v.against;
   return out;
 }
 
