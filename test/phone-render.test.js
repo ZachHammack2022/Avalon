@@ -469,6 +469,15 @@ test('phone: the leader sees, beside each name, the failed teams that player vot
     else if (backed[p.id]) assert.equal(textOf(small), `Voted to send ${backed[p.id]} failed team${backed[p.id] === 1 ? '' : 's'}`);
     else assert.equal(small, null);
   }
+  // once the team is full, the leader sees the case the vote screen will read against it
+  assert.equal($('main').querySelector('.teamcase'), null, 'nothing while the team is being picked');
+  const size = found.me.legal.size;
+  const pick = [found.me.id, ...Object.keys(backed).filter((id) => id !== found.me.id)].slice(0, size);
+  for (const p of found.pub.players) if (pick.length < size && !pick.includes(p.id)) pick.push(p.id);
+  for (const id of pick) chips.find((c) => textOf(c.querySelector('.pname')).startsWith(found.pub.players.find((p) => p.id === id).name)).click();
+  const nm = (id) => (id === found.me.id ? 'You' : found.pub.players.find((p) => p.id === id).name);
+  assert.equal(textOf($('main').querySelector('.teamcase')).trim(), teamCase(found.pub, pick, nm));
+  assert.match(textOf($('main').querySelector('.teamcase')), /voted to send/);
 });
 
 test('phone: the vote screen reads the record against the proposed team', () => {
