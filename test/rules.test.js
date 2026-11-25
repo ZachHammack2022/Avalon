@@ -130,3 +130,18 @@ test('success: hero is chosen among success players nominations only', () => {
     assert.ok(['c', 'a'].includes(r.hero));
   }
 });
+
+test('role notes mention the evil that is hidden from you: Mordred for Merlin, Oberon for the other Minions', () => {
+  const ids = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10'];
+  const deal = (roles) => new Map(ids.slice(0, roles.length).map((id, i) => [id, roles[i]]));
+  const full = deal(['merlin', 'percival', 'loyal', 'loyal', 'loyal', 'loyal', 'assassin', 'morgana', 'mordred', 'oberon']);
+  assert.match(knowledgeFor('p1', full).note, /Mordred is evil too, but hidden from you/);
+  for (const id of ['p7', 'p8', 'p9']) assert.match(knowledgeFor(id, full).note, /Oberon is evil too, but hidden from you/, id);
+  assert.doesNotMatch(knowledgeFor('p10', full).note, /hidden from you\./, 'Oberon is told they work alone instead');
+  assert.match(knowledgeFor('p10', full).note, /You work alone/);
+  const plain = deal(['merlin', 'loyal', 'loyal', 'assassin', 'minion']);
+  assert.doesNotMatch(knowledgeFor('p1', plain).note, /Mordred/);
+  assert.doesNotMatch(knowledgeFor('p4', plain).note, /Oberon/);
+  // good players hear nothing about the hidden evil (it is not their knowledge)
+  for (const id of ['p2', 'p3']) assert.doesNotMatch(knowledgeFor(id, full).note, /Mordred|Oberon/);
+});
