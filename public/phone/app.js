@@ -701,7 +701,12 @@ function drawRecord() {
       ...rows.map((x) => h('div', { class: `prop ${x.approved ? 'yes' : 'no'}` },
         h('div', { class: 'row' }, avatar(byId(x.leader), 'sm'), h('span', { class: 'grow' }, h('b', {}, byId(x.leader).name), ' proposed'), h('span', { class: 'small' }, x.approved ? 'Approved' : 'Rejected')),
         h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Team'), x.team.map((id) => h('span', { class: 'pill' }, avatar(byId(id), 'sm'), byId(id).name))),
-        h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Votes'), pub.players.map((pl) => h('span', { class: `vt ${x.votes[pl.id] ? 'y' : 'n'}`, title: `${pl.name}: ${x.votes[pl.id] ? 'approve' : 'reject'}` }, avatar(pl, 'sm'), icon(x.votes[pl.id] ? 'check' : 'cross')))))),
+        h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Votes'), pub.players.map((pl) => {
+          // named for screen readers (the chip is a picture), and a stand-in's vote is marked as it is on the board
+          const auto = !!(x.standIn && x.standIn.includes(pl.id));
+          const label = `${pl.name}: ${x.votes[pl.id] ? 'approve' : 'reject'}${auto ? ' (stand-in vote)' : ''}`;
+          return h('span', { class: `vt ${x.votes[pl.id] ? 'y' : 'n'}${auto ? ' auto' : ''}`, role: 'img', 'aria-label': label, title: label }, avatar(pl, 'sm'), icon(x.votes[pl.id] ? 'check' : 'cross'));
+        })))),
       r ? h('p', { class: 'small muted' }, r.outcome === 'success' ? `Hero: ${nameOf(pub, r.hero)}` : `Suspicion fell on ${nameOf(pub, r.culprit)}`) : null));
   }
   const rx = recordScroll(sheetBody, false);

@@ -330,6 +330,7 @@ body { font-size: 19px; } .hint { font-size: 17px; } .sheetscroll p, .sheetscrol
 .vt { position: relative; display: inline-flex; } .vt > .ic { position: absolute; right: -4px; bottom: -4px; width: 15px; height: 15px; padding: 2.500px; border-radius: 50%; }
 .vt.y > .ic { background: #e9d7ae; color: #245a2b; } .vt.n > .ic { background: #2a262e; color: var(--evil); box-shadow: 0 0 0 1px #5a4f63; }
 .vt.n .av { filter: saturate(.5) brightness(.75); }
+.vt.auto .av { outline: 2px dashed #8b8478; outline-offset: 1px; }
 .minitoken.ok { background: #e9d7ae; color: #245a2b; } .minitoken.ko { background: #201c24; color: var(--evil); border: 1px solid #4a3f52; }
 .logq .pill { font-size: 15px; padding: 3px 10px 3px 3px; }
 

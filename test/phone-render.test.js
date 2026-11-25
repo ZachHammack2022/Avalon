@@ -444,3 +444,28 @@ test('phone: the vote screen reads the record against the proposed team', () => 
   sq.inject(early);
   assert.equal($('main').querySelector('.teamcase'), null);
 });
+
+test('phone: in the full record every vote chip says whose vote it was and how they voted, stand-ins marked', () => {
+  const late = gameStates(4).filter((s) => s.pub.phase === 'propose' && (s.pub.game.history || []).some((x) => x.standIn && x.standIn.length)).pop();
+  assert.ok(late, 'a game where a stand-in voted for the away human');
+  sq.inject(late);
+  sq.openSheet('record');
+  const props = $('sheet').querySelectorAll('.prop');
+  assert.equal(props.length, late.pub.game.history.length);
+  // the sheet lists the newest quest first, each quest's proposals in order
+  const hist = late.pub.game.history;
+  const shown = [...new Set(hist.map((x) => x.questIndex))].sort((a, b) => b - a).flatMap((q) => hist.filter((x) => x.questIndex === q));
+  let autos = 0;
+  props.forEach((prop, i) => {
+    const x = shown[i];
+    const chips = prop.querySelectorAll('.vt');
+    assert.equal(chips.length, late.pub.players.length);
+    chips.forEach((c, j) => {
+      const pl = late.pub.players[j]; const auto = !!(x.standIn && x.standIn.includes(pl.id));
+      assert.equal(c.getAttribute('aria-label'), `${pl.name}: ${x.votes[pl.id] ? 'approve' : 'reject'}${auto ? ' (stand-in vote)' : ''}`);
+      assert.equal(c.classList.contains('auto'), auto);
+      if (auto) autos++;
+    });
+  });
+  assert.ok(autos > 0);
+});
