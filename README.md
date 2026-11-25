@@ -22,7 +22,8 @@ npm start          # prints the TV URL and the phone URL
   sees how many failed teams each player voted to send, and the Assassin how often each suspect voted down a team with a known Minion on it.
   Percival's held role card says how each of the two players Percival sees voted on the teams that failed (Merlin tends to vote them down);
   Merlin's how often Merlin voted down a team with a visible Minion on it, the pattern the Assassin hunts for, and every Minion's
-  (Oberon aside) whose votes look most like that so far.
+  what the record has on them (failed quests they went on or voted to send) and, Oberon aside, whose votes look most
+  like Merlin's so far.
   Once a quest has failed, the vote screen and the TV's vote card sum up the case against the proposed team in one line, and while
   a leader picks, the TV and the waiting phones name everyone never on or behind a failed quest. Right after a quest fails, the TV
   card and the phones say who voted to send that team from outside it. Votes a

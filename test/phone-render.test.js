@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { installDom, textOf } from './fake-dom.js';
 import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
-import { assassinRead, merlinRead, percivalRead } from '../public/phone/guide.js';
+import { assassinRead, evilRead, merlinRead, percivalRead } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
 import { awards, backedFailures, cleanText, noToEvil, sentByText, teamCase, voteReport } from '../shared/record.js';
 
@@ -534,13 +534,13 @@ test("phone: Merlin's held role card says how much the record gives Merlin away"
   sq.hideSecret();
 });
 
-test("phone: the Assassin's held role card names whose votes look most like Merlin's", () => {
+test("phone: the Assassin's held role card names whose votes look most like Merlin's, after its own record", () => {
   let found = null;
-  for (let seed = 1; seed < 80 && !found; seed++) found = gameStates(seed).find((s) => s.me.role === 'assassin' && s.pub.phase === 'propose' && assassinRead(s));
+  for (let seed = 1; seed < 80 && !found; seed++) found = gameStates(seed).find((s) => s.me.role === 'assassin' && s.pub.phase === 'propose' && assassinRead(s) && evilRead(s));
   assert.ok(found, "the Assassin once someone's votes stand out");
   sq.inject(found);
   sq.showSecret();
-  assert.equal(textOf($('secret').querySelector('.rc-read')).trim(), assassinRead(found));
+  assert.equal(textOf($('secret').querySelector('.rc-read')).trim(), `${evilRead(found)} ${assassinRead(found)}`);
   sq.hideSecret();
 });
 
