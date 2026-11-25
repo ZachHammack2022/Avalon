@@ -185,7 +185,7 @@ function showSecret() {
   const me = state.me; const info = ROLE_INFO[me.role];
   const known = knownPlayers(state);
   const counsel = counselFor(screenFor(state), state);
-  const read = secretRead(state); // the record, read for this role: Percival's Merlin or Morgana, Merlin's exposure
+  const read = secretRead(state); // the record, read for this role: Percival's Merlin or Morgana, Merlin's exposure, the Assassin's suspect
   secret.replaceChildren(h('div', { class: 'rolecard' },
     h('div', { class: 'rc-top' }, 'Your role'),
     h('div', { class: 'rc-sigil' }, icon(me.role)),
@@ -195,7 +195,8 @@ function showSecret() {
     known.length ? h('div', { class: 'rc-known' },
       h('div', { class: 'label' }, KNOW_LABELS[me.knowKind] || 'You know'),
       h('div', { class: 'players' }, known.map((p) => h('span', { class: 'pill' }, avatar(byId(p.id), 'sm'), p.name))),
-      read ? h('p', { class: 'rc-read' }, icon('scroll'), ' ', read) : null) : h('div', { class: 'rc-known' }, h('div', { class: 'label' }, 'You know'), h('div', { class: 'players' }, h('span', { class: 'pill none' }, me.note || 'Nobody for certain'))),
+      read ? h('p', { class: 'rc-read' }, icon('scroll'), ' ', read) : null) : h('div', { class: 'rc-known' }, h('div', { class: 'label' }, 'You know'), h('div', { class: 'players' }, h('span', { class: 'pill none' }, me.note || 'Nobody for certain')),
+      read ? h('p', { class: 'rc-read' }, icon('scroll'), ' ', read) : null),
     counsel ? h('div', { class: 'rc-counsel' }, h('div', { class: 'label' }, 'Counsel for this moment'), counsel) : null));
   if (!seenRole()) { store.set(`sq.seen.${roomCode}`, me.role); setTimeout(render, 0); }
   secret.hidden = false; peekBtn.classList.add('revealing'); document.body.classList.add('peeking');
