@@ -6,7 +6,7 @@ import { installDom, textOf } from './fake-dom.js';
 import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
-import { awards } from '../shared/record.js';
+import { awards, noToEvil } from '../shared/record.js';
 
 const document = installDom();
 await import('../public/phone/app.js');
@@ -222,6 +222,15 @@ test('phone: the Assassin sees every other player to strike, with known allies m
   assert.deepEqual(order, order.slice().sort());
   // good has won three quests by now, so the record of who went shows beside the names
   assert.ok(chips.filter((c) => c.querySelector('.went')).length >= 2);
+  // and the record is read for the Assassin: how each suspect voted on teams with evil on them
+  const reads = noToEvil(found.pub, [found.me.id, ...allies]);
+  const named = found.me.legal.options.filter((id) => !allies.includes(id) && reads[id]);
+  assert.ok(named.length >= 2, 'several suspects voted on a team with evil on it');
+  for (const id of named) {
+    const chip = chips.find((c) => textOf(c).includes(found.pub.players.find((x) => x.id === id).name));
+    assert.match(textOf(chip.querySelector('small')), new RegExp(`^Voted down ${reads[id].no} of ${reads[id].of} evil teams?$`));
+  }
+  assert.match(textOf($('main')), /Merlin tends to vote down teams with evil on them/);
 });
 
 test('phone: in the lobby every player, not only the host, sees which roles are in the game', () => {

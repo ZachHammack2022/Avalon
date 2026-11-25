@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -606,8 +606,12 @@ const SCREENS = {
     // the Minions you know are not Merlin: they are marked and listed last, so a hurried tap does not waste the strike
     const ally = (id) => (me.knows || []).includes(id);
     const options = [...me.legal.options.filter((id) => !ally(id)), ...me.legal.options.filter(ally)];
+    // the record, read for the Assassin: Merlin sees evil and tends to vote down teams with evil on them
+    const reads = noToEvil(state.pub, [me.id, ...(me.knows || [])]);
+    const read = (id) => (reads[id] ? `Voted down ${reads[id].no} of ${reads[id].of} evil team${reads[id].of === 1 ? '' : 's'}` : null);
     return page({ tracker: false, kicker: 'Good won three quests', title: 'Find Merlin',
-      body: [h('div', { class: 'people' }, options.map((id) => personChip(byId(id), { sel: choice === id, tag: ally(id) ? 'your ally' : null, went: true, mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
+      body: [h('div', { class: 'people' }, options.map((id) => personChip(byId(id), { sel: choice === id, tag: ally(id) ? 'your ally' : read(id), went: true, mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } }))),
+        h('p', { class: 'muted center small' }, 'Merlin sees the Minions, so Merlin tends to vote down teams with evil on them.')],
       record: true,
       actions: [choice ? h('button', { class: 'danger big', 'data-buzz': 'bad', onclick: () => send({ t: 'assassinate', id: choice }) }, `Strike ${byId(choice).name}`) : h('p', { class: 'armhint' }, 'Tap a name to choose your target')] });
   },
