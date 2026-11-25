@@ -13,7 +13,7 @@ canvas#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: bl
 .card .sub { font-size: 3.2vh; opacity: .8; margin-bottom: 1.2vh; }
 .card.good { border-color: var(--good); } .card.good h1 { color: var(--good); }
 .card.bad { border-color: var(--bad); } .card.bad h1 { color: var(--bad); }
-.card.gameover p { font-size: 2.8vh; margin: .3vh 0; }
+.card.gameover p { font-size: calc(2.8vh * var(--fit, 1)); margin: calc(.3vh * var(--fit, 1)) 0; }
 .card.result { top: 36%; } .card.lobby, .card.roleReveal { top: 54%; }
 .card.propose, .card.vote, .card.questPlay, .card.voteReveal { top: auto; bottom: 4vh; transform: translate(-50%, 0); }
 .card.voteReveal p { font-size: 3vh; margin: .2vh 0; }

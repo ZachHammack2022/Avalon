@@ -70,6 +70,12 @@ export class Hud {
       ...card.lines.map((l) => mk('p', '', l)),
     );
     c.hidden = false;
+    // the game-over card (ten players, five quests, every award) can outgrow its 80vh box, which would cut the last
+    // lines off: shrink its text in steps until it fits
+    c.style.removeProperty('--fit');
+    if (card.kind === 'gameover') {
+      for (let s = 0.92; s >= 0.6 && c.scrollHeight > c.clientHeight + 1; s -= 0.08) c.style.setProperty('--fit', s.toFixed(2));
+    }
   }
 
   // 3D-driven overlays
