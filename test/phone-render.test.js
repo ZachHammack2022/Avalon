@@ -37,6 +37,7 @@ const WITHOUT_RECORD = ['lobby', 'roleReveal', 'voteReveal', 'quest-card', 'ques
 test('phone: every screen of real games renders, with the record inline wherever players wait or decide', () => {
   const seen = new Set();
   const announced = new Set();
+  let sawPickWent = false;
   const sawCrown = new Set();
   const sawWent = new Set();
   let sawWaiting = false;
@@ -117,6 +118,18 @@ test('phone: every screen of real games renders, with the record inline wherever
           if (want.length) { sawWent.add(want.length); assert.match(got.getAttribute('aria-label'), /went on \d quests?/); }
         });
       }
+      // the leader picks with the same history beside every name
+      if (screen === 'propose') {
+        const chips = main.querySelectorAll('.person');
+        assert.equal(chips.length, s.pub.players.length);
+        chips.forEach((c, i) => {
+          const id = s.pub.players[i].id;
+          const want = s.pub.game.results.filter((r) => r.team.includes(id)).map((r) => (r.outcome === 'success' ? 'ok' : 'ko'));
+          const got = c.querySelector('.went');
+          assert.deepEqual(got ? got.querySelectorAll('.ic').map((ic) => (ic.classList.contains('ok') ? 'ok' : 'ko')) : [], want, `propose: ${id}`);
+          if (want.length) sawPickWent = true;
+        });
+      }
       // while the votes are face-down only "has voted" shows for the live proposal
       if (s.pub.phase === 'vote') assert.ok(table.querySelectorAll('td.live').every((td) => !td.classList.contains('yes') && !td.classList.contains('no')));
     }
@@ -124,6 +137,7 @@ test('phone: every screen of real games renders, with the record inline wherever
   assert.ok(announced.size > 8, 'screen changes are announced');
   assert.ok(sawCrown.has(0) && sawCrown.size > 1, `crown lines seen at reject counts ${[...sawCrown]}`);
   assert.ok(sawWent.size > 1, 'team members with one and with several past quests');
+  assert.ok(sawPickWent, 'the leader saw quest history while picking');
   assert.ok(sawWaiting, 'a locked-in vote named the stragglers');
   assert.ok(sawStandIn, 'the stand-in seat shows up on the record');
   for (const sc of [...WITH_RECORD.filter((x) => x !== 'assassinate' && x !== 'waitAssassin'), 'lobby', 'roleReveal', 'voteReveal', 'quest-card']) assert.ok(seen.has(sc), `saw ${sc}`);
@@ -192,6 +206,8 @@ test('phone: the Assassin sees every other player to strike, with known allies m
   // allies come after everyone else
   const order = chips.map((c) => (tagged.includes(c) ? 1 : 0));
   assert.deepEqual(order, order.slice().sort());
+  // good has won three quests by now, so the record of who went shows beside the names
+  assert.ok(chips.filter((c) => c.querySelector('.went')).length >= 2);
 });
 
 test('phone: in the lobby every player, not only the host, sees which roles are in the game', () => {
