@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { awards, backedFailures, cleanText, failedTeamVotes, sentByText, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads, voteReport } from '../shared/record.js';
+import { awards, backedFailures, bestDisguise, cleanText, failedTeamVotes, sentByText, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads, voteReport } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -239,6 +239,12 @@ test('vote reads: a vote is right when it waved a clean team through or voted do
   assert.equal(sharpestEye(over(away)), null, 'nobody with three counted votes besides Merlin');
   // three in four right is the bar; evil players are never in the running
   assert.equal(sharpestEye(over(hist, { ...roles, p4: 'morgana' })), null);
+  // ...for that one: an evil player whose votes looked like Good's gets the best disguise instead
+  assert.equal(bestDisguise(over()), null, 'the Assassin voted like Good on 0 of 2');
+  assert.deepEqual(bestDisguise(over(hist, { ...roles, p4: 'morgana' })), { id: 'p4', right: 3, of: 3 });
+  assert.match(awards(over(hist, { ...roles, p4: 'morgana' }), []).join('\n'), /^★ Best disguise: Dee, who voted like Good on 3 of 3 teams$/m);
+  assert.equal(bestDisguise(over(away, { ...roles, p4: 'morgana' })), null, 'three counted votes at least');
+  assert.equal(bestDisguise(pub('propose')), null, 'not before the roles are public');
 });
 
 test('the Assassin\'s read: how often each player voted down a team with someone the Assassin knows is evil on it', () => {

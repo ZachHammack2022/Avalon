@@ -27,7 +27,8 @@ npm start          # prints the TV URL and the phone URL
   a leader picks, the TV and the waiting phones name everyone never on or behind a failed quest. Right after a quest fails, the TV
   card and the phones say who voted to send that team from outside it. Votes a
   stand-in cast for an absent player are marked. At game over, once roles are public, the TV and every phone show the awards,
-  including the **Sharpest eye**: the good player (not Merlin) whose votes best read which teams had evil on them, and the phone's full
+  including the **Sharpest eye**: the good player (not Merlin) whose votes best read which teams had evil on them, and the
+  **Best disguise**: the evil player whose votes looked most like Good's. The phone's full
   record lists how every player's votes read the teams. Built from public state only (`shared/record.js`).
 * **Roles in play** are listed for everyone before the game starts: on the TV lobby card and on every phone, not only the host's.
 * **Cutscene preview harness:** `http://localhost:3000/preview` (no phones needed).
