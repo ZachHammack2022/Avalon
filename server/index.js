@@ -21,8 +21,31 @@ const MIME = {
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.woff2': 'font/woff2', '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json',
   '.bin': 'application/octet-stream', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.txt': 'text/plain; charset=utf-8',
-  '.md': 'text/plain; charset=utf-8', '.map': 'application/json',
+  '.md': 'text/plain; charset=utf-8', '.map': 'application/json', '.mp4': 'video/mp4', '.webm': 'video/webm',
 };
+
+/**
+ * One `Range: bytes=…` header against a file of `size` bytes (RFC 9110 §14). Returns {start, end} (inclusive),
+ * null to send the whole file (no header, several ranges, or a unit we do not serve), or 'unsatisfiable'.
+ * Safari will not play a video unless the server answers ranges, and seeking needs them everywhere.
+ */
+export function parseRange(header, size) {
+  if (typeof header !== 'string') return null;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!m || (m[1] === '' && m[2] === '')) return null;
+  let start; let end;
+  if (m[1] === '') { // suffix: the last N bytes
+    const n = Number(m[2]);
+    if (n === 0) return 'unsatisfiable';
+    start = Math.max(0, size - n); end = size - 1;
+  } else {
+    start = Number(m[1]);
+    end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1);
+    if (m[2] !== '' && Number(m[2]) < start) return null; // malformed: ignore it
+  }
+  if (start >= size || size === 0) return 'unsatisfiable';
+  return { start, end };
+}
 const CODE_LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ';
 
 export function lanAddress() {
@@ -72,11 +95,19 @@ export function createGameServer({
       if (err || !st.isFile()) { res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found'); return; }
       const ext = path.extname(file).toLowerCase();
       const immutable = file.includes(`${path.sep}assets${path.sep}`);
-      res.writeHead(200, {
+      const head = {
         'content-type': MIME[ext] || 'application/octet-stream',
-        'content-length': st.size,
+        'accept-ranges': 'bytes',
         'cache-control': immutable ? 'public, max-age=86400' : 'no-cache',
-      });
+      };
+      const range = parseRange(req.headers.range, st.size);
+      if (range === 'unsatisfiable') { res.writeHead(416, { ...head, 'content-range': `bytes */${st.size}` }).end(); return; }
+      if (range) {
+        res.writeHead(206, { ...head, 'content-length': range.end - range.start + 1, 'content-range': `bytes ${range.start}-${range.end}/${st.size}` });
+        if (req.method === 'HEAD') res.end(); else fs.createReadStream(file, range).pipe(res);
+        return;
+      }
+      res.writeHead(200, { ...head, 'content-length': st.size });
       if (req.method === 'HEAD') res.end(); else fs.createReadStream(file).pipe(res);
     });
   });

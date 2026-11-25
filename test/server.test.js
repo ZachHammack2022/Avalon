@@ -2,7 +2,8 @@ import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import WebSocket from 'ws';
-import { createGameServer, resolveStatic } from '../server/index.js';
+import fs from 'node:fs';
+import { createGameServer, parseRange, resolveStatic } from '../server/index.js';
 
 async function boot(opts = {}) {
   const app = createGameServer({ port: 0, host: '127.0.0.1', publicHost: '127.0.0.1', ...opts });
@@ -55,6 +56,51 @@ test('static: pages, shared modules and three.js are served; traversal and dotfi
     }
     assert.equal((await fetch(base + '/api/info')).status, 200);
   } finally { await app.close(); }
+});
+
+test('the intro video is served as video with byte ranges (Safari will not play it otherwise)', async () => {
+  const { app, base } = await boot();
+  try {
+    const url = `${base}/intro/dragon-intro.mp4`;
+    const file = new URL('../public/intro/dragon-intro.mp4', import.meta.url);
+    const size = fs.statSync(file).size;
+    const fd = fs.openSync(file, 'r');
+    const slice = (start, end) => { const b = Buffer.alloc(end - start + 1); fs.readSync(fd, b, 0, b.length, start); return b; };
+    const whole = { length: size, subarray: (a, b) => slice(a, b - 1) };
+    const full = await fetch(url);
+    assert.equal(full.status, 200);
+    assert.equal(full.headers.get('content-type'), 'video/mp4');
+    assert.equal(full.headers.get('accept-ranges'), 'bytes');
+    assert.equal(Number(full.headers.get('content-length')), size);
+    await full.body.cancel();
+    // Safari's first probe, then a seek into the middle and a suffix
+    for (const [h, start, end] of [['bytes=0-1', 0, 1], ['bytes=1000-1999', 1000, 1999], ['bytes=-100', whole.length - 100, whole.length - 1], [`bytes=${whole.length - 10}-`, whole.length - 10, whole.length - 1]]) {
+      const r = await fetch(url, { headers: { range: h } });
+      assert.equal(r.status, 206, h);
+      assert.equal(r.headers.get('content-range'), `bytes ${start}-${end}/${whole.length}`, h);
+      const got = Buffer.from(await r.arrayBuffer());
+      assert.ok(got.equals(whole.subarray(start, end + 1)), h);
+    }
+    const bad = await fetch(url, { headers: { range: `bytes=${whole.length}-` } });
+    assert.equal(bad.status, 416);
+    assert.equal(bad.headers.get('content-range'), `bytes */${whole.length}`);
+    await bad.arrayBuffer();
+    // pages are not video, but ranges work for any file
+    const page = await fetch(`${base}/tv`, { headers: { range: 'bytes=0-14' } });
+    assert.equal(page.status, 206);
+    assert.equal((await page.text()).length, 15);
+    fs.closeSync(fd);
+  } finally { await app.close(); }
+});
+
+test('parseRange follows the Range header rules', () => {
+  assert.deepEqual(parseRange('bytes=0-1', 1000), { start: 0, end: 1 });
+  assert.deepEqual(parseRange('bytes=10-', 1000), { start: 10, end: 999 });
+  assert.deepEqual(parseRange('bytes=-200', 1000), { start: 800, end: 999 });
+  assert.deepEqual(parseRange('bytes=-5000', 1000), { start: 0, end: 999 });
+  assert.deepEqual(parseRange('bytes=990-5000', 1000), { start: 990, end: 999 });
+  for (const h of [undefined, '', 'bytes=-', 'bytes=5-1', 'bytes=0-1,4-5', 'items=0-1', 'bytes=a-b']) assert.equal(parseRange(h, 1000), null, String(h));
+  for (const h of ['bytes=1000-', 'bytes=-0', 'bytes=2000-3000']) assert.equal(parseRange(h, 1000), 'unsatisfiable', h);
 });
 
 test('resolveStatic confines paths to the mounts', () => {
