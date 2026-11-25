@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, ROLE_TIPS, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn } from '/shared/record.js';
+import { recordFor, describeColumn, failText } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -279,6 +279,7 @@ function recordBoard({ big = false } = {}) {
   const groups = rec.quests.filter((q) => q.cols.length);
   const firstOfQuest = new Set(groups.map((q) => q.cols[0]));
   const said = { yes: 'approved', no: 'rejected', in: 'has voted', null: 'not voted yet' };
+  const marks = { hero: false, blamed: false };
   const table = h('table', { class: `rb ${big ? 'big' : ''}`, 'aria-label': 'The record' },
     h('thead', {}, h('tr', {}, h('th', { class: 'nm', scope: 'col' }, h('span', { class: 'sr' }, 'Player')),
       groups.map((q) => h('th', { class: `qh qs ${q.outcome || (q.current ? 'cur' : '')}`, colspan: String(q.cols.length), scope: 'colgroup' },
@@ -291,6 +292,7 @@ function recordBoard({ big = false } = {}) {
           const cell = r.cells[ci]; const sent = c.approved === true; const q = rec.quests[c.questIndex];
           const blamed = sent && cell.onTeam && c.outcome === 'fail' && q.culprit === r.id;
           const hero = sent && cell.onTeam && c.outcome === 'success' && q.hero === r.id;
+          if (blamed) marks.blamed = true; if (hero) marks.hero = true;
           const cls = ['c', cell.vote || 'none', cell.onTeam ? 'team' : '', c.live ? 'live' : '', c.approved === false ? 'rej' : '',
             sent && cell.onTeam ? `went ${c.outcome || 'pending'}` : '', firstOfQuest.has(c.key) ? 'qs' : ''].filter(Boolean).join(' ');
           const label = `${r.name}, quest ${c.questIndex + 1} proposal ${c.attempt}: ${said[cell.vote]}${cell.onTeam ? ', on the team' : ''}${cell.leader ? ', leader' : ''}${blamed ? ', blamed for the fail' : ''}${hero ? ', hero' : ''}`;
@@ -306,7 +308,9 @@ function recordBoard({ big = false } = {}) {
     h('p', { class: 'rb-legend', 'aria-hidden': 'true' },
       h('span', {}, h('b', { class: 'lg yes' }, icon('check')), 'approve'), h('span', {}, h('b', { class: 'lg no' }, icon('cross')), 'reject'),
       h('span', {}, h('b', { class: 'lg team' }), 'on the team'), h('span', {}, h('b', { class: 'lg lead' }, icon('leader')), 'leader'),
-      big ? h('span', {}, h('b', { class: 'lg fail' }), 'went, quest failed') : null));
+      big ? h('span', {}, h('b', { class: 'lg fail' }), 'went, quest failed') : null,
+      marks.hero ? h('span', {}, h('b', { class: 'lg hero' }, '★'), 'hero') : null,
+      marks.blamed ? h('span', {}, h('b', { class: 'lg blamed' }, '☠'), 'blamed') : null));
 }
 
 /** The record as it sits on a screen: a panel with the board, or a line saying it will fill up. */
@@ -338,7 +342,9 @@ function trackerBar() {
       const cls = `${r ? (r.outcome === 'success' ? 's' : 'f') : ''} ${i === g.questIndex && !r ? 'cur' : ''}`;
       return h('div', { class: 'qcol' }, h('div', { class: `q ${cls}` },
         r ? icon(r.outcome === 'success' ? 'check' : 'cross') : h('b', {}, String(teamSize(n, i)))),
-        h('small', {}, failsRequired(n, i) > 1 && !r ? '2 fails' : ''));
+        // Classic mode: the number of Fail cards played stays under the shield for the rest of the game
+        r && r.failCount != null ? h('small', { class: `fc${r.failCount ? ' some' : ''}` }, `${r.failCount} Fail${r.failCount === 1 ? '' : 's'}`)
+          : h('small', {}, failsRequired(n, i) > 1 && !r ? '2 fails' : ''));
     })),
     h('div', { class: 'rejects', 'aria-label': `${g.rejectCount} of ${MAX_REJECTS} teams rejected` },
       h('span', {}, `Rejected teams ${g.rejectCount}/${MAX_REJECTS}`), Array.from({ length: MAX_REJECTS }, (_, i) => h('i', { class: i < g.rejectCount ? 'on' : '' }))));
@@ -510,7 +516,7 @@ const SCREENS = {
     const ok = r.outcome === 'success'; const who = byId(ok ? r.hero : r.culprit);
     return page({ hint: false, kicker: `Quest ${r.questIndex + 1}`, title: ok ? 'Quest succeeded' : 'Quest failed',
       body: [h('div', { class: `emblem ${ok ? 'good' : 'bad'}` }, icon(ok ? 'chalice' : 'brokensword')), h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'Suspicion falls on'), h('b', {}, who.name),
-        r.failCount != null ? h('small', {}, `${r.failCount} Fail card${r.failCount === 1 ? '' : 's'} played`) : null),
+        r.failCount != null ? h('small', {}, `${failText(r.failCount)} played`) : null),
         ok ? null : h('p', { class: 'muted center small' }, 'That is who the story on the TV blamed. They may have been framed.')], record: true });
   },
 
@@ -563,8 +569,8 @@ function drawSheet() {
     if (inGame) content.push(h('div', { class: 'panel secretnote' }, icon('eye'), h('div', {}, h('b', {}, 'Forgot who you are?'), h('p', { class: 'muted small' }, 'Press and hold your name at the top of the screen. Your role, who you know, and private advice for this moment appear only while you hold.'))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Good'), h('ul', {}, GENERAL_TIPS.good.map((t) => h('li', {}, t)))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Evil'), h('ul', {}, GENERAL_TIPS.evil.map((t) => h('li', {}, t)))));
-    if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, 'Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.')),
-      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed.')));
+    if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, `Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.${pub.config && pub.config.classic ? ' Classic mode is on, so a played quest shows how many Fail cards were in it.' : ''}`)),
+      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed. A star marks the hero of a success, and a skull the player the story blamed for a failure.')));
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: `toggle${off ? '' : ' on'}`, role: 'switch', 'aria-checked': String(!off), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', { class: 'grow' }, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
   } else if (sheetTab === 'how') {
@@ -593,7 +599,7 @@ function drawRecord() {
     const rows = hist.filter((x) => x.questIndex === qi); const r = g.results.find((x) => x.questIndex === qi);
     if (!rows.length && !r) continue;
     content.push(h('div', { class: 'panel logq' },
-      h('div', { class: 'row' }, h('h3', { class: 'grow' }, `Quest ${qi + 1}`), r ? h('span', { class: `minitoken ${r.outcome === 'success' ? 'ok' : 'ko'}` }, icon(r.outcome === 'success' ? 'check' : 'cross'), r.outcome === 'success' ? 'Succeeded' : 'Failed') : h('span', { class: 'muted small' }, 'in progress')),
+      h('div', { class: 'row' }, h('h3', { class: 'grow' }, `Quest ${qi + 1}`), r ? h('span', { class: `minitoken ${r.outcome === 'success' ? 'ok' : 'ko'}` }, icon(r.outcome === 'success' ? 'check' : 'cross'), r.outcome === 'success' ? 'Succeeded' : 'Failed', r.failCount ? ` · ${failText(r.failCount)}` : '') : h('span', { class: 'muted small' }, 'in progress')),
       ...rows.map((x) => h('div', { class: `prop ${x.approved ? 'yes' : 'no'}` },
         h('div', { class: 'row' }, avatar(byId(x.leader), 'sm'), h('span', { class: 'grow' }, h('b', {}, byId(x.leader).name), ' proposed'), h('span', { class: 'small' }, x.approved ? 'Approved' : 'Rejected')),
         h('div', { class: 'row wrapr' }, h('span', { class: 'label' }, 'Team'), x.team.map((id) => h('span', { class: 'pill' }, avatar(byId(id), 'sm'), byId(id).name))),

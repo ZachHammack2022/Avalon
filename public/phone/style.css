@@ -278,7 +278,7 @@ main[data-screen=connecting] button.primary[disabled] { border: 1px solid var(--
 @media (max-width: 350px) { .rolesum { display: none; } }
 
 /* round 5 */
-.qcol small { color: var(--muted); font-weight: 600; } .q:not(.cur):not(.s):not(.f) { background: var(--line2); color: #efe3cf; }
+.qcol small { color: var(--muted); font-weight: 600; } .qcol small.fc { color: var(--ink); font-weight: 700; } .qcol small.fc.some { color: var(--evil); } .q:not(.cur):not(.s):not(.f) { background: var(--line2); color: #efe3cf; }
 .token.no .disc { background: radial-gradient(circle at 35% 28%, #8b8591, #4a4551 60%, #2a2730); color: #ff8b78; }
 .linkbtn { background: none; border: 0; box-shadow: none; min-height: 44px; margin-top: 8px; padding: 6px; font-size: 15px; font-weight: 600; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 .cardback { width: min(72vw, 300px); margin: auto; } main[data-screen=roleReveal] .scroll { justify-content: flex-start; }
@@ -397,5 +397,6 @@ input.code::placeholder { letter-spacing: .25em; }
 .rb-legend .lg.yes { background: #e9d7ae; color: #245a2b; } .rb-legend .lg.no { background: #2a262e; color: var(--evil); }
 .rb-legend .lg.team { outline: 2px solid var(--gold); outline-offset: -2px; } .rb-legend .lg.fail { outline: 2px solid var(--evil); outline-offset: -2px; }
 .rb-legend .lg.lead { width: auto; color: var(--gold); font-size: 15px; }
+.rb-legend .lg.hero, .rb-legend .lg.blamed { width: auto; font-size: 13px; } .rb-legend .lg.hero { color: var(--gold); } .rb-legend .lg.blamed { color: #fff; }
 .rb-title { display: inline-flex; align-items: center; gap: 8px; } .rb-title .ic { color: var(--gold); }
 .rb-sub { margin-top: 6px; }

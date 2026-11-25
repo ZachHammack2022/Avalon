@@ -1,7 +1,7 @@
 // TV record board: the quest shields plus the whole vote record (players down the side, every proposal across,
 // grouped by quest), kept on screen beside the campfire so the table can argue from it. Data comes from
 // shared/record.js. boardTree() is pure (unit-tested in Node); toDom() turns the tree into elements in the browser.
-import { recordFor } from '../../shared/record.js';
+import { failText, recordFor } from '../../shared/record.js';
 import { ROLE_INFO } from '../../shared/roles-info.js';
 import { MAX_REJECTS } from '../../shared/avalon.js';
 
@@ -27,6 +27,8 @@ export function boardTree(pub, { flip = null } = {}) {
     el('div', 'q', el('b', '', q.outcome === 'success' ? '✔' : q.outcome === 'fail' ? '✘' : String(q.index + 1))),
     el('small', '', q.size ? `${q.size} go` : ''),
     q.fails > 1 && !q.outcome ? el('small', 'two', '2 fails') : null,
+    // Classic mode makes the number of Fail cards public: it stays under the shield for the rest of the game
+    q.outcome && q.failCount != null ? el('small', `fc${q.failCount ? ' some' : ''}`, failText(q.failCount)) : null,
   ])));
   const rejects = el('div', 'bd-rej', [el('span', '', `Rejected ${rec.rejectCount}/${MAX_REJECTS}`), el('div', 'pips', Array.from({ length: MAX_REJECTS }, (_, i) => el('i', i < rec.rejectCount ? 'on' : '')))]);
   const top = el('div', 'bd-top', [shields, rejects]);
@@ -40,6 +42,7 @@ export function boardTree(pub, { flip = null } = {}) {
     el('th', 'nm', ''),
     ...groups.map((q) => el('th', `qh qs ${q.outcome || (q.current ? 'current' : '')}`, `Q${q.index + 1}`, { colspan: String(q.cols.length) })),
   ]);
+  const marks = { hero: false, blamed: false };
   const body = rec.rows.map((r, ri) => {
     const role = r.role ? ROLE_INFO[r.role] : null;
     return el('tr', role ? `team-${role.team}` : '', [
@@ -55,6 +58,7 @@ export function boardTree(pub, { flip = null } = {}) {
           firstOfQuest.has(c.key) ? 'qs' : '',
           flip === c.key ? 'flip' : ''].filter(Boolean).join(' ');
         const mark = sent && c.outcome === 'fail' && q.culprit === r.id ? el('sub', 'mk blamed', '☠') : sent && c.outcome === 'success' && q.hero === r.id ? el('sub', 'mk hero', '★') : null;
+        if (mark) marks[mark.cls.split(' ')[1]] = true;
         return el('td', cls, [GLYPH[cell.vote] || '', cell.leader ? el('sup', 'crown', '♛') : null, mark],
           flip === c.key ? { style: `animation-delay:${(FLIP_START + ri * FLIP_STEP).toFixed(2)}s` } : undefined);
       }),
@@ -65,6 +69,9 @@ export function boardTree(pub, { flip = null } = {}) {
     el('span', '', [el('b', 'lg yes', '✔'), 'approve']), el('span', '', [el('b', 'lg no', '✘'), 'reject']),
     el('span', '', [el('b', 'lg team', ''), 'on the team']), el('span', '', [el('b', 'lg crown', '♛'), 'leader']),
     el('span', '', [el('b', 'lg fail', ''), 'quest failed']),
+    // the story's marks, explained once they are on the board
+    marks.hero ? el('span', '', [el('b', 'lg hero', '★'), 'hero']) : null,
+    marks.blamed ? el('span', '', [el('b', 'lg blamed', '☠'), 'blamed']) : null,
   ]);
   return [top, grid, legend];
 }

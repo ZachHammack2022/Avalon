@@ -67,6 +67,18 @@ test('record: roles only appear once the game is over', () => {
   assert.ok(done.quests.every((q) => !q.current));
 });
 
+test('record: in Classic mode the Fail count of each quest is part of the record', () => {
+  const classic = [{ ...results[0], failCount: 1 }, { ...results[1], failCount: 2 }];
+  const rec = recordFor(pub('propose', { results: classic }));
+  assert.deepEqual(rec.quests.map((q) => q.failCount), [1, 2, null, null, null]);
+  assert.deepEqual(rec.columns.map((c) => c.failCount), [null, 1, 2]);
+  const name = (id) => players.find((p) => p.id === id).name;
+  assert.match(describeColumn(rec.columns[1], name), /The quest succeeded with 1 Fail card\.$/);
+  assert.match(describeColumn(rec.columns[2], name), /The quest failed with 2 Fail cards\.$/);
+  // without Classic the count is secret and never mentioned
+  assert.ok(recordFor(pub('propose')).columns.every((c) => c.failCount === null));
+});
+
 test('record: plain-language column summaries', () => {
   const rec = recordFor(pub('vote', { team: ['p4', 'p5'], voted: [] }));
   const name = (id) => players.find((p) => p.id === id).name;
