@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, secretRead, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, cleanText, teamCase } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, cleanText, teamCase, voteReport } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -700,6 +700,15 @@ function drawRecord() {
   const content = [];
   const board = recordBoard({ big: true });
   content.push(board || h('p', { class: 'muted' }, 'Nothing yet. Every proposal, vote and quest result will be kept here so you can check who backed whom.'));
+  // once roles are public: how each player's votes read the teams (the argument the record was for, settled)
+  const report = voteReport(pub);
+  if (report && report.length) {
+    content.push(h('h3', { class: 'rb-sub' }, 'The votes, with the roles known'),
+      h('div', { class: 'panel' }, h('p', { class: 'muted small' }, 'A vote reads a team right when it approves a team with no evil on it or rejects one with evil on it. Votes on your own team and stand-in votes are left out.'),
+        h('ul', { class: 'readlist' }, report.map((r) => { const p = byId(r.id); const role = ROLE_INFO[pub.reveal.roles[r.id]];
+          return h('li', { class: `team-${role.team}` }, avatar(p, 'sm'), h('span', { class: 'grow' }, h('b', {}, p.name), ' ', h('small', {}, role.name)),
+            h('span', { class: 'small' }, r.evil ? `voted like Good on ${r.right} of ${r.of}` : `read ${r.right} of ${r.of} right`)); }))));
+  }
   if (hist.length) content.push(h('h3', { class: 'rb-sub' }, 'Proposal by proposal'));
   // newest quest first: that is what the table is arguing about
   for (let qi = Math.min(g.questIndex, QUEST_COUNT - 1); qi >= 0; qi--) {
