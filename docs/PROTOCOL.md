@@ -8,7 +8,7 @@ refilled at 20/s; excess messages are dropped.
 
 | Client → server | Reply |
 |---|---|
-| `{t:'tv', room?}` | `{t:'room', code}`, `{t:'info', joinUrl, phoneBase}`, `{t:'state', pub}`. Unknown/missing `room` creates a new room. |
+| `{t:'tv', room?}` | `{t:'room', code}`, `{t:'info', joinUrl, phoneBase}`, `{t:'state', pub}`. A missing `room` creates a new room; an unknown but well-formed one (a TV back after a server restart) is reopened under that code, so phones can rejoin with the code they remember. |
 | `{t:'join', room, name, token?, cls?, color?}` | `{t:'joined', id, token, room, resumed, standIn}` then `{t:'state', pub, me}`; or `{t:'error', code:'noRoom'|'joinFailed', msg}`. `standIn` is true when a stand-in had been playing the resumed seat. |
 
 A `token` that matches a seat resumes it (the old socket for that seat is closed). New players cannot join once a game started.

@@ -4,7 +4,7 @@ import http from 'node:http';
 import WebSocket from 'ws';
 import fs from 'node:fs';
 import { Writable } from 'node:stream';
-import { createGameServer, parseRange, resolveStatic, sendFile } from '../server/index.js';
+import { createGameServer, isRoomCode, parseRange, resolveStatic, sendFile } from '../server/index.js';
 
 async function boot(opts = {}) {
   const app = createGameServer({ port: 0, host: '127.0.0.1', publicHost: '127.0.0.1', ...opts });
@@ -138,6 +138,38 @@ test('resolveStatic confines paths to the mounts', () => {
   assert.equal(resolveStatic('/shared/../server/index.js'), null);
   assert.equal(resolveStatic('/../x'), null);
   assert.ok(resolveStatic('/shared/avalon.js').endsWith('shared/avalon.js'));
+});
+
+test('after a server restart the TV gets its room back under the same code, and phones rejoin with it', async () => {
+  let code; let token;
+  {
+    const { app, ws } = await boot();
+    try {
+      const tv = new Client(ws); await tv.open; tv.send({ t: 'tv' });
+      ({ code } = await tv.waitFor((m) => m.t === 'room'));
+      const ph = new Client(ws); await ph.open; ph.send({ t: 'join', room: code, name: 'Ann' });
+      ({ token } = await ph.waitFor((m) => m.t === 'joined'));
+    } finally { await app.close(); }
+  }
+  const { app, ws } = await boot(); // the server came back with no rooms
+  try {
+    const tv = new Client(ws); await tv.open; tv.send({ t: 'tv', room: code.toLowerCase() });
+    assert.equal((await tv.waitFor((m) => m.t === 'room')).code, code);
+    // the phone still has the code and its old token: it lands in the lobby under its name
+    const ph = new Client(ws); await ph.open; ph.send({ t: 'join', room: code, name: 'Ann', token });
+    const j = await ph.waitFor((m) => m.t === 'joined');
+    assert.equal(j.room, code); assert.equal(j.resumed, false);
+    assert.deepEqual((await tv.waitFor((m) => m.t === 'state' && m.pub.players.length === 1)).pub.players.map((p) => p.name), ['Ann']);
+    // a second TV asking for that code joins the same room; a made-up or taken-looking code gets a fresh one
+    const tv2 = new Client(ws); await tv2.open; tv2.send({ t: 'tv', room: code });
+    assert.equal((await tv2.waitFor((m) => m.t === 'room')).code, code);
+    const tv3 = new Client(ws); await tv3.open; tv3.send({ t: 'tv', room: 'AB1!' });
+    const fresh = (await tv3.waitFor((m) => m.t === 'room')).code;
+    assert.notEqual(fresh, code); assert.ok(isRoomCode(fresh));
+    for (const c of [tv, tv2, tv3, ph]) c.close();
+  } finally { await app.close(); }
+  assert.equal(isRoomCode('ABCD'), true);
+  for (const bad of ['ABC', 'ABCDE', 'abcd', 'ABIO', 'AB1D', null, 42]) assert.equal(isRoomCode(bad), false, String(bad));
 });
 
 test('joining an unknown room is rejected; bad first messages get an error', async () => {

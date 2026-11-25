@@ -56,6 +56,7 @@ export function sendFile(file, res, range) {
   pipeline(fs.createReadStream(file, range || undefined), res, () => {});
 }
 const CODE_LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+export const isRoomCode = (c) => typeof c === 'string' && c.length === 4 && [...c].every((ch) => CODE_LETTERS.includes(ch));
 
 export function lanAddress() {
   for (const list of Object.values(os.networkInterfaces())) {
@@ -123,9 +124,10 @@ export function createGameServer({
 
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 8 * 1024 });
 
-  function newRoom() {
-    let code;
-    do { code = Array.from({ length: 4 }, () => CODE_LETTERS[Math.floor(secureRandom() * CODE_LETTERS.length)]).join(''); } while (rooms.has(code));
+  /** A new room; under `want` when that is a free, well-formed code (a TV coming back after a server restart). */
+  function newRoom(want) {
+    let code = isRoomCode(want) && !rooms.has(want) ? want : null;
+    while (!code || rooms.has(code)) code = Array.from({ length: 4 }, () => CODE_LETTERS[Math.floor(secureRandom() * CODE_LETTERS.length)]).join('');
     const room = new Room({ code, rng: rngFactory(), clock, timing, timeScale, onEmpty: () => {}, onError: (e) => console.error(`[room ${code}] timer:`, e) });
     rooms.set(code, room);
     return room;
@@ -152,7 +154,9 @@ export function createGameServer({
       if (!role) {
         if (msg.t === 'tv') {
           const want = typeof msg.room === 'string' ? msg.room.toUpperCase() : null;
-          room = (want && rooms.get(want)) || newRoom();
+          // a TV that asks for a room the server no longer has (it restarted) gets it back under the same code, so the
+          // phones, which remember the code, can rejoin without anyone reading a new one off the TV
+          room = (want && rooms.get(want)) || newRoom(want);
           role = 'tv';
           room.attachTv(conn);
           conn.send({ t: 'info', joinUrl: joinUrl(room.code), phoneBase: joinUrl('').replace('/?room=', '') });
