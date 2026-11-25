@@ -38,6 +38,7 @@ test('phone: every screen of real games renders, with the record inline wherever
   const seen = new Set();
   const announced = new Set();
   const sawCrown = new Set();
+  const sawWent = new Set();
   let lastScreen = '';
   let sawStandIn = false;
   for (const seed of [3, 8, 21]) {
@@ -93,12 +94,25 @@ test('phone: every screen of real games renders, with the record inline wherever
       if (autos.length) sawStandIn = true;
       // roles are never on a phone's record before the game is over
       assert.equal(table.querySelectorAll('.rl').length, s.pub.phase === 'gameover' ? s.pub.players.length : 0, screen);
+      // the proposed team carries each member's quest history (shown results only)
+      if (screen === 'vote' || screen === 'voted') {
+        const members = main.querySelector('.team').querySelectorAll('.member');
+        assert.equal(members.length, s.pub.game.team.length);
+        members.forEach((m, i) => {
+          const id = s.pub.game.team[i];
+          const want = s.pub.game.results.filter((r) => r.team.includes(id)).map((r) => (r.outcome === 'success' ? 'ok' : 'ko'));
+          const got = m.querySelector('.went');
+          assert.deepEqual(got ? got.querySelectorAll('.ic').map((ic) => (ic.classList.contains('ok') ? 'ok' : 'ko')) : [], want, `${screen}: member ${id}`);
+          if (want.length) { sawWent.add(want.length); assert.match(got.getAttribute('aria-label'), /went on \d quests?/); }
+        });
+      }
       // while the votes are face-down only "has voted" shows for the live proposal
       if (s.pub.phase === 'vote') assert.ok(table.querySelectorAll('td.live').every((td) => !td.classList.contains('yes') && !td.classList.contains('no')));
     }
   }
   assert.ok(announced.size > 8, 'screen changes are announced');
   assert.ok(sawCrown.has(0) && sawCrown.size > 1, `crown lines seen at reject counts ${[...sawCrown]}`);
+  assert.ok(sawWent.size > 1, 'team members with one and with several past quests');
   assert.ok(sawStandIn, 'the stand-in seat shows up on the record');
   for (const sc of [...WITH_RECORD.filter((x) => x !== 'assassinate' && x !== 'waitAssassin'), 'lobby', 'roleReveal', 'voteReveal', 'quest-card']) assert.ok(seen.has(sc), `saw ${sc}`);
 });

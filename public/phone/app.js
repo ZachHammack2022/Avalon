@@ -362,9 +362,18 @@ const personChip = (p, { sel = false, onclick, mark, tag } = {}) => h(onclick ? 
 
 function teamRow(ids, label) {
   const g = state.pub.game;
+  // the record at the moment of decision: under each name, how every quest they went on turned out
+  const rec = recordFor(state.pub);
+  const went = (id) => { const r = rec && rec.rows.find((x) => x.id === id); return r ? r.quests : []; };
+  const wentLabel = (qs) => { const f = qs.filter((o) => o === 'fail').length; return `went on ${qs.length} quest${qs.length === 1 ? '' : 's'}${f ? `, ${f} failed` : ', all succeeded'}`; };
   return h('div', { class: 'panel' },
     label ? h('div', { class: 'label' }, label) : null,
-    h('div', { class: 'team' }, ids.map((id) => { const p = byId(id); return h('div', { class: 'member' }, avatar(p, 'lg'), h('span', {}, p.name), id === g.leader ? icon('leader', 'leadmark') : null); })));
+    h('div', { class: 'team' }, ids.map((id) => {
+      const p = byId(id); const qs = went(id);
+      return h('div', { class: 'member' }, avatar(p, 'lg'), h('span', {}, p.name),
+        qs.length ? h('span', { class: 'went', role: 'img', 'aria-label': `${p.name} ${wentLabel(qs)}` }, qs.map((o) => icon(o === 'success' ? 'check' : 'cross', o === 'success' ? 'ok' : 'ko'))) : null,
+        id === g.leader ? icon('leader', 'leadmark') : null);
+    })));
 }
 
 const waiting = (ic, text) => h('div', { class: 'waiting' }, h('div', { class: 'pulse' }, icon(ic)), h('p', {}, text));
@@ -579,7 +588,7 @@ function drawSheet() {
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Good'), h('ul', {}, GENERAL_TIPS.good.map((t) => h('li', {}, t)))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Evil'), h('ul', {}, GENERAL_TIPS.evil.map((t) => h('li', {}, t)))));
     if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, `Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.${pub.config && pub.config.classic ? ' Classic mode is on, so a played quest shows how many Fail cards were in it.' : ''}`)),
-      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed. A star marks the hero of a success, and a skull the player the story blamed for a failure. A striped vote was cast by a stand-in while that player was away. The crown passes down the rows in order; while a team is picked or voted on, the line under the record says who leads next.')));
+      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed. A star marks the hero of a success, and a skull the player the story blamed for a failure. A striped vote was cast by a stand-in while that player was away. The crown passes down the rows in order; while a team is picked or voted on, the line under the record says who leads next. When a team is proposed, the ticks and crosses under each name are the quests that player went on.')));
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: `toggle${off ? '' : ' on'}`, role: 'switch', 'aria-checked': String(!off), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', { class: 'grow' }, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
   } else if (sheetTab === 'how') {
