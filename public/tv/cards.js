@@ -52,10 +52,21 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
       const rv = pub.reveal;
       const why = endReason(rv, (id) => name(pub, id));
       return { kind: 'gameover', title: rv.winner === 'good' ? 'Good wins!' : 'Evil wins!', tone: rv.winner === 'good' ? 'good' : 'bad',
-        lines: [why, ...pub.players.map((p) => `${p.name}: ${ROLE_INFO[rv.roles[p.id]].name}`), ...rv.recap.map((q) => `${QUESTS[q.questIndex].name}: ${q.outcome === 'success' ? `Success. Hero: ${name(pub, q.hero)}` : `Failed. Culprit: ${name(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}`}${q.failCount != null ? ` [${q.failCount} Fail]` : ''}`), ...awards(pub, rv.recap)] };
+        lines: [why, ...teamLines(pub, rv.roles), ...rv.recap.map((q) => `${QUESTS[q.questIndex].name}: ${q.outcome === 'success' ? `Success. Hero: ${name(pub, q.hero)}` : `Failed. Culprit: ${name(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}`}${q.failCount != null ? ` [${q.failCount} Fail]` : ''}`), ...awards(pub, rv.recap)] };
     }
     default: return { kind: 'unknown', title: '', lines: [] };
   }
+}
+
+/**
+ * Who was on which side, one line per side, special roles named: "Loyal Servants: Ann (Merlin), Cy and Eli". One line
+ * per player pushed the recap and the awards off the bottom of the card from seven players up (the record board
+ * beside the card already shows each player's role).
+ */
+export function teamLines(pub, roles) {
+  const side = (team) => list(pub.players.filter((p) => ROLE_INFO[roles[p.id]] && ROLE_INFO[roles[p.id]].team === team)
+    .map((p) => (roles[p.id] === 'loyal' || roles[p.id] === 'minion' ? p.name : `${p.name} (${ROLE_INFO[roles[p.id]].name})`)));
+  return [`Loyal Servants: ${side('good')}`, `Minions of Mordred: ${side('evil')}`];
 }
 
 function resultCard(pub, r, quest) {

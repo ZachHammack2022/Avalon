@@ -99,12 +99,13 @@ test('TV: a refresh mid-cutscene shows the result card (skip to result)', () => 
   assert.match(card.lines[0], /Bo/);
 });
 
-test('TV: game over card lists every role and the recap with framing', () => {
+test('TV: game over card lists both sides with their roles and the recap with framing', () => {
   const rv = { winner: 'evil', reason: 'assassination-hit', roles: { p1: 'merlin', p2: 'assassin', p3: 'loyal', p4: 'minion', p5: 'loyal' }, recap: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, framed: true, failCount: 1 }] };
   const c = cardFor(pub('gameover', {}, { reveal: rv }));
   assert.equal(c.title, 'Evil wins!');
   const text = c.lines.join('\n');
-  assert.match(text, /Ann: Merlin/);
+  assert.match(text, /^Loyal Servants: Ann \(Merlin\), Cy and Eli$/m);
+  assert.match(text, /^Minions of Mordred: Bo \(Assassin\) and Dee$/m);
   assert.match(text, /Cy \(framed!\)/);
   assert.match(text, /found Merlin/);
   const miss = cardFor(pub('gameover', {}, { reveal: { ...rv, winner: 'good', reason: 'assassination-miss', assassination: { assassin: 'p2', target: 'p3', hit: false } } }));
@@ -141,4 +142,18 @@ test('game-over awards: hero, scapegoat and walking disaster come from the recap
   assert.match(lines[1], /Scapegoat: Bo, framed once/);
   assert.match(lines[2], /Walking disaster: Cy \(2 catastrophes\)/);
   assert.deepEqual(awards(pub, []), []);
+});
+
+test('TV: the game over card fits a full table: two lines for the sides, however many players', () => {
+  const ten = Array.from({ length: 10 }, (_, i) => ({ ...players[0], id: `q${i}`, name: `Player ${i + 1}`, vip: i === 0 }));
+  const kinds = ['merlin', 'percival', 'loyal', 'loyal', 'loyal', 'loyal', 'assassin', 'morgana', 'mordred', 'oberon'];
+  const roles = Object.fromEntries(ten.map((p, i) => [p.id, kinds[i]]));
+  const recap = [0, 1, 2, 3, 4].map((questIndex) => (questIndex % 2
+    ? { questIndex, outcome: 'fail', culprit: 'q2', hero: null, framed: true }
+    : { questIndex, outcome: 'success', hero: 'q3', culprit: null }));
+  const c = cardFor({ ...pub('gameover', {}, { reveal: { winner: 'good', reason: 'quests', roles, recap } }), players: ten });
+  // the card is cut off at 80% of the screen height: about 15 lines at the game-over size
+  assert.ok(c.lines.length <= 12, `${c.lines.length} lines`);
+  assert.equal(c.lines[1], 'Loyal Servants: Player 1 (Merlin), Player 2 (Percival), Player 3, Player 4, Player 5 and Player 6');
+  assert.equal(c.lines[2], 'Minions of Mordred: Player 7 (Assassin), Player 8 (Morgana), Player 9 (Mordred) and Player 10 (Oberon)');
 });
