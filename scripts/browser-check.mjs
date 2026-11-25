@@ -176,6 +176,61 @@ if (!process.argv.includes('--live-only')) {
   await tv.reload();
   await tv.waitForFunction(() => window.__tv.app.pub && window.__tv.app.pub.phase === 'gameover');
   console.log(`${failures ? 'FAIL' : 'ok  '} full game via phone UI + TV, phone reload resumed, TV reload resumed (${guard} polls)`);
+  await phone.close(); await tv.close(); // closed first so they do not keep redialing a dead server
+  await live.close();
+}
+
+// ---------- 3. a locked phone whose socket died silently can still vote on wake ----------
+// Regression: after the first cutscene people lock their phones; the server drops the socket but on
+// wake the browser may still report it OPEN. The phone must redial instead of sitting on a stale screen.
+{
+  const live = createGameServer({ port: 0, host: '127.0.0.1', publicHost: '127.0.0.1', timeScale: 20 });
+  const { port: p3 } = await live.listen();
+  const tvSock = new WebSocket(`ws://127.0.0.1:${p3}/ws`);
+  const code = await new Promise((resolve) => {
+    tvSock.onopen = () => tvSock.send(JSON.stringify({ t: 'tv' }));
+    tvSock.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.t === 'room') resolve(m.code); };
+  });
+  const room = live.rooms.get(code);
+  const phone = await browser.newPage({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true });
+  phone.on('pageerror', (e) => fail(`zombie phone pageerror: ${e.message}`));
+  await phone.goto(`http://127.0.0.1:${p3}/?room=${code}`);
+  await phone.fill('input[placeholder="Your name"]', 'Sleepy');
+  await phone.click('main button.primary');
+  await phone.waitForFunction(() => window.__sq.state && window.__sq.state.pub.phase === 'lobby');
+  const me = room.vip;
+  for (let i = 0; i < 4; i++) room.handle(me.id, { t: 'addBot' });
+  room.handle(me.id, { t: 'start' });
+  room.handle(me.id, { t: 'ready' });
+  // zombie socket: the page's sends vanish, and the server's pushes to this seat go nowhere, but no close event fires
+  await phone.evaluate(() => { window.__realSend = WebSocket.prototype.send; WebSocket.prototype.send = function () {}; });
+  const seat = room.player(me.id); seat.conn = { send() {}, close() {} };
+  const t0 = Date.now();
+  while (!(room.phase === 'vote' && !room.g.votes.has(me.id)) && Date.now() - t0 < 60000) {
+    if (room.phase === 'propose' && room.g.order[room.g.leader] === me.id) room.handle(me.id, { t: 'propose', team: room.g.order.slice(0, 2) });
+    await phone.waitForTimeout(50);
+  }
+  if (room.phase !== 'vote') fail(`zombie check never reached a vote (stuck in ${room.phase})`);
+  // the network comes back; the phone is locked for a few seconds and then unlocked
+  await phone.evaluate(async () => {
+    WebSocket.prototype.send = window.__realSend;
+    const vis = (v) => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v }); document.dispatchEvent(new Event('visibilitychange')); };
+    vis('hidden'); await new Promise((r) => setTimeout(r, 2500)); vis('visible');
+  });
+  await phone.waitForSelector('.token.yes', { timeout: 10000 }).catch(() => fail('phone did not show the vote tokens after waking'));
+  // choose Approve, then lock it in (retry: a state push can replace the buttons mid-tap)
+  for (let i = 0; i < 20 && room.phase === 'vote' && !room.g.votes.has(me.id); i++) {
+    await phone.evaluate(() => {
+      const lock = [...document.querySelectorAll('main button')].find((b) => b.textContent.includes('Lock in my vote'));
+      if (lock) lock.click(); else { const t = document.querySelector('.token.yes'); if (t) t.click(); }
+    });
+    await phone.waitForTimeout(200);
+  }
+  const voted = room.g.votes.has(me.id) || room.g.proposals.some((pr) => me.id in pr.votes);
+  if (!voted) fail('vote from the woken phone never reached the server');
+  console.log(`${voted ? 'ok  ' : 'FAIL'} phone with a silently dead socket redials on wake and can vote`);
+  tvSock.close();
+  await phone.close();
   await live.close();
 }
 
