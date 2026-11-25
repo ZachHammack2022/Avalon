@@ -70,7 +70,7 @@ test('board: Classic mode keeps the Fail count under each played shield', () => 
   assert.equal(plain.length, 0);
   const classic = [{ ...results[0], failCount: 0 }, { ...results[1], failCount: 2 }];
   const fc = find(boardTree(pub('propose', { results: classic })), 'fc');
-  assert.deepEqual(fc.map(text), ['0 Fail cards', '2 Fail cards']);
+  assert.deepEqual(fc.map(text), ['0 Fails', '2 Fails']); // short enough to sit under a shield
   assert.deepEqual(fc.map((n) => has(n, 'some')), [false, true]);
 });
 

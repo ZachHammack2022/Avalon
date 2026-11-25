@@ -1,7 +1,7 @@
 // TV record board: the quest shields plus the whole vote record (players down the side, every proposal across,
 // grouped by quest), kept on screen beside the campfire so the table can argue from it. Data comes from
 // shared/record.js. boardTree() is pure (unit-tested in Node); toDom() turns the tree into elements in the browser.
-import { failText, recordFor } from '../../shared/record.js';
+import { recordFor } from '../../shared/record.js';
 import { ROLE_INFO } from '../../shared/roles-info.js';
 import { MAX_REJECTS } from '../../shared/avalon.js';
 
@@ -28,7 +28,7 @@ export function boardTree(pub, { flip = null } = {}) {
     el('small', '', q.size ? `${q.size} go` : ''),
     q.fails > 1 && !q.outcome ? el('small', 'two', '2 fails') : null,
     // Classic mode makes the number of Fail cards public: it stays under the shield for the rest of the game
-    q.outcome && q.failCount != null ? el('small', `fc${q.failCount ? ' some' : ''}`, failText(q.failCount)) : null,
+    q.outcome && q.failCount != null ? el('small', `fc${q.failCount ? ' some' : ''}`, `${q.failCount} Fail${q.failCount === 1 ? '' : 's'}`) : null,
   ])));
   const rejects = el('div', 'bd-rej', [el('span', '', `Rejected ${rec.rejectCount}/${MAX_REJECTS}`), el('div', 'pips', Array.from({ length: MAX_REJECTS }, (_, i) => el('i', i < rec.rejectCount ? 'on' : '')))]);
   const top = el('div', 'bd-top', [shields, rejects]);
