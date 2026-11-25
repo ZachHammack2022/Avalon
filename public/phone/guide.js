@@ -2,7 +2,7 @@
 // Pure data + functions (unit-tested in Node). Only ever uses the viewer's OWN role, so nothing leaks.
 import { ROLE_INFO } from '../../shared/roles-info.js';
 import { failsRequired, teamSize, MAX_REJECTS } from '../../shared/avalon.js';
-import { failedTeamVotes } from '../../shared/record.js';
+import { failedTeamVotes, noToEvil } from '../../shared/record.js';
 
 export const HOW_TO = [
   { h: 'The story', p: 'The Lost Crown has been stolen. Most of you are Loyal Servants of Arthur. Some of you are secret Minions of Mordred. Nobody knows who is who, except the Minions and a few special roles.' },
@@ -115,6 +115,25 @@ export function percivalRead(state) {
   const parts = me.knows.filter((id) => votes[id]).map((id) => `${nameOf(id)} voted against ${votes[id].against} of ${votes[id].of} failed team${votes[id].of === 1 ? '' : 's'}`);
   if (!parts.length) return null;
   return `${parts.join('; ')}. Merlin sees the Minions, so Merlin tends to vote against teams that go on to fail.`;
+}
+
+/**
+ * Merlin's private read of the record: how often Merlin voted down a team with a Minion Merlin can see on it, which is
+ * the pattern an Assassin hunts for. Votes on Merlin's own teams are left out. Null for anyone else, or before Merlin
+ * has voted on such a team.
+ */
+export function merlinRead(state) {
+  const me = state && state.me; const pub = state && state.pub;
+  if (!me || me.role !== 'merlin' || !Array.isArray(me.knows) || !me.knows.length || !pub || !pub.game) return null;
+  const r = noToEvil(pub, me.knows)[me.id];
+  if (!r || !r.of) return null;
+  const verdict = r.of < 2 ? 'One vote is not a pattern yet.' : r.no * 4 >= r.of * 3 ? 'That is the pattern the Assassin looks for.' : 'Mixed enough not to stand out.';
+  return `You voted down ${r.no} of ${r.of} team${r.of === 1 ? '' : 's'} with a Minion you can see on ${r.of === 1 ? 'it' : 'them'}. ${verdict}`;
+}
+
+/** The record, read for the viewer's own role, for the held role card: Percival's or Merlin's read, else null. */
+export function secretRead(state) {
+  return percivalRead(state) || merlinRead(state);
 }
 
 /** Compact status strip: "Quest 3 of 5 · 3 on the team · needs 1 Fail". */

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { coachFor, counselFor, percivalRead, questStrip, roleTips, ROLE_TIPS, HOW_TO } from '../public/phone/guide.js';
+import { coachFor, counselFor, merlinRead, percivalRead, questStrip, secretRead, roleTips, ROLE_TIPS, HOW_TO } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
 
 const players = Array.from({ length: 7 }, (_, i) => ({ id: `p${i}`, name: `P${i}` }));
@@ -69,4 +69,19 @@ test('Percival reads the record: how each of the two candidates voted on teams t
   assert.equal(percivalRead(st2('percival', ['p6'])), null, 'without Morgana, Percival already knows Merlin');
   assert.equal(percivalRead(st2('loyal', [])), null);
   assert.equal(percivalRead({ pub: { players, game: { questIndex: 0, results: [], history: [] } }, me: { role: 'percival', knows: ['p4', 'p6'] } }), null, 'nothing before a quest fails');
+});
+
+test('Merlin reads the record: how often Merlin voted down a team with a visible Minion, the Assassin\'s tell', () => {
+  const V = (...yes) => Object.fromEntries(players.map((p) => [p.id, yes.includes(p.id)]));
+  const evilTeam = (q, team, ...yes) => ({ questIndex: q, leader: team[0], team, votes: V(...yes), approved: false });
+  // p6 is Merlin and sees p1 and p2
+  const hist = [evilTeam(0, ['p1', 'p3'], 'p1', 'p3'), evilTeam(0, ['p2', 'p4'], 'p2', 'p4'), evilTeam(0, ['p6', 'p1'], 'p6', 'p1')];
+  const st2 = (history, role = 'merlin') => ({ pub: { players, game: { questIndex: 0, results: [], history } }, me: { id: 'p6', role, knows: ['p1', 'p2'] } });
+  assert.equal(merlinRead(st2(hist)), 'You voted down 2 of 2 teams with a Minion you can see on them. That is the pattern the Assassin looks for.', 'its own team is left out');
+  assert.equal(merlinRead(st2(hist.slice(0, 1))), 'You voted down 1 of 1 team with a Minion you can see on it. One vote is not a pattern yet.');
+  const mixed = hist.concat(evilTeam(1, ['p2', 'p5'], 'p2', 'p5', 'p6'));
+  assert.match(merlinRead(st2(mixed)), /2 of 3 teams.*Mixed enough not to stand out/);
+  assert.equal(merlinRead(st2([])), null);
+  assert.equal(merlinRead(st2(hist, 'loyal')), null);
+  assert.equal(secretRead(st2(hist)), merlinRead(st2(hist)));
 });

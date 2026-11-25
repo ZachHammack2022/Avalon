@@ -4,7 +4,7 @@ import { screenFor, toggleSelection, canConfirm, knownPlayers, leaderName, nameO
 import { ROLE_INFO, ROLE_TOGGLE_INFO, KNOW_LABELS, rolesInPlay, rolesText } from '/shared/roles-info.js';
 import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
-import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, percivalRead, questStrip } from './guide.js';
+import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, secretRead, questStrip } from './guide.js';
 import { icon } from './icons.js';
 import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, cleanText, teamCase } from '/shared/record.js';
 
@@ -185,7 +185,7 @@ function showSecret() {
   const me = state.me; const info = ROLE_INFO[me.role];
   const known = knownPlayers(state);
   const counsel = counselFor(screenFor(state), state);
-  const read = percivalRead(state); // the record, read for telling Merlin from Morgana
+  const read = secretRead(state); // the record, read for this role: Percival's Merlin or Morgana, Merlin's exposure
   secret.replaceChildren(h('div', { class: 'rolecard' },
     h('div', { class: 'rc-top' }, 'Your role'),
     h('div', { class: 'rc-sigil' }, icon(me.role)),
