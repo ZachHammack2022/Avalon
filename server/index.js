@@ -7,7 +7,7 @@ import { pipeline } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { Room } from './room.js';
-import { makeRng } from '../shared/rng.js';
+import { makeRng, secureRandom } from '../shared/rng.js';
 import { assertCampaignValid } from '../shared/campaign-lost-crown.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -125,7 +125,7 @@ export function createGameServer({
 
   function newRoom() {
     let code;
-    do { code = Array.from({ length: 4 }, () => CODE_LETTERS[Math.floor(Math.random() * CODE_LETTERS.length)]).join(''); } while (rooms.has(code));
+    do { code = Array.from({ length: 4 }, () => CODE_LETTERS[Math.floor(secureRandom() * CODE_LETTERS.length)]).join(''); } while (rooms.has(code));
     const room = new Room({ code, rng: rngFactory(), clock, timing, timeScale, onEmpty: () => {}, onError: (e) => console.error(`[room ${code}] timer:`, e) });
     rooms.set(code, room);
     return room;

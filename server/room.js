@@ -7,6 +7,7 @@ import {
 } from '../shared/avalon.js';
 import { QUESTS } from '../shared/campaign-lost-crown.js';
 import { cutsceneSeconds } from '../shared/cutscene.js';
+import { randomBytes } from 'node:crypto';
 import { makeRng } from '../shared/rng.js';
 import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '../shared/avatars.js';
 import { assignRoles, knowledgeFor, resolveQuest, tally } from './rules.js';
@@ -163,7 +164,9 @@ export class Room {
     if (this.tvs.size === 0 && this.humans().every((p) => !p.connected) && this.onEmpty) this.onEmpty(this);
   }
 
-  _newToken() { return Array.from({ length: 4 }, () => Math.floor(this.rng.next() * 2 ** 32).toString(36)).join(''); }
+  // a seat's token is its key: 128 random bits from the crypto source, never drawn from the game's rng (where it would
+  // also give away draws that decide the game)
+  _newToken() { return randomBytes(16).toString('base64url'); }
   _cleanName(name) { return (typeof name === 'string' ? name : '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().replace(/\s+/g, ' ').slice(0, NAME_MAX); }
   _uniqueName(base) {
     const taken = new Set(this.players.map((p) => p.name.toLowerCase()));

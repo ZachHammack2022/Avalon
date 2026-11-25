@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FakeConn, fill, makeRoom, playBotGame, runUntil, findByRole } from './helpers.js';
+import { FakeClock, FakeConn, fill, makeRoom, playBotGame, runUntil, findByRole } from './helpers.js';
 import { EVIL_COUNT, ROLE_TOGGLES, TEAM_SIZES, failsRequired, isEvilRole, validateRoleConfig } from '../shared/avalon.js';
 import { QUESTS } from '../shared/campaign-lost-crown.js';
 import { cutsceneSeconds } from '../shared/cutscene.js';
-import { COLORS } from '../server/room.js';
+import { COLORS, Room } from '../server/room.js';
+import { secureRandom } from '../shared/rng.js';
 import { colorName } from '../shared/avatars.js';
 
 /** A scripted human table: every seat is a human conn, and strategies decide what they do. */
@@ -796,4 +797,26 @@ test('an error inside a room timer goes to onError on a live server, and is reth
   strict.room.handle(strict.room.vip.id, { t: 'start' });
   strict.room._botAct = () => { throw new Error('bot boom'); };
   assert.throws(() => strict.clock.advance(60000), /bot boom/);
+});
+
+test('the deal and the seat tokens come from the crypto source, not Math.random (whose state can be worked out)', () => {
+  const real = Math.random;
+  Math.random = () => 0.5; // if anything in the game drew from Math.random, every room below would be identical
+  try {
+    const deals = new Set(); const tokens = new Set();
+    for (let i = 0; i < 8; i++) {
+      const room = new Room({ code: `R${i}`, clock: new FakeClock() });
+      const hs = fill(room, 6, 0);
+      for (const h of hs) { assert.match(h.token, /^[\w-]{22}$/); tokens.add(h.token); }
+      room.handle(room.vip.id, { t: 'start' });
+      deals.add(room.playerIds().map((id) => room.g.roles.get(id)).join());
+    }
+    assert.equal(tokens.size, 48, 'every seat token is different');
+    assert.ok(deals.size > 1, 'the roles are dealt differently from room to room');
+  } finally { Math.random = real; }
+  const draws = Array.from({ length: 2000 }, secureRandom);
+  assert.ok(draws.every((x) => x >= 0 && x < 1));
+  assert.equal(new Set(draws).size, draws.length);
+  const mean = draws.reduce((a, b) => a + b, 0) / draws.length;
+  assert.ok(Math.abs(mean - 0.5) < 0.05, `mean ${mean}`);
 });
