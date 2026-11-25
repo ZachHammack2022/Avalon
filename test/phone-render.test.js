@@ -6,6 +6,7 @@ import { installDom, textOf } from './fake-dom.js';
 import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
+import { awards } from '../shared/record.js';
 
 const document = installDom();
 await import('../public/phone/app.js');
@@ -257,6 +258,10 @@ test('phone: game over says why the game ended and lists only the quests that we
   assert.doesNotMatch(text, /The five quests/);
   // Classic: each quest's Fail count is in the recap
   assert.equal((text.match(/\d Fail cards?/g) || []).length >= played, true);
+  // the awards the TV shows are on every phone too
+  const lines = awards(end.pub, end.pub.reveal.recap);
+  assert.ok(lines.length, 'this game has awards');
+  for (const line of lines) assert.ok(text.includes(line.replace(/^★ /, '')), line);
   // an assassination miss names the real Merlin
   const miss = clone(end);
   const other = miss.pub.players.find((p) => p.id !== merlin).id;

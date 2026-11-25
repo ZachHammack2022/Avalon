@@ -158,3 +158,64 @@ export function crownText(pub, nameOf) {
   if (next.length === 1) return `If rejected, ${next[0]} leads the fifth and final proposal.`;
   return `Next to lead: ${next.slice(0, -1).join(', ')}, then ${next[next.length - 1]} for the fifth proposal.`;
 }
+
+/**
+ * At game over, how well each player's votes read the table. A vote is right when it approved a team with no evil on
+ * it or voted down a team with evil on it. Votes on a team the player was on (everyone approves those) and votes a
+ * stand-in cast while they were away say nothing about them, so they are left out. Returns {id: {right, of}}.
+ * Roles are public once the game is over, so this is public knowledge then (and null before).
+ */
+export function voteReads(pub) {
+  const roles = pub && pub.reveal && pub.reveal.roles;
+  const history = pub && pub.game && pub.game.history;
+  if (!roles || !Array.isArray(history)) return null;
+  const evil = new Set(Object.keys(roles).filter((id) => EVIL_ROLES.has(roles[id])));
+  const reads = {};
+  for (const h of history) {
+    const clean = !h.team.some((id) => evil.has(id));
+    for (const [id, approve] of Object.entries(h.votes || {})) {
+      if (h.team.includes(id) || (h.standIn && h.standIn.includes(id))) continue;
+      const r = reads[id] || (reads[id] = { right: 0, of: 0 });
+      r.of++;
+      if (approve === clean) r.right++;
+    }
+  }
+  return reads;
+}
+const EVIL_ROLES = new Set(['minion', 'assassin', 'morgana', 'mordred', 'oberon']);
+
+/**
+ * The good player whose votes read the table best, for a game-over award: {id, right, of}, or null when nobody stood
+ * out (fewer than three counted votes, or under three in four right). Merlin is left out: Merlin could see evil.
+ * Ties go to the player earlier in seat order, so the TV and every phone name the same person.
+ */
+export function sharpestEye(pub) {
+  const reads = voteReads(pub);
+  if (!reads) return null;
+  let best = null;
+  for (const p of pub.players) {
+    const role = pub.reveal.roles[p.id]; const r = reads[p.id];
+    if (!r || !role || role === 'merlin' || EVIL_ROLES.has(role) || r.of < 3 || r.right * 4 < r.of * 3) continue;
+    if (!best || r.right > best.right || (r.right === best.right && r.of < best.of)) best = { id: p.id, ...r };
+  }
+  return best;
+}
+
+/**
+ * End-of-game superlatives, for the TV card and every phone: the hero, the scapegoat (framed and innocent), the walking
+ * disaster (most blamed) and the sharpest eye (best votes among good players who could not see evil).
+ */
+export function awards(pub, recap) {
+  const nameOf = (id) => { const p = pub.players.find((x) => x.id === id); return p ? p.name : '?'; };
+  const tally = (pick) => { const m = new Map(); for (const q of recap) { const id = pick(q); if (id) m.set(id, (m.get(id) || 0) + 1); } return [...m].sort((x, y) => y[1] - x[1])[0]; };
+  const out = [];
+  const blamed = tally((q) => (q.outcome === 'fail' ? q.culprit : null));
+  const framed = tally((q) => (q.outcome === 'fail' && q.framed ? q.culprit : null));
+  const hero = tally((q) => (q.outcome === 'success' ? q.hero : null));
+  if (hero) out.push(`★ Hero of the realm: ${nameOf(hero[0])}${hero[1] > 1 ? ` (${hero[1]} quests)` : ''}`);
+  if (framed) out.push(`★ Scapegoat: ${nameOf(framed[0])}, framed ${framed[1] === 1 ? 'once' : `${framed[1]} times`} and completely innocent`);
+  if (blamed && !(framed && framed[0] === blamed[0] && framed[1] === blamed[1])) out.push(`★ Walking disaster: ${nameOf(blamed[0])} (${blamed[1]} ${blamed[1] === 1 ? 'catastrophe' : 'catastrophes'})`);
+  const eye = sharpestEye(pub);
+  if (eye) out.push(`★ Sharpest eye: ${nameOf(eye.id)}, who read ${eye.right} of ${eye.of} teams right`);
+  return out;
+}

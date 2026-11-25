@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { crownOrder, crownText, describeColumn, endReason, recordFor, rejectText, tallyText } from '../shared/record.js';
+import { awards, crownOrder, crownText, describeColumn, endReason, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -132,6 +132,8 @@ test('record: a real game builds a consistent board from what phones receive, an
   assert.ok(maxCols >= 3);
   const final = recordFor(tv.state.pub);
   assert.ok(final.rows.every((r) => r.role));
+  // the game-over pub carries the whole vote record, so every phone and the TV can read the votes against the roles
+  assert.ok(Object.values(voteReads(tv.state.pub)).some((r) => r.of > 0));
   // the sent proposal of every played quest carries that quest's outcome
   for (const q of final.quests.filter((x) => x.outcome)) {
     const sent = final.columns.filter((c) => c.questIndex === q.index && c.approved);
@@ -205,4 +207,31 @@ test('reject text: the crown passes on, with a warning before the fifth, and the
   assert.equal(rejectText(3), 'The crown passes on. 3 of 5 teams rejected.');
   assert.equal(rejectText(4), 'The crown passes on. 4 of 5 teams rejected: one more and Evil wins.');
   assert.equal(rejectText(5), '5 teams in a row were rejected. Evil wins.');
+});
+
+test('vote reads: a vote is right when it waved a clean team through or voted down one with evil on it', () => {
+  const roles = { p1: 'merlin', p2: 'loyal', p3: 'loyal', p4: 'percival', p5: 'assassin' };
+  const v = (o) => o; // votes on a player's own team are listed but never counted
+  const hist = [
+    { questIndex: 0, leader: 'p2', team: ['p2', 'p5'], votes: v({ p1: false, p2: true, p3: true, p4: false, p5: true }), approved: false },
+    { questIndex: 0, leader: 'p3', team: ['p2', 'p3'], votes: v({ p1: true, p2: true, p3: true, p4: true, p5: false }), approved: true },
+    { questIndex: 1, leader: 'p5', team: ['p3', 'p5', 'p4'], votes: v({ p1: false, p2: false, p3: true, p4: true, p5: true }), approved: true },
+    { questIndex: 2, leader: 'p1', team: ['p1', 'p2'], votes: v({ p1: true, p2: true, p3: true, p4: true, p5: false }), approved: true },
+  ];
+  const over = (h = hist, r = roles) => ({ phase: 'gameover', players, game: { history: h }, reveal: { roles: r, recap: [] } });
+  assert.equal(voteReads(pub('propose')), null, 'not before the roles are public');
+  const reads = voteReads(over());
+  assert.deepEqual(reads.p1, { right: 3, of: 3 });
+  assert.deepEqual(reads.p2, { right: 1, of: 1 });
+  assert.deepEqual(reads.p3, { right: 1, of: 2 }, 'approved a team with the Assassin on it');
+  assert.deepEqual(reads.p4, { right: 3, of: 3 }, 'its own team on quest 2 is left out');
+  // Merlin could see evil, so the award goes to the best good player who could not
+  assert.deepEqual(sharpestEye(over()), { id: 'p4', right: 3, of: 3 });
+  assert.match(awards(over(), []).join('\n'), /^★ Sharpest eye: Dee, who read 3 of 3 teams right$/m);
+  // votes a stand-in cast for a player who was away say nothing about them
+  const away = hist.map((h, i) => (i === 0 ? { ...h, standIn: ['p4'] } : h));
+  assert.deepEqual(voteReads(over(away)).p4, { right: 2, of: 2 });
+  assert.equal(sharpestEye(over(away)), null, 'nobody with three counted votes besides Merlin');
+  // three in four right is the bar; evil players are never in the running
+  assert.equal(sharpestEye(over(hist, { ...roles, p4: 'morgana' })), null);
 });

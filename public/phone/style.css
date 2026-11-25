@@ -184,6 +184,7 @@ button.person { border-width: 2px; } button.person.sel { border-color: var(--gol
 .sigil { display: inline-flex; font-size: 64px; line-height: 1; }
 .rtag { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14.500px; } .rtag .ic { font-size: 20px; }
 .recap { display: flex; flex-direction: column; gap: 8px; } .recap > div { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; }
+.awards { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 15px; } .awards li::before { content: '★ '; color: var(--gold); }
 .recap .qn { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; } .recap .good .qn { color: var(--good); } .recap .bad .qn { color: var(--evil); }
 
 /* role reveal: the face-down card */

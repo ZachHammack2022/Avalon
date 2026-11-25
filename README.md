@@ -19,7 +19,8 @@ npm start          # prints the TV URL and the phone URL
   a **Record** button at the top left for the full view. While a team is picked or voted on, the TV card and the phone's record
   say who leads next and who leads the fifth proposal. Wherever a phone asks someone to pick or vote on players (the leader's
   team, the vote, the Assassin's target), each name carries a tick or cross for every quest that player went on. Votes a
-  stand-in cast for an absent player are marked. Built from public state only (`shared/record.js`).
+  stand-in cast for an absent player are marked. At game over, once roles are public, the TV and every phone show the awards,
+  including the **Sharpest eye**: the good player (not Merlin) whose votes best read which teams had evil on them. Built from public state only (`shared/record.js`).
 * **Roles in play** are listed for everyone before the game starts: on the TV lobby card and on every phone, not only the host's.
 * **Cutscene preview harness:** `http://localhost:3000/preview` (no phones needed).
 * `npm run dev` restarts the server on change. `PORT=3001 npm start` changes the port.
@@ -54,7 +55,7 @@ docs/CUTSCENES.md            authoring guide for the cutscene content
 
 | Command | What it does |
 |---|---|
-| `npm test` | ~140 unit/integration tests, no browser (≈10 s); phone screens render in a tiny fake DOM (`test/fake-dom.js`) |
+| `npm test` | ~160 unit/integration tests, no browser (≈10 s); phone screens render in a tiny fake DOM (`test/fake-dom.js`) |
 | `npm run test:browser` | Headless Chromium: plays **every cutscene** in the preview harness (seek through all segments, fail on any console warning/error or blank frame) then a **full live game** through the real TV + phone pages. Needs Playwright (`--quick`, `--shots`, `--live-only`) |
 | `npm run sim -- 200` | Bot-only soak/balance simulation per player count on a virtual clock |
 | `npm run assets` / `assets:check` | Re-download+copy the KayKit packs / verify files and animation lists |

@@ -3,7 +3,9 @@
 import { QUEST_COUNT } from '../../shared/avalon.js';
 import { ROLE_INFO, rolesText } from '../../shared/roles-info.js';
 import { QUESTS } from '../../shared/campaign-lost-crown.js';
-import { crownText, endReason, rejectText } from '../../shared/record.js';
+import { awards, crownText, endReason, rejectText } from '../../shared/record.js';
+
+export { awards }; // shared with the phones' game-over screen
 
 const name = (pub, id) => { const p = pub.players.find((x) => x.id === id); return p ? p.name : '?'; };
 const names = (pub, ids) => ids.map((id) => name(pub, id));
@@ -80,17 +82,4 @@ function resultCard(pub, r, quest) {
 function tally(pub, votes) {
   const yes = pub.players.filter((p) => votes[p.id] === true).length;
   return `${yes} approve · ${pub.players.length - yes} reject`;
-}
-
-/** End-of-game superlatives from the quest recap (who got blamed, who got framed, who saved the day). */
-export function awards(pub, recap) {
-  const tally = (pick) => { const m = new Map(); for (const q of recap) { const id = pick(q); if (id) m.set(id, (m.get(id) || 0) + 1); } return [...m].sort((x, y) => y[1] - x[1])[0]; };
-  const out = [];
-  const blamed = tally((q) => (q.outcome === 'fail' ? q.culprit : null));
-  const framed = tally((q) => (q.outcome === 'fail' && q.framed ? q.culprit : null));
-  const hero = tally((q) => (q.outcome === 'success' ? q.hero : null));
-  if (hero) out.push(`★ Hero of the realm: ${name(pub, hero[0])}${hero[1] > 1 ? ` (${hero[1]} quests)` : ''}`);
-  if (framed) out.push(`★ Scapegoat: ${name(pub, framed[0])}, framed ${framed[1] === 1 ? 'once' : `${framed[1]} times`} and completely innocent`);
-  if (blamed && !(framed && framed[0] === blamed[0] && framed[1] === blamed[1])) out.push(`★ Walking disaster: ${name(pub, blamed[0])} (${blamed[1]} ${blamed[1] === 1 ? 'catastrophe' : 'catastrophes'})`);
-  return out;
 }
