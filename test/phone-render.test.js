@@ -196,6 +196,42 @@ test('phone: the record is one tap away from the top bar during a game, and has 
   assert.match(textOf($('roomtag')), /Room/);
 });
 
+test('phone: the record and help sheets take focus, keep it while redrawn, and hand it back on close', () => {
+  const states = gameStates(3);
+  const mids = states.filter((s) => s.pub.phase === 'propose' && s.pub.game.history.length >= 1);
+  assert.ok(mids.length >= 2);
+  const sheet = $('sheet');
+  if (!sheet.hidden) sheet.querySelector('.close').click();
+  sq.inject(mids[0]);
+  const rec = $('roomtag').querySelector('.recbtn');
+  rec.focus();
+  rec.click();
+  assert.equal(sheet.hidden, false);
+  assert.equal(document.activeElement, sheet.querySelector('.close'), 'focus moves into the record');
+  assert.equal($('main').inert, true, 'the screen behind is inert while the sheet is open');
+  assert.equal($('top').inert, true);
+  // a new state redraws the sheet; focus stays on its Close button, not lost to the page
+  sq.receive({ t: 'state', ...clone(mids[1]) });
+  assert.ok(sheet.contains(document.activeElement));
+  assert.equal(document.activeElement.getAttribute('aria-label'), 'Close the record');
+  // closing hands focus back to the Record button, though the top bar was redrawn meanwhile
+  sheet.querySelector('.close').click();
+  assert.equal(sheet.hidden, true);
+  assert.equal($('main').inert, false);
+  assert.equal($('top').inert, false);
+  assert.equal(document.activeElement, $('roomtag').querySelector('.recbtn'));
+  // help: switching tabs keeps focus on the chosen tab
+  $('helpbtn').focus();
+  $('helpbtn').click();
+  assert.equal(document.activeElement.getAttribute('aria-label'), 'Close help');
+  const how = sheet.querySelectorAll('button').find((b) => textOf(b) === 'How to play');
+  how.focus(); how.click();
+  assert.equal(textOf(document.activeElement), 'How to play');
+  assert.equal(document.activeElement.getAttribute('aria-selected'), 'true');
+  sheet.querySelector('.close').click();
+  assert.equal(document.activeElement, $('helpbtn'));
+});
+
 test('phone: in Classic mode each played quest shows its Fail count under the shield, and the full record says it too', () => {
   const states = gameStates(8, 6, { classic: true });
   const late = states.filter((s) => s.pub.phase === 'propose' && s.pub.game.results.length >= 2).pop();
