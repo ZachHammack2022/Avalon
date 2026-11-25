@@ -528,8 +528,11 @@ const SCREENS = {
 
   assassinate() {
     const { me } = state;
+    // the Minions you know are not Merlin: they are marked and listed last, so a hurried tap does not waste the strike
+    const ally = (id) => (me.knows || []).includes(id);
+    const options = [...me.legal.options.filter((id) => !ally(id)), ...me.legal.options.filter(ally)];
     return page({ tracker: false, kicker: 'Good won three quests', title: 'Find Merlin',
-      body: [h('div', { class: 'people' }, me.legal.options.map((id) => personChip(byId(id), { sel: choice === id, mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
+      body: [h('div', { class: 'people' }, options.map((id) => personChip(byId(id), { sel: choice === id, tag: ally(id) ? 'your ally' : null, mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
       record: true,
       actions: [choice ? h('button', { class: 'danger big', 'data-buzz': 'bad', onclick: () => send({ t: 'assassinate', id: choice }) }, `Strike ${byId(choice).name}`) : h('p', { class: 'armhint' }, 'Tap a name to choose your target')] });
   },

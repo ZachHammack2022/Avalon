@@ -151,3 +151,19 @@ test('phone: in Classic mode each played quest shows its Fail count under the sh
   sq.inject(plain);
   assert.equal($('main').querySelectorAll('small.fc').length, 0);
 });
+
+test('phone: the Assassin sees every other player to strike, with known allies marked and listed last', () => {
+  let found = null;
+  for (let seed = 1; seed < 80 && !found; seed++) found = gameStates(seed).find((s) => screenFor(s) === 'assassinate');
+  assert.ok(found, 'a game that reached the assassination');
+  sq.inject(found);
+  const chips = $('main').querySelector('.people').querySelectorAll('.person');
+  assert.equal(chips.length, found.me.legal.options.length);
+  const allies = found.me.knows;
+  assert.ok(allies.length > 0, 'the Assassin knows its allies');
+  const tagged = chips.filter((c) => c.querySelector('small') && textOf(c.querySelector('small')) === 'your ally');
+  assert.equal(tagged.length, allies.length);
+  // allies come after everyone else
+  const order = chips.map((c) => (tagged.includes(c) ? 1 : 0));
+  assert.deepEqual(order, order.slice().sort());
+});
