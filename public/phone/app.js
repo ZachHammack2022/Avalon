@@ -477,9 +477,11 @@ const SCREENS = {
   },
   voted() {
     const { pub } = state; const g = pub.game; const voted = new Set(g.voted || []);
+    const left = pub.players.filter((p) => !voted.has(p.id)).map((p) => (p.id === state.me.id ? 'you' : p.name));
+    const waitingOn = left.length && left.length <= 3 ? `. Waiting on ${left.length === 1 ? left[0] : `${left.slice(0, -1).join(', ')} and ${left[left.length - 1]}`}` : '';
     return page({ kicker: 'Vote locked', title: 'Waiting for the table',
       body: [teamRow(g.team, 'Proposed team'),
-        h('div', { class: 'panel' }, h('div', { class: 'label' }, `${voted.size} of ${pub.players.length} have voted`),
+        h('div', { class: 'panel' }, h('div', { class: 'label' }, `${voted.size} of ${pub.players.length} have voted${waitingOn}`),
           h('div', { class: 'dots' }, pub.players.map((p) => h('span', { class: `vdot ${voted.has(p.id) ? 'in' : ''}`, title: p.name }, avatar(p, 'sm')))))], record: true });
   },
 

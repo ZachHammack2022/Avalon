@@ -57,6 +57,9 @@ test('TV cards: every phase renders plain text, without secrets, and the fail co
   assert.equal(cardFor(pub('roleReveal')).title, 'Check your phones');
   assert.match(cardFor(pub('propose')).lines[0], /Bo is choosing a team of 2/);
   assert.match(cardFor(pub('vote', { voted: ['p1'] })).lines.join(' '), /1 of 5/);
+  assert.match(cardFor(pub('vote', { voted: ['p1'] })).lines.join(' '), /Voted: Ann/);
+  assert.match(cardFor(pub('vote', { voted: ['p1', 'p3', 'p4'] })).lines.join(' '), /Waiting on Bo and Eli/);
+  assert.doesNotMatch(cardFor(pub('vote', { voted: [] })).lines.join(' '), /Waiting on|Voted:/);
   // where the crown goes next, and the warning on the fifth proposal
   assert.match(cardFor(pub('propose')).lines.join(' '), /Next to lead: Cy, Dee, Eli, then Ann for the fifth proposal/);
   assert.match(cardFor(pub('vote', { voted: [], rejectCount: 3 })).lines.join(' '), /If rejected, Cy leads the fifth and final proposal/);
