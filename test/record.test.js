@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { awards, backedFailures, cleanText, failedTeamVotes, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
+import { awards, backedFailures, cleanText, failedTeamVotes, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads, voteReport } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -228,6 +228,11 @@ test('vote reads: a vote is right when it waved a clean team through or voted do
   // Merlin could see evil, so the award goes to the best good player who could not
   assert.deepEqual(sharpestEye(over()), { id: 'p4', right: 3, of: 3 });
   assert.match(awards(over(), []).join('\n'), /^★ Sharpest eye: Dee, who read 3 of 3 teams right$/m);
+  // the full record's report: every player with counted votes, in seat order, evil players marked
+  assert.deepEqual(voteReport(over()), [
+    { id: 'p1', evil: false, right: 3, of: 3 }, { id: 'p2', evil: false, right: 1, of: 1 }, { id: 'p3', evil: false, right: 1, of: 2 },
+    { id: 'p4', evil: false, right: 3, of: 3 }, { id: 'p5', evil: true, right: 0, of: 2 }]);
+  assert.equal(voteReport(pub('propose')), null);
   // votes a stand-in cast for a player who was away say nothing about them
   const away = hist.map((h, i) => (i === 0 ? { ...h, standIn: ['p4'] } : h));
   assert.deepEqual(voteReads(over(away)).p4, { right: 2, of: 2 });

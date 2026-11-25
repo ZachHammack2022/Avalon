@@ -7,7 +7,7 @@ import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
 import { merlinRead, percivalRead } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
-import { awards, backedFailures, cleanText, noToEvil, teamCase } from '../shared/record.js';
+import { awards, backedFailures, cleanText, noToEvil, teamCase, voteReport } from '../shared/record.js';
 
 const document = installDom();
 await import('../public/phone/app.js');
@@ -494,6 +494,29 @@ test("phone: Merlin's held role card says how much the record gives Merlin away"
   sq.showSecret();
   assert.equal(textOf($('secret').querySelector('.rc-read')).trim(), merlinRead(found));
   sq.hideSecret();
+});
+
+test('phone: at game over the full record says how each player read the teams, now that roles are known', () => {
+  const states = gameStates(3);
+  const over = states.filter((s) => s.pub.phase === 'gameover').pop();
+  const report = voteReport(over.pub);
+  assert.ok(report.length, 'votes to report');
+  sq.inject(over);
+  sq.openSheet('record');
+  const sheet = $('sheet');
+  assert.match(textOf(sheet), /The votes, with the roles known/);
+  const items = sheet.querySelector('.readlist').querySelectorAll('li');
+  assert.equal(items.length, report.length);
+  report.forEach((r, i) => {
+    const p = over.pub.players.find((x) => x.id === r.id);
+    assert.match(textOf(items[i]), new RegExp(`^${p.name}`));
+    assert.match(textOf(items[i]), r.evil ? new RegExp(`voted like Good on ${r.right} of ${r.of}$`) : new RegExp(`read ${r.right} of ${r.of} right$`));
+  });
+  // not before the roles are public
+  sq.inject(states.find((s) => s.pub.phase === 'propose' && (s.pub.game.history || []).length));
+  sq.openSheet('record');
+  assert.doesNotMatch(textOf($('sheet')), /with the roles known/);
+  $('sheet').querySelector('button.close').click();
 });
 
 test('phone: in the full record every vote chip says whose vote it was and how they voted, stand-ins marked', () => {

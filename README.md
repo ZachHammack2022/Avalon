@@ -25,7 +25,8 @@ npm start          # prints the TV URL and the phone URL
   Once a quest has failed, the vote screen and the TV's vote card sum up the case against the proposed team in one line, and while
   a leader picks, the TV and the waiting phones name everyone never on or behind a failed quest. Votes a
   stand-in cast for an absent player are marked. At game over, once roles are public, the TV and every phone show the awards,
-  including the **Sharpest eye**: the good player (not Merlin) whose votes best read which teams had evil on them. Built from public state only (`shared/record.js`).
+  including the **Sharpest eye**: the good player (not Merlin) whose votes best read which teams had evil on them, and the phone's full
+  record lists how every player's votes read the teams. Built from public state only (`shared/record.js`).
 * **Roles in play** are listed for everyone before the game starts: on the TV lobby card and on every phone, not only the host's.
 * **Cutscene preview harness:** `http://localhost:3000/preview` (no phones needed).
 * `npm run dev` restarts the server on change. `PORT=3001 npm start` changes the port.

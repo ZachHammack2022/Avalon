@@ -185,6 +185,18 @@ export function voteReads(pub) {
 const EVIL_ROLES = new Set(['minion', 'assassin', 'morgana', 'mordred', 'oberon']);
 
 /**
+ * At game over, every player's votes read against the roles, in seat order, for the full record: [{id, evil, right,
+ * of}]. For a good player `right` is how many teams they read right; for an evil player it is how often they voted the
+ * way a good player who knew everything would have (their cover). Players with no counted votes are left out.
+ */
+export function voteReport(pub) {
+  const reads = voteReads(pub);
+  if (!reads) return null;
+  return pub.players.filter((p) => reads[p.id] && reads[p.id].of)
+    .map((p) => ({ id: p.id, evil: EVIL_ROLES.has(pub.reveal.roles[p.id]), right: reads[p.id].right, of: reads[p.id].of }));
+}
+
+/**
  * The case against a proposed team, read off the record in one line: who on it went on a failed quest and who voted to
  * send a failed team from outside it. "Bo went on 1 failed quest. Cy voted to send 1 failed team." Says the team is
  * clean when nobody on it has either, and nothing at all before any quest has failed. `nameOf(id)` -> display name.

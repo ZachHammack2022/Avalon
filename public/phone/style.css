@@ -419,3 +419,5 @@ input.code::placeholder { letter-spacing: .25em; }
 .rb-legend .lg.hero, .rb-legend .lg.blamed { width: auto; font-size: 13px; } .rb-legend .lg.hero { color: var(--gold); } .rb-legend .lg.blamed { color: #fff; }
 .rb-title { display: inline-flex; align-items: center; gap: 8px; } .rb-title .ic { color: var(--gold); }
 .rb-sub { margin-top: 6px; }
+.readlist { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.readlist li { display: flex; align-items: center; gap: 8px; } .readlist small { opacity: .75; }
