@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assassinRead, coachFor, counselFor, merlinRead, percivalRead, questStrip, secretRead, roleTips, ROLE_TIPS, HOW_TO } from '../public/phone/guide.js';
+import { assassinRead, coachFor, counselFor, evilRead, merlinRead, percivalRead, questStrip, secretRead, roleTips, ROLE_TIPS, HOW_TO } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
 
 const players = Array.from({ length: 7 }, (_, i) => ({ id: `p${i}`, name: `P${i}` }));
@@ -97,5 +97,24 @@ test('the Assassin reads the record during the game: whose votes look most like 
   assert.equal(assassinRead(st2(hist, { role: 'minion' })), assassinRead(st2(hist)), 'every Minion who knows the others');
   assert.equal(assassinRead(st2(hist, { role: 'loyal' })), null);
   assert.equal(assassinRead(st2(hist, { role: 'oberon', knows: [] })), null, 'Oberon knows nobody');
-  assert.equal(secretRead(st2(hist)), assassinRead(st2(hist)));
+  assert.equal(secretRead(st2(hist)), assassinRead(st2(hist)), 'no quest has failed, so nothing about its own record');
+});
+
+test('a Minion reads its own record: the failed quests it went on and the failed teams it voted to send', () => {
+  const V = (...yes) => Object.fromEntries(players.map((p) => [p.id, yes.includes(p.id)]));
+  // two failed quests: p0 went on the first, and voted to send the second without going
+  const history = [
+    { questIndex: 0, leader: 'p0', team: ['p0', 'p2'], votes: V('p0', 'p2', 'p3', 'p4'), approved: true },
+    { questIndex: 1, leader: 'p3', team: ['p3', 'p4', 'p5'], votes: V('p0', 'p3', 'p4', 'p5'), approved: true },
+  ];
+  const results = [{ questIndex: 0, outcome: 'fail', team: ['p0', 'p2'] }, { questIndex: 1, outcome: 'fail', team: ['p3', 'p4', 'p5'] }];
+  const st = (me, res = results, phase = 'propose') => ({ pub: { phase, players, game: { questIndex: 2, results: res, history } }, me: { id: 'p0', role: 'minion', knows: ['p1'], ...me } });
+  assert.equal(evilRead(st({})), 'The record says you went on 1 failed quest and voted to send 1 failed team you were not on. A leader picking a team sees that beside your name.');
+  assert.equal(evilRead(st({ id: 'p1' })), 'The record has nothing on you: you went on no failed quest and voted to send none.');
+  assert.equal(evilRead(st({ id: 'p2' })), 'The record says you went on 1 failed quest. A leader picking a team sees that beside your name.');
+  assert.equal(evilRead(st({ role: 'oberon', knows: [] })), evilRead(st({})), 'Oberon too');
+  assert.equal(evilRead(st({ role: 'loyal' })), null);
+  assert.equal(evilRead(st({}, [])), null, 'nothing before a quest fails');
+  assert.equal(evilRead(st({}, results, 'gameover')), null);
+  assert.equal(secretRead(st({})), evilRead(st({})), 'nobody stands out as Merlin yet');
 });

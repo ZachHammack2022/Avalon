@@ -2,7 +2,7 @@
 // Pure data + functions (unit-tested in Node). Only ever uses the viewer's OWN role, so nothing leaks.
 import { ROLE_INFO } from '../../shared/roles-info.js';
 import { failsRequired, teamSize, MAX_REJECTS } from '../../shared/avalon.js';
-import { failedTeamVotes, noToEvil } from '../../shared/record.js';
+import { backedFailures, failedTeamVotes, noToEvil } from '../../shared/record.js';
 
 export const HOW_TO = [
   { h: 'The story', p: 'The Lost Crown has been stolen. Most of you are Loyal Servants of Arthur. Some of you are secret Minions of Mordred. Nobody knows who is who, except the Minions and a few special roles.' },
@@ -89,7 +89,7 @@ export function counselFor(screen, state) {
     case 'roleReveal': return evil ? 'Remember your allies. From now on, act like a loyal servant.' : role === 'merlin' ? 'Remember these faces. Guide the others without giving yourself away.' : 'You are loyal. Trust has to be earned: watch the votes and the quests.';
     case 'waitLeader': return evil ? 'Hope for a Minion on the team, but do not look hopeful.' : 'Watch who the leader picks, and who they leave out.';
     case 'propose': return evil ? 'Put at least one Minion of Mordred on the team (maybe you), without making it obvious.' : role === 'merlin' ? 'Pick players you know are good, but do not be too perfect or the Assassin will notice.' : 'Pick yourself and the players you trust most. You know you are loyal.';
-    case 'vote': return evil ? 'Approve if a Minion is on the team. Rejecting too often looks suspicious.' : role === 'merlin' ? 'Reject teams with a Minion on them, but have a reason ready.' : 'Approve teams you trust. Reject if anyone on it worries you.';
+    case 'vote': return evil ? 'Approve if a Minion is on the team, but not every time: the record counts who voted to send failed teams.' : role === 'merlin' ? 'Reject teams with a Minion on them, but have a reason ready.' : 'Approve teams you trust. Reject if anyone on it worries you.';
     case 'quest-card': {
       if (!evil) return 'You are Good: your card is always played as Success, whichever one you tap.';
       const need = g ? failsRequired(n, g.questIndex) : 1;
@@ -151,9 +151,27 @@ export function assassinRead(state) {
   return best ? `Votes most like Merlin's so far: ${best.name}, who voted down ${best.no} of ${best.of} teams with a Minion you know on them.` : null;
 }
 
-/** The record, read for the viewer's own role, for the held role card: Percival's, Merlin's or the Minions', else null. */
+/**
+ * A Minion's own exposure on the record, once a quest has failed: the failed quests they went on and the failed teams
+ * they voted to send from outside, which a leader sees beside their name. Null for good players, before any failure,
+ * and once the game is over.
+ */
+export function evilRead(state) {
+  const me = state && state.me; const pub = state && state.pub; const g = pub && pub.game;
+  if (!me || !me.role || ROLE_INFO[me.role].team !== 'evil' || !g || pub.phase === 'gameover') return null;
+  const fails = (g.results || []).filter((r) => r.outcome === 'fail');
+  if (!fails.length) return null;
+  const went = fails.filter((r) => r.team.includes(me.id)).length;
+  const backed = backedFailures(pub)[me.id] || 0;
+  if (!went && !backed) return 'The record has nothing on you: you went on no failed quest and voted to send none.';
+  const parts = [went ? `went on ${went} failed quest${went === 1 ? '' : 's'}` : null, backed ? `voted to send ${backed} failed team${backed === 1 ? '' : 's'} you were not on` : null].filter(Boolean);
+  return `The record says you ${parts.join(' and ')}. A leader picking a team sees that beside your name.`;
+}
+
+/** The record, read for the viewer's own role, for the held role card: Percival's, Merlin's or a Minion's, else null. */
 export function secretRead(state) {
-  return percivalRead(state) || merlinRead(state) || assassinRead(state);
+  const evil = [evilRead(state), assassinRead(state)].filter(Boolean).join(' ');
+  return percivalRead(state) || merlinRead(state) || evil || null;
 }
 
 /** Compact status strip: "Quest 3 of 5 · 3 on the team · needs 1 Fail". */
