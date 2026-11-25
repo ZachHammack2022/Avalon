@@ -109,3 +109,11 @@ test('assassin bot reads the vote record for Merlin: whoever voted down evil tea
   for (let s = 1; s < 100; s++) picks.add(botAssassinate(ctx({ rng: seeded(s), history: [] })));
   assert.deepEqual([...picks].sort(), ['c', 'd', 'e']);
 });
+
+test('a Merlin bot keeps its sight quiet: it votes down a team only it knows is dirty just half the time', () => {
+  const rate = (o) => { const rng = seeded(11); let y = 0; for (let i = 0; i < 4000; i++) if (botVote(base({ rng, ...o }))) y++; return y / 4000; };
+  const merlin = { role: 'merlin', evilSeen: ['c'], proposedTeam: ['c', 'd'] };
+  assert.ok(Math.abs(rate(merlin) - 0.5) < 0.03, 'nothing on the record against c: a coin flip');
+  assert.ok(Math.abs(rate({ ...merlin, failedWith: { c: 1 } }) - 0.1) < 0.02, 'the record speaks against c too: rejected as before');
+  assert.ok(Math.abs(rate({ ...merlin, proposedTeam: ['d', 'e'] }) - 0.65) < 0.03, 'a clean team: as any good player');
+});

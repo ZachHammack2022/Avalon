@@ -39,7 +39,7 @@ export function botPropose(ctx) {
   return team.slice(0, size);
 }
 
-/** ctx: { selfId, team, allyIds, proposedTeam, rejectCount, rng } */
+/** ctx: { selfId, team, role?, allyIds, proposedTeam, rejectCount, rng, failedWith?, evilSeen? } */
 export function botVote(ctx) {
   const { selfId, proposedTeam, rejectCount, rng } = ctx;
   if (rejectCount >= 4) return true; // fifth proposal: everyone approves
@@ -50,6 +50,10 @@ export function botVote(ctx) {
   }
   // good: a team with someone the record (or Merlin's sight) speaks against is usually rejected
   const worst = Math.max(0, ...proposedTeam.map((id) => distrust(ctx, id)));
+  // Merlin keeps their sight quiet: always voting down a team the record has nothing against is exactly what an
+  // Assassin looks for, so against such a team Merlin votes no only half the time
+  const onRecord = proposedTeam.some((id) => ctx.failedWith && ctx.failedWith[id]);
+  if (ctx.role === 'merlin' && worst >= 3 && !onRecord) return rng.chance(0.5);
   if (worst >= 3) return rng.chance(0.1);
   if (worst > 0) return rng.chance(0.3);
   return rng.chance(0.65);
