@@ -9,6 +9,7 @@ export const HOW_TO = [
   { h: 'A round', p: 'The leader picks a team. Everyone votes Approve or Reject. If the team is approved, its members secretly play Success or Fail cards. Then watch the TV: the quest plays out as a cutscene.' },
   { h: 'Success and Fail', p: 'Good players can only play Success. Evil players may play Fail. One Fail sinks the quest. (Quest 4 with 7+ players needs two.) The TV shows the outcome, never who played what.' },
   { h: 'Who stood out?', p: 'After playing your card you pick one teammate. On a success, the hero is drawn from the Success players\' picks (more picks, better odds). On a failure, the culprit is drawn from what the Fail players picked, so Evil gets to frame someone!' },
+  { h: 'The record', p: 'Every proposal, every vote and every quest result stays on the record, on the TV and on your phone. It is your best evidence: who keeps approving teams that fail, and who was on every failed quest? Beside each name you are asked to pick or vote on, ticks and crosses show the quests that player went on.' },
   { h: 'Talk it out', p: 'Argue, accuse, defend. Say who you trust and why. Lying is part of the game, but only inside the game.' },
 ];
 
