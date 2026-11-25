@@ -1,7 +1,7 @@
 // Phone controller. Plain DOM, no framework. All secrets come from the server's `me` block;
 // the UI only ever shows another player's role at game over.
 import { screenFor, toggleSelection, canConfirm, knownPlayers, leaderName, nameOf, lastResult, startHint } from './model.js';
-import { ROLE_INFO, ROLE_TOGGLE_INFO, KNOW_LABELS } from '/shared/roles-info.js';
+import { ROLE_INFO, ROLE_TOGGLE_INFO, KNOW_LABELS, rolesInPlay, rolesText } from '/shared/roles-info.js';
 import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
@@ -428,8 +428,8 @@ const SCREENS = {
       body.splice(1, 0,
         h('div', { class: 'panel roles' },
           h('button', { class: 'lookme', 'aria-expanded': String(rolesOpen), onclick: () => { rolesOpen = !rolesOpen; render(); } },
-            h('span', { class: 'rolesum' }, ['merlin', 'assassin', 'percival', 'morgana', 'mordred', 'oberon'].filter((k) => cfg[k]).map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
-            h('span', { class: 'grow' }, h('span', { class: 'label' }, n >= MIN_PLAYERS ? `${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Special roles'), h('b', {}, (() => { const c = ['merlin', 'assassin', 'percival', 'morgana', 'mordred', 'oberon'].filter((k) => cfg[k]).length; return c ? `${c} special role${c === 1 ? '' : 's'}` : 'No special roles'; })())),
+            h('span', { class: 'rolesum' }, rolesInPlay(cfg).map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
+            h('span', { class: 'grow' }, h('span', { class: 'label' }, n >= MIN_PLAYERS ? `Roles · ${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Roles'), h('b', {}, rolesText(cfg))),
             h('span', { class: 'chg' }, rolesOpen ? 'Done' : 'Change')),
           ...(rolesOpen ? [toggle('merlin', 'Merlin'), toggle('assassin', 'Assassin', cfg.merlin), toggle('percival', 'Percival'), toggle('morgana', 'Morgana'), toggle('mordred', 'Mordred'), toggle('oberon', 'Oberon'),
             h('button', { class: `toggle ${pub.config.classic ? 'on' : ''}`, role: 'switch', 'aria-checked': String(!!pub.config.classic), onclick: () => send({ t: 'setClassic', on: !pub.config.classic }) },
@@ -438,11 +438,10 @@ const SCREENS = {
       actions.push(h('button', { class: 'primary big', disabled: !v.ok, onclick: () => send({ t: 'start' }) }, n < MIN_PLAYERS ? `Need ${MIN_PLAYERS - n} more (add bots)` : 'Start game'));
     } else {
       // everyone, not only the host, should know which roles are in the game before it starts
-      const on = ['merlin', 'assassin', 'percival', 'morgana', 'mordred', 'oberon'].filter((k) => cfg[k]);
       body.splice(1, 0, h('div', { class: 'panel roles' }, h('div', { class: 'lookme static' },
-        h('span', { class: 'rolesum' }, on.map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
+        h('span', { class: 'rolesum' }, rolesInPlay(cfg).map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
         h('span', { class: 'grow' }, h('span', { class: 'label' }, n >= MIN_PLAYERS ? `Roles this game · ${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Roles this game'),
-          h('b', {}, on.length ? on.map((k) => ROLE_INFO[k].name).join(', ') : 'No special roles'),
+          h('b', {}, rolesText(cfg)),
           pub.config.classic ? h('small', { class: 'muted' }, ' Classic: fail counts shown') : null))));
       actions.push(h('p', { class: 'waitline' }, icon('fire'), 'Waiting for the host to start…'));
     }

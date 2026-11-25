@@ -48,12 +48,19 @@ test('phone: knowledge names and hints', () => {
   assert.equal(leaderName(pub('propose')), 'Bo');
   assert.match(startHint({ validation: { errors: ['Too many evil roles'], warnings: [] } }), /Too many/);
   assert.equal(startHint({ validation: { errors: [], warnings: [] } }), '');
+  assert.equal(startHint({ validation: { errors: [], warnings: ['A.', 'B.'] } }), 'A. B.');
+  assert.equal(startHint({ validation: { errors: ['Stop.'], warnings: ['A.'] } }), 'Stop.');
 });
 
 test('TV cards: every phase renders plain text, without secrets, and the fail count only in classic', () => {
   const lobby = cardFor({ phase: 'lobby', room: 'ABCD', players, validation: { ok: false, errors: ['Need 5'], warnings: [] } }, { joinUrl: 'http://x' });
   assert.equal(lobby.big, 'ABCD');
   assert.ok(lobby.lines.some((l) => l.includes('http://x')));
+  // the table can see which roles are in the game before it starts
+  const roles = cardFor({ phase: 'lobby', room: 'ABCD', players, config: { roles: { merlin: true, assassin: true, percival: true, morgana: false, mordred: false, oberon: false }, classic: true }, validation: { ok: true, errors: [], warnings: [] } });
+  assert.ok(roles.lines.includes('Roles: Merlin, Assassin and Percival · Classic (fail counts shown)'), roles.lines.join('\n'));
+  assert.ok(roles.lines.includes('Waiting for the host to start…'));
+  assert.ok(cardFor({ phase: 'lobby', room: 'ABCD', players, config: { roles: {} } }).lines.includes('Roles: No special roles'));
   assert.equal(cardFor(pub('roleReveal')).title, 'Check your phones');
   assert.match(cardFor(pub('propose')).lines[0], /Bo is choosing a team of 2/);
   assert.match(cardFor(pub('vote', { voted: ['p1'] })).lines.join(' '), /1 of 5/);
