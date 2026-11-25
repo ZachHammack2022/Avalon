@@ -133,6 +133,16 @@ export function crownOrder(pub) {
   return Array.from({ length: Math.min(left, order.length) }, (_, k) => order[(at + k) % order.length]);
 }
 
+/**
+ * What a rejected team means, for the vote reveal. `rejectCount` already counts this rejection. The fifth rejection in
+ * a row ends the game, so the crown does not pass on then.
+ */
+export function rejectText(rejectCount) {
+  if (rejectCount >= MAX_REJECTS) return `${MAX_REJECTS} teams in a row were rejected. Evil wins.`;
+  if (rejectCount === MAX_REJECTS - 1) return `The crown passes on. ${rejectCount} of ${MAX_REJECTS} teams rejected: one more and Evil wins.`;
+  return `The crown passes on. ${rejectCount} of ${MAX_REJECTS} teams rejected.`;
+}
+
 /** One sentence on where the crown goes if this team is rejected. `nameOf(id)` -> display name. */
 export function crownText(pub, nameOf) {
   const order = crownOrder(pub);

@@ -235,3 +235,15 @@ test('phone: game over says why the game ended and lists only the quests that we
   sq.inject(miss);
   assert.match(textOf($('main')), new RegExp(`The Assassin struck ${nm(other)}, but Merlin was ${nm(merlin)}\\.`));
 });
+
+test('phone: the fifth rejected team says Evil wins, not that the crown passes on', () => {
+  const rev = gameStates(5).find((s) => s.pub.phase === 'voteReveal' && !s.pub.game.approved);
+  assert.ok(rev, 'a team was rejected');
+  for (const [count, text] of [[4, /one more and Evil wins/], [5, /5 teams in a row were rejected\. Evil wins\./]]) {
+    const s = clone(rev);
+    s.pub.game.rejectCount = count;
+    sq.inject(s);
+    assert.match(textOf($('main')), text);
+    if (count === 5) assert.doesNotMatch(textOf($('main')), /crown passes on/);
+  }
+});

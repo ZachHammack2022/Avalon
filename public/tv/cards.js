@@ -3,7 +3,7 @@
 import { QUEST_COUNT } from '../../shared/avalon.js';
 import { ROLE_INFO, rolesText } from '../../shared/roles-info.js';
 import { QUESTS } from '../../shared/campaign-lost-crown.js';
-import { crownText, endReason } from '../../shared/record.js';
+import { crownText, endReason, rejectText } from '../../shared/record.js';
 
 const name = (pub, id) => { const p = pub.players.find((x) => x.id === id); return p ? p.name : '?'; };
 const names = (pub, ids) => ids.map((id) => name(pub, id));
@@ -35,7 +35,7 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
     case 'voteReveal':
       return { kind: 'voteReveal', title: g.approved ? 'Team approved!' : 'Team rejected!', tone: g.approved ? 'good' : 'bad',
         // who voted which way is on the record board beside this card (the newest column turns over vote by vote)
-        lines: [tally(pub, g.votes)].concat(g.approved ? [] : [`Rejected proposals: ${g.rejectCount} of 5`]) };
+        lines: [tally(pub, g.votes)].concat(g.approved ? [] : [rejectText(g.rejectCount)]) };
     case 'questPlay':
       return { kind: 'questPlay', title: 'The team sets out…', lines: [list(names(pub, g.team)), `Waiting on ${g.waitingOn} player${g.waitingOn === 1 ? '' : 's'}`] };
     case 'cutscene': {

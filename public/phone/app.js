@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -497,7 +497,7 @@ const SCREENS = {
     const { pub } = state; const g = pub.game;
     const yes = pub.players.filter((p) => g.votes[p.id]).length;
     return page({ hint: false, kicker: `${yes} approve · ${pub.players.length - yes} reject`, title: g.approved ? 'Team approved' : 'Team rejected',
-      sub: g.approved ? 'The quest begins.' : `The crown passes on. ${g.rejectCount} of ${MAX_REJECTS} teams rejected.`,
+      sub: g.approved ? 'The quest begins.' : rejectText(g.rejectCount),
       body: [
         h('div', { class: 'votes' }, pub.players.map((p) => h('div', { class: `vote ${g.votes[p.id] ? 'yes' : 'no'}` }, avatar(p), h('span', { class: 'pname' }, p.name), h('span', { class: 'minitoken' }, icon(g.votes[p.id] ? 'check' : 'cross'), g.votes[p.id] ? 'Approve' : 'Reject'))))] });
   },

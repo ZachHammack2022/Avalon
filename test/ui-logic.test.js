@@ -75,6 +75,12 @@ test('TV cards: every phase renders plain text, without secrets, and the fail co
   assert.equal(rev.title, 'Team rejected!');
   assert.equal(rev.lines[0], '2 approve · 3 reject');
   assert.ok(rev.lines.some((l) => l.includes('1 of 5')));
+  // the fourth rejection warns, and the fifth ends the game instead of passing the crown
+  const no = { p1: false, p2: false, p3: false, p4: false, p5: false };
+  assert.match(cardFor(pub('voteReveal', { approved: false, votes: no, rejectCount: 4 })).lines.join(' '), /one more and Evil wins/);
+  const fifth = cardFor(pub('voteReveal', { approved: false, votes: no, rejectCount: 5 })).lines.join(' ');
+  assert.match(fifth, /5 teams in a row were rejected\. Evil wins\./);
+  assert.doesNotMatch(fifth, /crown passes on/);
   assert.match(cardFor(pub('questPlay', { waitingOn: 2 })).lines.join(' '), /Waiting on 2/);
   const fail = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, team: ['p1', 'p3'] }] }));
   assert.equal(fail.title, 'Quest failed!');
