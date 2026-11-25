@@ -336,3 +336,26 @@ test('phone: the role is revealed by holding a finger, Space or Enter, and hides
   peek.fire('keyup', { key: 'Enter' });
   assert.equal(secret.hidden, true);
 });
+
+test('phone: the colour picker names each colour and shows who wears it; a person\'s colour cannot be picked', () => {
+  const lobby = clone(gameStates(8).find((s) => s.pub.phase === 'lobby'));
+  const other = lobby.pub.players[1]; other.bot = false; // one more person at the table
+  const bot = lobby.pub.players[2];
+  sq.inject(lobby);
+  $('main').querySelector('.lookme').click();
+  const swatches = $('main').querySelectorAll('.swatch');
+  assert.equal(swatches.length, 10);
+  for (const sw of swatches) assert.doesNotMatch(sw.getAttribute('aria-label'), /#/, 'no hex codes read aloud');
+  const mine = swatches.find((sw) => sw.getAttribute('aria-pressed') === 'true');
+  assert.match(sw_label(mine), /^(Red|Blue|Green|Yellow|Purple|Orange|Teal|Pink|Lime|White)$/);
+  const theirs = swatches.find((sw) => sw.style.cssText.includes(other.color));
+  assert.equal(theirs.disabled, true);
+  assert.ok(theirs.classList.contains('taken'));
+  assert.match(sw_label(theirs), new RegExp(`, worn by ${other.name}$`));
+  const bots = swatches.find((sw) => sw.style.cssText.includes(bot.color));
+  assert.equal(bots.disabled, false);
+  assert.ok(bots.classList.contains('bot'));
+  assert.match(sw_label(bots), new RegExp(`worn by ${bot.name} \\(a bot, who will take yours\\)`));
+  $('main').querySelector('.lookme').click(); // close the picker again
+  function sw_label(el) { return el.getAttribute('aria-label'); }
+});
