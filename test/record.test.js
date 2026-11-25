@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { awards, backedFailures, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
+import { awards, backedFailures, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -256,4 +256,22 @@ test('backed failures: the failed teams each player voted to send without going 
   // a quest whose result is not public yet (its cutscene still playing) does not count
   assert.deepEqual(backedFailures(pub('cutscene', { results: results.slice(0, 1) })), {});
   assert.deepEqual(backedFailures({ phase: 'lobby', players }), {});
+});
+
+test('team case: who on a proposed team went on a failed quest or voted to send one, in one line', () => {
+  const nm = (id) => players.find((p) => p.id === id).name;
+  const p = pub('vote');
+  assert.equal(teamCase(p, ['p1', 'p2'], nm), 'Ann went on 1 failed quest.');
+  assert.equal(teamCase(p, ['p4', 'p2', 'p1'], nm), 'Dee voted to send 1 failed team. Ann went on 1 failed quest.');
+  assert.equal(teamCase(p, ['p2', 'p4'], nm), 'Dee voted to send 1 failed team.');
+  assert.equal(teamCase(p, ['p2'], nm), 'Nobody on this team went on or voted for a failed quest.');
+  assert.equal(teamCase(p, ['p1', 'p3', 'p4'], nm), 'Ann, Cy and Dee all went on or voted for failed quests.', 'three names: no counts');
+  assert.equal(teamCase(pub('vote', { results: results.slice(0, 1) }), ['p1', 'p2'], nm), null, 'nothing before a quest fails');
+  // a player on two failed quests who also voted to send a third
+  const more = pub('vote', {
+    history: history.concat({ questIndex: 2, leader: 'p4', team: ['p1', 'p3'], votes: V('p1', 'p3', 'p5'), approved: true }),
+    results: results.concat({ questIndex: 2, outcome: 'fail', team: ['p1', 'p3'], hero: null, culprit: 'p1' }),
+  });
+  assert.equal(teamCase(more, ['p5'], nm), 'Eli went on 1 failed quest and voted to send 1 failed team.');
+  assert.equal(teamCase(more, ['p3'], nm), 'Cy went on 2 failed quests.');
 });

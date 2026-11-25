@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, teamCase } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -418,6 +418,12 @@ function teamRow(ids, label) {
     })));
 }
 
+/** The record's case against a team, in one line under it (nothing before a quest has failed). */
+function caseLine(team) {
+  const text = teamCase(state.pub, team, (id) => (id === state.me.id ? 'You' : byId(id).name));
+  return text ? h('p', { class: 'teamcase small center' }, icon('scroll'), ' ', text) : null;
+}
+
 const waiting = (ic, text) => h('div', { class: 'waiting' }, h('div', { class: 'pulse' }, icon(ic)), h('p', {}, text));
 const youTag = (id) => (id === state.me.id ? 'you' : null);
 
@@ -536,7 +542,7 @@ const SCREENS = {
       body: [teamRow(g.team), h('div', { class: 'tokens one' }, h('div', { class: 'token down' }, h('span', { class: 'disc' }, icon('crown')), h('b', {}, 'Face-down')))], record: true,
       actions: [h('button', { class: 'primary big', 'data-buzz': 'confirm', onclick: () => send({ t: 'vote', approve: choice }) }, 'Lock in my vote'), h('button', { class: 'ghost change', onclick: () => { choice = null; render(); } }, 'Change my vote')] });
     return page({ kicker, title: 'Send this team?',
-      body: [teamRow(g.team), h('div', { class: 'tokens' }, tok(true, 'Approve', 'check'), tok(false, 'Reject', 'cross'))], record: true,
+      body: [teamRow(g.team), caseLine(g.team), h('div', { class: 'tokens' }, tok(true, 'Approve', 'check'), tok(false, 'Reject', 'cross'))], record: true,
       actions: [h('p', { class: 'armhint' }, 'Tap a token to choose')] });
   },
   voted() {

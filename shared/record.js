@@ -185,6 +185,24 @@ export function voteReads(pub) {
 const EVIL_ROLES = new Set(['minion', 'assassin', 'morgana', 'mordred', 'oberon']);
 
 /**
+ * The case against a proposed team, read off the record in one line: who on it went on a failed quest and who voted to
+ * send a failed team from outside it. "Bo went on 1 failed quest. Cy voted to send 1 failed team." Says the team is
+ * clean when nobody on it has either, and nothing at all before any quest has failed. `nameOf(id)` -> display name.
+ */
+export function teamCase(pub, team, nameOf) {
+  const g = pub && pub.game;
+  const fails = ((g && g.results) || []).filter((r) => r.outcome === 'fail');
+  if (!fails.length || !Array.isArray(team) || !team.length) return null;
+  const backed = backedFailures(pub);
+  const n = (k, what) => `${k} failed ${what}${k === 1 ? '' : 's'}`;
+  const marked = team.map((id) => ({ id, went: fails.filter((r) => r.team.includes(id)).length, b: backed[id] || 0 })).filter((x) => x.went || x.b);
+  if (!marked.length) return 'Nobody on this team went on or voted for a failed quest.';
+  // more than two names would not fit a line on the TV: name them, and leave the counts to the record beside it
+  if (marked.length > 2) return `${list(marked.map((x) => nameOf(x.id)))} all went on or voted for failed quests.`;
+  return marked.map(({ id, went, b }) => `${nameOf(id)} ${[went ? `went on ${n(went, 'quest')}` : null, b ? `voted to send ${n(b, 'team')}` : null].filter(Boolean).join(' and ')}.`).join(' ');
+}
+
+/**
  * How many failed teams each player voted to send without going on them: {id: n}. Evil players wave their allies'
  * teams through, so this is evidence the table can use when picking a team. Only quests whose result is public count,
  * and a vote a stand-in cast for an absent player is left out.

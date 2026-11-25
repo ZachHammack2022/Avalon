@@ -157,3 +157,12 @@ test('TV: the game over card fits a full table: two lines for the sides, however
   assert.equal(c.lines[1], 'Loyal Servants: Player 1 (Merlin), Player 2 (Percival), Player 3, Player 4, Player 5 and Player 6');
   assert.equal(c.lines[2], 'Minions of Mordred: Player 7 (Assassin), Player 8 (Morgana), Player 9 (Mordred) and Player 10 (Oberon)');
 });
+
+test('TV: the vote card reads the record against the proposed team once a quest has failed', () => {
+  const failed = { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'], hero: null, culprit: 'p1' }],
+    history: [{ questIndex: 0, leader: 'p2', team: ['p1', 'p3'], votes: { p1: true, p2: true, p3: true, p4: false, p5: false }, approved: true }] };
+  const c = cardFor(pub('vote', { ...failed, questIndex: 1, team: ['p1', 'p2'], voted: [] }));
+  assert.ok(c.lines.includes('Ann went on 1 failed quest. Bo voted to send 1 failed team.'), c.lines.join(' | '));
+  const early = cardFor(pub('vote', { team: ['p1', 'p2'], voted: [] }));
+  assert.ok(!early.lines.some((l) => /failed/.test(l)), 'nothing before a quest fails');
+});
