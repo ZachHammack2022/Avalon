@@ -520,6 +520,33 @@ test('a game never stalls when every human disconnects: stand-ins finish it', ()
   assert.ok(runUntil(t.room, t.clock, 'gameover'));
 });
 
+test('a phone that dropped in the lobby and never came back does not stall the game: a stand-in plays that seat', () => {
+  const { room, clock } = makeRoom({ seed: 34 });
+  const [host, gone] = fill(room, 2, 3);
+  room.detachPhone(gone.p.id, gone.conn);
+  clock.advance(60000); // the grace period runs out while everyone is still in the lobby
+  assert.equal(room.player(gone.p.id).takeover, false, 'nobody to stand in for yet');
+  room.handle(host.p.id, { t: 'start' });
+  assert.equal(room.player(gone.p.id).takeover, true, 'the absent seat is played from the first moment of the game');
+  room.handle(host.p.id, { t: 'ready' });
+  room.detachPhone(host.p.id, host.conn); // the host's own seat gets a stand-in after the usual grace
+  assert.ok(runUntil(room, clock, 'gameover'), `stuck in ${room.phase}`);
+});
+
+test('a phone that dropped just before the start still gets its full grace period in the game', () => {
+  const { room, clock } = makeRoom({ seed: 35 });
+  const [host, late] = fill(room, 2, 3);
+  room.detachPhone(late.p.id, late.conn);
+  clock.advance(5000);
+  room.handle(host.p.id, { t: 'start' });
+  assert.equal(room.player(late.p.id).takeover, false, 'still inside the grace period');
+  const back = new FakeConn();
+  assert.ok(room.join({ name: 'x', token: late.token }, back).ok);
+  clock.advance(30000);
+  assert.equal(room.player(late.p.id).takeover, false);
+  assert.ok(back.state.me.role, 'got their seat and role back');
+});
+
 test('TV refresh mid-cutscene: it gets the current phase (and cutscene data), but no replayed cutscene message', () => {
   const t = table(5, { seed: 33 });
   toPropose(t.room, t.clock);
