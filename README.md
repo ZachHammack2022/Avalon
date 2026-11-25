@@ -1,7 +1,7 @@
 # Avalon: The Lost Crown
 
-A family party game for the TV with phones as controllers (Jackbox-style). It follows **The Resistance: Avalon** 1:1 (5–10 players, all
-six optional roles). Every quest plays out as a funny 3D cutscene starring the whole team, who **succeed or fail together**: nobody on the
+A family party game for the TV with phones as controllers (Jackbox-style). It follows **The Resistance: Avalon** 1:1 (5–10 players,
+every optional role, Lancelot included). Every quest plays out as a funny 3D cutscene starring the whole team, who **succeed or fail together**: nobody on the
 team is singled out as the hero or the culprit, so working out who sank a quest is left to the players and the record.
 Full spec: [`goals.md`](goals.md).
 
@@ -33,7 +33,14 @@ npm start          # prints the TV URL and the phone URL
   including the **Sharpest eye**: the good player (not Merlin) whose votes best read which teams had evil on them, and the
   **Best disguise**: the evil player whose votes looked most like Good's. The phone's full
   record lists how every player's votes read the teams. Built from public state only (`shared/record.js`).
-* **Roles in play** are listed for everyone before the game starts: on the TV lobby card and on every phone, not only the host's.
+* **Roles:** every Avalon role from the box: Merlin, Percival, Loyal Servants, the Assassin, Morgana, Mordred, Oberon,
+  Minions, and Good and Evil Lancelot (the two Lancelots know each other; Evil Lancelot shows himself to the other Minions
+  but does not learn who they are). A new room plays the **recommended roles** for its size (Merlin and Percival against
+  the Assassin and Morgana, then Oberon, Mordred or both as the table grows), so the host can just press Start; the host
+  can change any role on their phone and get the recommendation back with one tap.
+* **Roles in play** are known to everyone: every card in the deck, by side ("Good (4): Merlin, Percival and 2 Loyal
+  Servants"), is on the TV lobby card and every phone before the game starts, on the TV's role-reveal card, under the
+  quest shields on the TV record all game, and in the phone's help sheet (Now and Roles tabs).
 * **Cutscene preview harness:** `http://localhost:3000/preview` (no phones needed).
 * `npm run dev` restarts the server on change. `PORT=3001 npm start` changes the port.
 

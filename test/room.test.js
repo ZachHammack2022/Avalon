@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FakeClock, FakeConn, fill, makeRoom, playBotGame, runUntil, findByRole } from './helpers.js';
-import { EVIL_COUNT, ROLE_TOGGLES, TEAM_SIZES, failsRequired, isEvilRole, validateRoleConfig } from '../shared/avalon.js';
+import { DEFAULT_ROLE_CONFIG, EVIL_COUNT, ROLE_TOGGLES, recommendedRoles, TEAM_SIZES, failsRequired, isEvilRole, validateRoleConfig } from '../shared/avalon.js';
 import { QUESTS } from '../shared/campaign-lost-crown.js';
 import { cutsceneSeconds } from '../shared/cutscene.js';
 import { COLORS, Room } from '../server/room.js';
@@ -13,7 +13,8 @@ function table(n, { seed = 1, config, classic } = {}) {
   const { room, clock } = makeRoom({ seed, timing: { botThinkMs: [0, 0] } });
   const hs = fill(room, n, 0);
   const vip = hs[0].p;
-  if (config) room.handle(vip.id, { t: 'setRoles', roles: config });
+  // a config here is read against plain Merlin + Assassin, not the recommended roles a new room starts with
+  if (config) room.handle(vip.id, { t: 'setRoles', roles: { ...DEFAULT_ROLE_CONFIG, ...config } });
   if (classic) room.handle(vip.id, { t: 'setClassic', on: true });
   return { room, clock, hs, vip };
 }
@@ -121,6 +122,47 @@ test('role toggles: VIP-only, Assassin forced with Merlin, invalid combos block 
   assert.equal(room.publicState().validation.ok, true);
 });
 
+test('role setup: a new room plays the recommended roles for its size until the host changes one', () => {
+  const { room } = makeRoom();
+  const [a, b] = fill(room, 2, 3);
+  const cfg = () => room.publicState().config;
+  assert.equal(cfg().recommended, true);
+  assert.deepEqual(cfg().roles, recommendedRoles(5));
+  assert.ok(room.publicState().validation.ok, 'the host can just press Start');
+  act(room, a.p, { t: 'addBot' }); act(room, a.p, { t: 'addBot' });
+  assert.deepEqual(cfg().roles, recommendedRoles(7), 'the roles follow the player count');
+  assert.ok(cfg().roles.oberon);
+  // a guest cannot change them
+  assert.ok(act(room, b.p, { t: 'setRoles', roles: { lancelot: true } }).error);
+  assert.ok(act(room, b.p, { t: 'setRoles', recommended: true }).error);
+  // the host's change is read against the roles on screen, and holds from then on
+  act(room, a.p, { t: 'setRoles', roles: { oberon: false } });
+  act(room, a.p, { t: 'setRoles', roles: { lancelot: true } });
+  assert.equal(cfg().recommended, false);
+  assert.deepEqual(cfg().roles, { ...recommendedRoles(7), oberon: false, lancelot: true });
+  act(room, a.p, { t: 'removeBot' });
+  assert.equal(cfg().roles.lancelot, true, 'a chosen config does not follow the player count');
+  // Use recommended brings them back
+  act(room, a.p, { t: 'setRoles', recommended: true });
+  assert.equal(cfg().recommended, true);
+  assert.deepEqual(cfg().roles, recommendedRoles(6));
+});
+
+test('the roles in play stay public after the cards are dealt, and every Lancelot game deals both', () => {
+  const t = table(7, { seed: 9, config: { percival: true, morgana: true, lancelot: true } });
+  toPropose(t.room, t.clock);
+  const pub = t.room.publicState();
+  assert.equal(pub.config.roles.lancelot, true);
+  assert.equal(pub.config.roles.percival, true);
+  const dealt = [...t.room.g.roles.values()];
+  assert.ok(dealt.includes('goodlancelot') && dealt.includes('evillancelot'));
+  const evilLance = t.room.players.find((p) => t.room.g.roles.get(p.id) === 'evillancelot');
+  const goodLance = t.room.players.find((p) => t.room.g.roles.get(p.id) === 'goodlancelot');
+  assert.deepEqual(t.room.meState(evilLance).knows, [goodLance.id]);
+  assert.equal(t.room.meState(evilLance).knowKind, 'lancelot');
+  assert.deepEqual(t.room.meState(goodLance).knows, [evilLance.id]);
+});
+
 test('VIP passes to another human when they disconnect in the lobby', () => {
   const { room, clock } = makeRoom();
   const [a, b] = fill(room, 2, 0);
@@ -198,7 +240,7 @@ test('1 human + bots plays a full game correctly for every player count and ever
   let games = 0;
   const outcomes = new Set();
   for (let n = 5; n <= 10; n++) {
-    for (let mask = 0; mask < 64; mask++) {
+    for (let mask = 0; mask < 1 << ROLE_TOGGLES.length; mask++) {
       const cfg = {};
       ROLE_TOGGLES.forEach((k, i) => { cfg[k] = !!(mask & (1 << i)); });
       if (!validateRoleConfig(n, cfg).ok) continue;
@@ -215,7 +257,7 @@ test('1 human + bots plays a full game correctly for every player count and ever
       games++;
     }
   }
-  assert.ok(games > 150, `only ${games} games`);
+  assert.ok(games > 300, `only ${games} games`);
   // sanity: the bots actually produce several kinds of endings across this many games
   assert.ok(outcomes.has('quests') && [...outcomes].some((r) => r.startsWith('assassination')), [...outcomes].join());
 });
@@ -225,7 +267,7 @@ test('many seeded all-bot games: no illegal bot moves, always terminates', () =>
     const n = 5 + (seed % 6);
     const { room, clock } = makeRoom({ seed });
     const [h] = fill(room, 1, n - 1);
-    room.handle(h.p.id, { t: 'setRoles', roles: validateRoleConfig(n, { percival: true, morgana: true }).ok ? { percival: true, morgana: true } : {} });
+    room.handle(h.p.id, { t: 'setRoles', roles: { ...DEFAULT_ROLE_CONFIG, percival: true, morgana: true } });
     room.handle(h.p.id, { t: 'start' });
     room.detachPhone(h.p.id, h.conn);
     assert.ok(runUntil(room, clock, 'gameover'));
@@ -714,7 +756,7 @@ test('no secret info reaches the TV or other phones before game over (full game 
     const [h] = fill(room, 1, 6);
     const tv = new FakeConn();
     room.attachTv(tv);
-    room.handle(h.p.id, { t: 'setRoles', roles: { percival: true, morgana: true, mordred: true } });
+    room.handle(h.p.id, { t: 'setRoles', roles: { ...DEFAULT_ROLE_CONFIG, percival: true, morgana: true, mordred: true } });
     if (classic) room.handle(h.p.id, { t: 'setClassic', on: true });
     room.handle(h.p.id, { t: 'start' });
     room.handle(h.p.id, { t: 'ready' });

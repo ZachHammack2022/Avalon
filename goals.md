@@ -9,7 +9,7 @@ This doc covers the first vertical slice: one campaign, **"The Lost Crown,"** wi
 ## 1. Goals and non-goals
 
 **Goals**
-- Avalon rules 1:1, including all six optional roles.
+- Avalon rules 1:1, including every optional role from the box: the six classic ones plus Good and Evil Lancelot.
 - All together: a quest's cutscene shows the whole team succeeding or failing as one. Nobody is singled out as a hero or a culprit, so working out who sank a quest is left to the players and the record.
 - 5 cutscenes, each with a shared opening, a suspense moment, 4 fail gags, and a success ending.
 - Runs locally: a Node server on a Mac, the TV opens a URL, phones join on the same Wi-Fi.
@@ -87,7 +87,17 @@ public/
 - Leadership rotates clockwise (in join order) after every proposal, whether it was approved or not.
 
 ### Roles (all toggleable in the lobby)
-Merlin and Assassin are on by default. The VIP toggles Percival, Morgana, Mordred and Oberon.
+A new room plays the **recommended roles** for its player count, so the VIP can just press Start. They follow the count as people join, until the VIP changes a role; "Use recommended" brings them back.
+
+| Players | Good | Evil |
+|---|---|---|
+| 5, 6 | Merlin, Percival, Loyal | Assassin, Morgana |
+| 7 | Merlin, Percival, Loyal | Assassin, Morgana, Oberon |
+| 8 | Merlin, Percival, Loyal | Assassin, Morgana, Minion |
+| 9 | Merlin, Percival, Loyal | Assassin, Morgana, Mordred |
+| 10 | Merlin, Percival, Loyal | Assassin, Morgana, Mordred, Oberon |
+
+The VIP toggles Merlin, Percival, Morgana, Mordred, Oberon and Lancelot. Everyone sees the whole deck by side, before and during the game.
 
 | Role | Team | Knows |
 |---|---|---|
@@ -99,9 +109,14 @@ Merlin and Assassin are on by default. The VIP toggles Percival, Morgana, Mordre
 | **Morgana** | Evil | the other evil players (except Oberon). Appears as a possible Merlin to Percival |
 | **Mordred** | Evil | the other evil players (except Oberon). Hidden from Merlin |
 | **Oberon** | Evil | **no one**, and the other evil players don't know him. Merlin *does* see him |
+| **Good Lancelot** | Good | Evil Lancelot |
+| **Evil Lancelot** | Evil | Good Lancelot only. The other evil players (except Oberon) see him; he does not see them. Merlin sees him |
+
+Lancelot is one toggle for two cards, a good one and an evil one, and is recommended for 7 or more players. This is the Lancelot of the Avalon rulebook without the allegiance-switching variants: the two Lancelots know each other and never switch sides.
 
 **Validation in the lobby:**
-- The number of special evil roles must not exceed the evil count.
+- The number of special evil roles must not exceed the evil count (Evil Lancelot counts), nor special good roles the good count (Good Lancelot counts).
+- Lancelot below 7 players shows a warning but is allowed.
 - Percival or Morgana without Merlin is blocked.
 - Morgana without Percival shows a warning but is allowed.
 - The Assassin is required whenever Merlin is on.

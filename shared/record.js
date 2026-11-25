@@ -2,7 +2,7 @@
 // side, proposals across, grouped by quest). It is the table's shared memory, so the TV keeps it on screen and every
 // phone shows it while people argue. Pure and shared by both. Public knowledge only: proposals once their votes are
 // revealed, quest results once their cutscene has ended, and roles only after the game (pub.reveal).
-import { MAX_REJECTS, QUEST_COUNT, failsRequired, teamSize } from './avalon.js';
+import { MAX_REJECTS, QUEST_COUNT, ROLES, failsRequired, isEvilRole, teamSize } from './avalon.js';
 
 /**
  * @typedef {{ vote: 'yes'|'no'|'in'|null, onTeam: boolean, leader: boolean, standIn: boolean }} Cell
@@ -178,7 +178,7 @@ export function voteReads(pub) {
   }
   return reads;
 }
-const EVIL_ROLES = new Set(['minion', 'assassin', 'morgana', 'mordred', 'oberon']);
+const EVIL_ROLES = new Set(Object.keys(ROLES).filter(isEvilRole));
 
 /**
  * At game over, every player's votes read against the roles, in seat order, for the full record: [{id, evil, right,

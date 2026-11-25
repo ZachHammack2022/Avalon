@@ -1,7 +1,7 @@
 // Phone controller. Plain DOM, no framework. All secrets come from the server's `me` block;
 // the UI only ever shows another player's role at game over.
 import { screenFor, toggleSelection, canConfirm, knownPlayers, leaderName, nameOf, lastResult, startHint } from './model.js';
-import { ROLE_INFO, ROLE_TOGGLE_INFO, KNOW_LABELS, rolesInPlay, rolesText } from '/shared/roles-info.js';
+import { ROLE_INFO, ROLE_TOGGLE_INFO, ROLE_TOGGLE_LIST, KNOW_LABELS, deckFor, rolesInPlay } from '/shared/roles-info.js';
 import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, secretRead, questStrip } from './guide.js';
@@ -240,7 +240,7 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 let lastPhase = '';
 let lastScreen = '';
 let kickArmed = null; // lobby: a human's remove button was tapped once
-let rolesOpen = false; // lobby: role toggles expanded
+let rolesOpen = false; // lobby: the host's role toggles expanded (the deck itself is always shown)
 let lookOpen = false; // lobby: avatar picker expanded
 let choice = null; // pending vote / card / assassination target on the current screen
 
@@ -462,6 +462,21 @@ function joinScreen() {
   ];
 }
 
+/**
+ * Every role card in the game, by side: a chip per special role, then the Loyal Servants or Minions that fill the side
+ * ("2 Loyal Servants"). Public knowledge, shown in the lobby and in the Roles sheet during the game.
+ */
+function deckPanel(n, cfg, classic) {
+  const d = deckFor(Math.max(n, MIN_PLAYERS), cfg);
+  const chip = ({ role, count }) => h('span', { class: `dchip team-${ROLE_INFO[role].team}` }, icon(role),
+    role === 'loyal' || role === 'minion' ? `${count} ${ROLE_INFO[role].name}${count === 1 ? '' : 's'}` : ROLE_INFO[role].name);
+  return h('div', { class: 'deck' },
+    h('div', { class: 'dside team-good' }, h('span', { class: 'dlabel' }, `Good · ${d.goodCount}`), h('div', { class: 'dchips' }, d.good.map(chip))),
+    h('div', { class: 'dside team-evil' }, h('span', { class: 'dlabel' }, `Evil · ${d.evilCount}`), h('div', { class: 'dchips' }, d.evil.map(chip))),
+    n < MIN_PLAYERS ? h('small', { class: 'muted' }, `Shown for ${MIN_PLAYERS} players.`) : null,
+    classic ? h('small', { class: 'muted' }, 'Classic: fail counts shown') : null);
+}
+
 const SCREENS = {
   lobby() {
     const { pub, me } = state;
@@ -490,28 +505,28 @@ const SCREENS = {
           : h('button', { class: 'ghost kick', onclick: () => { if (p.bot) send({ t: 'kick', id: p.id }); else { kickArmed = p.id; render(); setTimeout(() => { if (kickArmed === p.id) { kickArmed = null; render(); } }, 3000); } }, 'aria-label': `Remove ${p.name}` }, icon('cross'))))));
     const body = [look, roster];
     const actions = [];
+    // the deck is public: everyone, not only the host, should know which roles are in the game before it starts
+    const deck = deckPanel(n, cfg, pub.config.classic);
     if (vip) {
       const v = pub.validation;
-      const toggle = (key, label, locked) => h('button', { class: `toggle ${cfg[key] ? 'on' : ''}`, disabled: locked, role: 'switch', 'aria-checked': String(!!cfg[key]), onclick: () => send({ t: 'setRoles', roles: { [key]: !cfg[key] } }) },
-        icon(key, `tg team-${ROLE_INFO[key].team}`), h('span', { class: 'grow' }, label, h('small', {}, ROLE_TOGGLE_INFO[key])), h('span', { class: 'sw' }));
+      const toggle = (t, locked) => h('button', { class: `toggle ${cfg[t.key] ? 'on' : ''}`, disabled: locked, role: 'switch', 'aria-checked': String(!!cfg[t.key]), onclick: () => send({ t: 'setRoles', roles: { [t.key]: !cfg[t.key] } }) },
+        icon(t.icon, `tg team-${t.team}`), h('span', { class: 'grow' }, t.name, h('small', {}, ROLE_TOGGLE_INFO[t.key])), h('span', { class: 'sw' }));
       body.splice(1, 0,
-        h('div', { class: 'panel roles' },
-          h('button', { class: 'lookme', 'aria-expanded': String(rolesOpen), onclick: () => { rolesOpen = !rolesOpen; render(); } },
-            h('span', { class: 'rolesum' }, rolesInPlay(cfg).map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
-            h('span', { class: 'grow' }, h('span', { class: 'label' }, n >= MIN_PLAYERS ? `Roles · ${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Roles'), h('b', {}, rolesText(cfg))),
-            h('span', { class: 'chg' }, rolesOpen ? 'Done' : 'Change')),
-          ...(rolesOpen ? [toggle('merlin', 'Merlin'), toggle('assassin', 'Assassin', cfg.merlin), toggle('percival', 'Percival'), toggle('morgana', 'Morgana'), toggle('mordred', 'Mordred'), toggle('oberon', 'Oberon'),
+        h('div', { class: 'panel roles setup' },
+          h('div', { class: 'row' }, h('div', { class: 'grow' }, h('span', { class: 'label' }, n >= MIN_PLAYERS ? `Roles · ${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Roles'),
+            h('b', { class: 'setuphead' }, pub.config.recommended ? `Recommended for ${Math.max(n, MIN_PLAYERS)} players` : 'Your choice of roles')),
+            pub.config.recommended ? null : h('button', { class: 'ghost reco', onclick: () => send({ t: 'setRoles', recommended: true }) }, 'Use recommended')),
+          deck,
+          h('button', { class: 'ghost more', 'aria-expanded': String(rolesOpen), onclick: () => { rolesOpen = !rolesOpen; render(); } }, rolesOpen ? 'Done changing roles' : 'Change roles'),
+          ...(rolesOpen ? [...ROLE_TOGGLE_LIST.map((t) => toggle(t, t.key === 'assassin' && cfg.merlin)),
             h('button', { class: `toggle ${pub.config.classic ? 'on' : ''}`, role: 'switch', 'aria-checked': String(!!pub.config.classic), onclick: () => send({ t: 'setClassic', on: !pub.config.classic }) },
               icon('scroll', 'tg'), h('span', { class: 'grow' }, 'Classic: show fail count', h('small', {}, 'Off by default so Evil teams stay hidden.')), h('span', { class: 'sw' }))] : [])));
       if (v.errors.length || v.warnings.length) actions.push(h('p', { class: v.errors.length ? 'err' : 'warn' }, startHint(pub)));
       actions.push(h('button', { class: 'primary big', disabled: !v.ok, onclick: () => send({ t: 'start' }) }, n < MIN_PLAYERS ? `Need ${MIN_PLAYERS - n} more (add bots)` : 'Start game'));
     } else {
-      // everyone, not only the host, should know which roles are in the game before it starts
-      body.splice(1, 0, h('div', { class: 'panel roles' }, h('div', { class: 'lookme static' },
-        h('span', { class: 'rolesum' }, rolesInPlay(cfg).map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
-        h('span', { class: 'grow' }, h('span', { class: 'label' }, n >= MIN_PLAYERS ? `Roles this game · ${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Roles this game'),
-          h('b', {}, rolesText(cfg)),
-          pub.config.classic ? h('small', { class: 'muted' }, ' Classic: fail counts shown') : null))));
+      body.splice(1, 0, h('div', { class: 'panel roles' },
+        h('span', { class: 'label' }, n >= MIN_PLAYERS ? `Roles this game · ${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Roles this game'),
+        deck));
       actions.push(h('p', { class: 'waitline' }, icon('fire'), 'Waiting for the host to start…'));
     }
     return page({ tracker: false, kicker: vip ? 'You are the host' : 'You are in', title: 'Gather round', body, actions });
@@ -701,6 +716,7 @@ function drawSheetBody() {
   if (sheetTab === 'now') {
     const tip = coachFor(screenFor(state), state);
     content.push(h('h2', {}, 'What do I do now?'), h('p', { class: 'hint big' }, tip || 'Nothing right now. Watch the TV.'));
+    if (inGame) content.push(h('div', { class: 'panel roles' }, h('h3', {}, 'Roles in this game'), deckPanel(pub.players.length, pub.config.roles)));
     if (inGame) content.push(h('div', { class: 'panel secretnote' }, icon('eye'), h('div', {}, h('b', {}, 'Forgot who you are?'), h('p', { class: 'muted small' }, 'Press and hold your name at the top of the screen. Your role, who you know, and private advice for this moment appear only while you hold.'))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Good'), h('ul', {}, GENERAL_TIPS.good.map((t) => h('li', {}, t)))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Evil'), h('ul', {}, GENERAL_TIPS.evil.map((t) => h('li', {}, t)))));
@@ -713,9 +729,10 @@ function drawSheetBody() {
     content.push(h('h2', {}, 'How to play'), ...HOW_TO.map((x, i) => h('div', { class: 'panel step' }, h('span', { class: 'num' }, String(i + 1)), h('div', {}, h('h3', {}, x.h), h('p', {}, x.p)))));
   } else {
     const cfg = pub && pub.config ? pub.config.roles : null;
-    const row = ([id, info]) => { const on = id === 'loyal' || id === 'minion' || (cfg && cfg[id]); return h('div', { class: `panel rolerow team-${info.team} ${cfg && !on ? 'out' : ''}` }, h('span', { class: 'sigil' }, icon(id)), h('div', {}, h('b', {}, info.name), cfg && !on ? h('small', { class: 'outtag' }, 'not in this game') : null, h('p', { class: 'muted small' }, info.blurb), h('ul', { class: 'small' }, roleTips(id, on ? cfg : null).map((t) => h('li', {}, t))))); };
+    const inGameRoles = new Set(cfg ? rolesInPlay(cfg) : []);
+    const row = ([id, info]) => { const on = id === 'loyal' || id === 'minion' || inGameRoles.has(id); return h('div', { class: `panel rolerow team-${info.team} ${cfg && !on ? 'out' : ''}` }, h('span', { class: 'sigil' }, icon(id)), h('div', {}, h('b', {}, info.name), cfg && !on ? h('small', { class: 'outtag' }, 'not in this game') : null, h('p', { class: 'muted small' }, info.blurb), h('ul', { class: 'small' }, roleTips(id, on ? cfg : null).map((t) => h('li', {}, t))))); };
     const all = Object.entries(ROLE_INFO);
-    content.push(h('h2', {}, 'Roles'), h('h3', { class: 'team-good' }, 'Loyal Servants of Arthur (Good)'), ...all.filter(([, r]) => r.team === 'good').map(row), h('h3', { class: 'team-evil' }, 'Minions of Mordred (Evil)'), ...all.filter(([, r]) => r.team === 'evil').map(row));
+    content.push(h('h2', {}, 'Roles'), cfg ? h('div', { class: 'panel roles' }, h('h3', {}, 'In this game'), deckPanel(pub.players.length, cfg)) : null, h('h3', { class: 'team-good' }, 'Loyal Servants of Arthur (Good)'), ...all.filter(([, r]) => r.team === 'good').map(row), h('h3', { class: 'team-evil' }, 'Minions of Mordred (Evil)'), ...all.filter(([, r]) => r.team === 'evil').map(row));
   }
   sheetBody.replaceChildren(
     h('div', { class: 'sheethead' }, h('div', { class: 'tabs', role: 'tablist' }, tabs.map(([k, l]) => h('button', { role: 'tab', 'aria-selected': String(k === sheetTab), class: k === sheetTab ? 'on' : '', onclick: () => { sheetTab = k; drawSheet(); } }, l))),

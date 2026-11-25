@@ -3,7 +3,7 @@
 // a `send(obj)` method (and optional `close()`), so the whole game can be driven from tests.
 import {
   MAX_PLAYERS, MAX_REJECTS, MIN_PLAYERS, QUEST_COUNT, QUESTS_TO_WIN, ROLES, isEvilRole,
-  normalizeRoleConfig, teamSize, validateRoleConfig,
+  normalizeRoleConfig, recommendedRoles, teamSize, validateRoleConfig,
 } from '../shared/avalon.js';
 import { QUESTS } from '../shared/campaign-lost-crown.js';
 import { cutsceneSeconds } from '../shared/cutscene.js';
@@ -55,6 +55,7 @@ export class Room {
     this.departed = new Map(); // token -> {cls, color} of seats dropped by Play again, so a returning phone gets its look back
     this.nextId = 1;
     this.rolesCfg = normalizeRoleConfig();
+    this.rolesAuto = true; // until the host changes a role, the room plays the recommended roles for its player count
     this.classic = false;
     this.phase = 'lobby';
     this.version = 0; // bumps on every phase change; stale timers check it
@@ -211,10 +212,11 @@ export class Room {
         id: p.id, name: p.name, cls: p.cls, color: p.color, bot: p.isBot, vip: p.vip,
         connected: p.connected, takeover: p.takeover, ready: p.ready,
       })),
-      config: { roles: this.rolesCfg, classic: this.classic },
+      // the roles in play are public: everyone at the table knows which cards are in the deck
+      config: { roles: this.g && this.phase !== 'lobby' ? this.g.config : this.roleConfig(), recommended: this.rolesAuto, classic: this.classic },
     };
     if (this.phase === 'lobby') {
-      pub.validation = validateRoleConfig(this.players.length, this.rolesCfg);
+      pub.validation = validateRoleConfig(this.players.length, this.roleConfig());
       delete pub.validation.config;
       return pub;
     }
@@ -330,10 +332,15 @@ export class Room {
       p.color = color;
     }
   }
+  /** The roles this room will deal: the host's choice, or the recommended roles for the players seated right now. */
+  roleConfig() { return this.rolesAuto ? recommendedRoles(this.players.length) : this.rolesCfg; }
   _setRoles(p, m) {
     const bad = this._needLobby(p); if (bad) return bad;
+    if (m.recommended === true) { this.rolesAuto = true; this.rolesCfg = normalizeRoleConfig(this.roleConfig()); return; }
     const src = m.roles && typeof m.roles === 'object' ? m.roles : m;
-    this.rolesCfg = normalizeRoleConfig({ ...this.rolesCfg, ...src });
+    // a change is read against the roles the host can see, and from then on the host's choice holds
+    this.rolesCfg = normalizeRoleConfig({ ...this.roleConfig(), ...src });
+    this.rolesAuto = false;
     if ('classic' in m) this.classic = !!m.classic;
   }
   _setClassic(p, m) { const bad = this._needLobby(p); if (bad) return bad; this.classic = !!m.on; }
@@ -370,7 +377,7 @@ export class Room {
 
   _start(p) {
     const bad = this._needLobby(p); if (bad) return bad;
-    const v = validateRoleConfig(this.players.length, this.rolesCfg);
+    const v = validateRoleConfig(this.players.length, this.roleConfig());
     if (!v.ok) return { error: v.errors[0] };
     const ids = this.playerIds();
     const roles = assignRoles(ids, v.config, this.rng);
@@ -602,7 +609,8 @@ export class Room {
     const g = this.g;
     const k = knowledgeFor(p.id, g.roles, this.playerIds());
     const last = g.results[g.results.length - 1];
-    const allyIds = k.team === 'evil' ? k.knows : [];
+    // only the Minions who see each other have allies; Evil Lancelot sees Good Lancelot, a rival
+    const allyIds = k.kind === 'allies' ? k.knows : [];
     // the record as the table sees it (results whose cutscene has played): how many failed quests each player went on,
     // and how many of those failed teams they voted to send without going themselves (stand-in votes left out)
     const shown = g.results.slice(0, g.shown);
@@ -614,7 +622,7 @@ export class Room {
       proposedTeam: g.team, rejectCount: g.rejectCount,
       teamIds: g.quest ? g.quest.teamIds : [],
       lastTeamFailed: !!(last && last.outcome === 'fail' && last.team.includes(p.id)),
-      failedWith, backedFail, evilSeen: k.kind === 'evil' ? k.knows : [],
+      failedWith, backedFail, evilSeen: k.kind === 'evil' || (k.kind === 'lancelot' && k.team === 'good') ? k.knows : [],
       history: g.proposals, // the public vote record, which an Assassin bot reads for Merlin
     };
   }

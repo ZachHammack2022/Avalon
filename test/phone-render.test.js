@@ -20,7 +20,7 @@ function gameStates(seed, bots = 6, { classic = false, roles } = {}) {
   const { room, clock } = makeRoom({ seed });
   const [h] = fill(room, 1, bots);
   if (classic) room.handle(room.vip.id, { t: 'setClassic', on: true });
-  if (roles) room.handle(room.vip.id, { t: 'setRoles', roles });
+  if (roles) room.handle(room.vip.id, { t: 'setRoles', roles: { merlin: true, assassin: true, percival: false, morgana: false, mordred: false, oberon: false, lancelot: false, ...roles } });
   const out = [];
   const broadcast = room.broadcast.bind(room);
   room.broadcast = () => {
@@ -279,15 +279,25 @@ test('phone: in the lobby every player, not only the host, sees which roles are 
   const lobby = gameStates(8).filter((s) => s.pub.phase === 'lobby');
   const guest = lobby.find((s) => !s.me.vip);
   const host = lobby.find((s) => s.me.vip);
+  // a new room plays the recommended roles for its size: at 7, Merlin and Percival against the Assassin, Morgana
+  // and Oberon. Every card in the deck is listed, by side.
+  const deckText = (root) => [...root.querySelectorAll('.dchip')].map((c) => c.textContent);
   sq.inject(guest);
   assert.match(textOf($('main')), /Roles this game · 3 Evil, 4 Good/);
-  assert.match(textOf($('main')), /Merlin and Assassin/);
+  assert.deepEqual(deckText($('main')), ['Merlin', 'Percival', '2 Loyal Servants', 'Assassin', 'Morgana', 'Oberon']);
   assert.equal($('main').querySelectorAll('.toggle').length, 0, 'guests cannot change them');
   sq.inject(host);
   assert.doesNotMatch(textOf($('main')), /Roles this game/);
-  // the host's summary names the roles too, instead of only counting them
   assert.match(textOf($('main')), /Roles · 3 Evil, 4 Good/);
-  assert.match(textOf($('main')), /Merlin and Assassin/);
+  assert.match(textOf($('main')), /Recommended for 7 players/);
+  assert.deepEqual(deckText($('main')), ['Merlin', 'Percival', '2 Loyal Servants', 'Assassin', 'Morgana', 'Oberon']);
+  assert.equal($('main').querySelectorAll('.toggle').length, 0, 'the toggles wait behind Change roles');
+  // once the host changes a role, a button brings the recommended roles back
+  const custom = clone(host); custom.pub.config.recommended = false; custom.pub.config.roles = { ...custom.pub.config.roles, lancelot: true, oberon: false };
+  sq.inject(custom);
+  assert.match(textOf($('main')), /Your choice of roles/);
+  assert.match(textOf($('main')), /Use recommended/);
+  assert.deepEqual(deckText($('main')), ['Merlin', 'Percival', 'Good Lancelot', '1 Loyal Servant', 'Assassin', 'Morgana', 'Evil Lancelot']);
   // every warning is shown, not just the first
   const odd = clone(host);
   odd.pub.validation = { ok: true, errors: [], warnings: ['First warning.', 'Second warning.'] };
@@ -612,4 +622,26 @@ test('phone: in the full record every vote chip says whose vote it was and how t
     });
   });
   assert.ok(autos > 0);
+});
+
+test('phone: Lancelot in play: each Lancelot holds a card naming the other, and the help sheet lists every role in the game', () => {
+  const states = gameStates(12, 6, { roles: { percival: true, morgana: true, lancelot: true } }).filter((s) => s.pub.phase === 'propose');
+  const evil = states.find((s) => s.me.role === 'evillancelot');
+  const good = states.find((s) => s.me.role === 'goodlancelot');
+  assert.ok(evil && good);
+  sq.inject(evil);
+  sq.showSecret();
+  const card = textOf($('secret'));
+  assert.match(card, /Evil Lancelot/);
+  assert.match(card, /The other Lancelot/);
+  assert.match(card, new RegExp(evil.pub.players.find((p) => p.id === good.me.id).name));
+  sq.hideSecret();
+  // the roles in play, by side, one tap away all game
+  sq.openSheet('roles');
+  const chips = [...$('sheetbody').querySelectorAll('.dchip')].map((c) => c.textContent);
+  assert.deepEqual(chips, ['Merlin', 'Percival', 'Good Lancelot', '1 Loyal Servant', 'Assassin', 'Morgana', 'Evil Lancelot']);
+  assert.equal([...$('sheetbody').querySelectorAll('.rolerow.out')].map((r) => r.querySelector('b').textContent).join(), 'Mordred,Oberon');
+  sq.openSheet('now');
+  assert.match(textOf($('sheetbody')), /Roles in this game/);
+  assert.equal($('sheetbody').querySelectorAll('.dchip').length, 7);
 });

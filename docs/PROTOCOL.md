@@ -15,7 +15,7 @@ A `token` that matches a seat resumes it (the old socket for that seat is closed
 
 ## Phone → server (after joining)
 
-`setAvatar {cls?, color?}` (lobby; `color` is one of the ten palette colours and nobody else's: another person's is refused, a bot's swaps with the bot) · VIP/lobby: `start`, `addBot`, `removeBot {id?}`, `kick {id}`, `setRoles {roles:{merlin,assassin,percival,morgana,mordred,oberon}}`, `setClassic {on}` ·
+`setAvatar {cls?, color?}` (lobby; `color` is one of the ten palette colours and nobody else's: another person's is refused, a bot's swaps with the bot) · VIP/lobby: `start`, `addBot`, `removeBot {id?}`, `kick {id}`, `setRoles {roles:{merlin,assassin,percival,morgana,mordred,oberon,lancelot}}` (a partial change, read against the roles on screen; from then on the host's choice holds) or `setRoles {recommended:true}` (back to the recommended roles, which follow the player count), `setClassic {on}` ·
 `leave` (lobby) · `ready` · `propose {team:[ids]}` · `vote {approve}` · `play {card:'success'|'fail'}` (the only quest action: there is no second choice) · `assassinate {id}` · `again` (VIP, game over).
 Illegal actions get `{t:'error', code:'action', msg}` and change nothing.
 
@@ -40,7 +40,7 @@ me: { id, name, vip, takeover,
 ## Public state (`pub`)
 
 ```
-{ room, phase, phaseEndsAt, config:{roles:{…}, classic},
+{ room, phase, phaseEndsAt, config:{roles:{…}, recommended, classic},   // roles: the toggles in play (public); recommended: still the room's default for its size
   players:[{id,name,cls,color,bot,vip,connected,takeover,ready}],
   validation?: {ok,errors,warnings}            // lobby only
   game?: { n, questIndex, quest:{id,name}, teamSize, leader, order:[ids] (seat order the crown follows), rejectCount, team:[ids],

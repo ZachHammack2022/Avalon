@@ -57,10 +57,18 @@ test('TV cards: every phase renders plain text, without secrets, and the fail co
   assert.ok(lobby.lines.some((l) => l.includes('http://x')));
   // the table can see which roles are in the game before it starts
   const roles = cardFor({ phase: 'lobby', room: 'ABCD', players, config: { roles: { merlin: true, assassin: true, percival: true, morgana: false, mordred: false, oberon: false }, classic: true }, validation: { ok: true, errors: [], warnings: [] } });
-  assert.ok(roles.lines.includes('Roles: Merlin, Assassin and Percival · Classic (fail counts shown)'), roles.lines.join('\n'));
+  // every card in the deck, by side, with the Loyal Servants and Minions that fill each side counted
+  assert.ok(roles.lines.includes('Roles in this game · Classic (fail counts shown)'), roles.lines.join('\n'));
+  assert.ok(roles.lines.includes('Good (3): Merlin, Percival and 1 Loyal Servant'), roles.lines.join('\n'));
+  assert.ok(roles.lines.includes('Evil (2): Assassin and 1 Minion'), roles.lines.join('\n'));
   assert.ok(roles.lines.includes('Waiting for the host to start…'));
-  assert.ok(cardFor({ phase: 'lobby', room: 'ABCD', players, config: { roles: {} } }).lines.includes('Roles: No special roles'));
+  const plain = cardFor({ phase: 'lobby', room: 'ABCD', players, config: { roles: {}, recommended: true } }).lines;
+  assert.ok(plain.includes('Roles in this game (recommended)') && plain.includes('Good (3): 3 Loyal Servants') && plain.includes('Evil (2): 2 Minions'), plain.join('\n'));
+  const lance = cardFor({ phase: 'lobby', room: 'ABCD', players, config: { roles: { merlin: true, assassin: true, lancelot: true } } }).lines;
+  assert.ok(lance.includes('Good (3): Merlin, Good Lancelot and 1 Loyal Servant') && lance.includes('Evil (2): Assassin and Evil Lancelot'), lance.join('\n'));
   assert.equal(cardFor(pub('roleReveal')).title, 'Check your phones');
+  // the roles stay known once the cards are dealt
+  assert.ok(cardFor({ ...pub('roleReveal'), config: { roles: { merlin: true, assassin: true } } }).lines.includes('Evil (2): Assassin and 1 Minion'));
   assert.match(cardFor(pub('propose')).lines[0], /Bo is choosing a team of 2/);
   assert.match(cardFor(pub('vote', { voted: ['p1'] })).lines.join(' '), /1 of 5/);
   assert.match(cardFor(pub('vote', { voted: ['p1'] })).lines.join(' '), /Voted: Ann/);

@@ -5,10 +5,10 @@ import { EVIL_COUNT, ROLES, isEvilRole, validateRoleConfig, ROLE_TOGGLES } from 
 import { seeded } from '../shared/rng.js';
 
 const ids = (n) => Array.from({ length: n }, (_, i) => `p${i + 1}`);
-/** Every combination of the 4 optional toggles (+ merlin on/off). */
+/** Every combination of the role toggles (Merlin, Assassin, Percival, Morgana, Mordred, Oberon, Lancelot). */
 function allConfigs() {
   const out = [];
-  for (let mask = 0; mask < 64; mask++) {
+  for (let mask = 0; mask < 1 << ROLE_TOGGLES.length; mask++) {
     const cfg = {};
     ROLE_TOGGLES.forEach((k, i) => { cfg[k] = !!(mask & (1 << i)); });
     out.push(cfg);
@@ -26,6 +26,7 @@ test('role list has the right size and team split for every valid player count x
       assert.equal(list.length, n);
       assert.equal(list.filter(isEvilRole).length, EVIL_COUNT[n], `evil count n=${n}`);
       for (const r of ['merlin', 'percival', 'morgana', 'mordred', 'oberon']) assert.equal(list.includes(r), v.config[r], `${r} n=${n}`);
+      for (const r of ['goodlancelot', 'evillancelot']) assert.equal(list.includes(r), v.config.lancelot, `${r} n=${n}`);
       assert.equal(list.includes('assassin'), v.config.assassin);
       assert.equal(new Set(list.filter((r) => ROLES[r].special)).size, list.filter((r) => ROLES[r].special).length, 'specials unique');
       tested++;
@@ -50,13 +51,17 @@ test('role knowledge matches the goals table for every combination', () => {
           const set = new Set(k.knows);
           assert.ok(!set.has(id), 'never lists self');
           if (role === 'merlin') {
-            assert.deepEqual([...set].sort(), evilIds.filter((e) => roleOf(e) !== 'mordred').sort(), 'Merlin: all evil except Mordred (Oberon is visible)');
+            assert.deepEqual([...set].sort(), evilIds.filter((e) => roleOf(e) !== 'mordred').sort(), 'Merlin: all evil except Mordred (Oberon and Evil Lancelot are visible)');
+          } else if (role === 'goodlancelot' || role === 'evillancelot') {
+            const other = role === 'goodlancelot' ? 'evillancelot' : 'goodlancelot';
+            assert.equal(k.kind, 'lancelot');
+            assert.deepEqual([...set], order.filter((x) => roleOf(x) === other), `${role} sees only the other Lancelot`);
           } else if (role === 'percival') {
             assert.deepEqual([...set].sort(), order.filter((x) => roleOf(x) === 'merlin' || roleOf(x) === 'morgana').sort());
           } else if (role === 'oberon') {
             assert.equal(set.size, 0, 'Oberon knows no one');
           } else if (isEvilRole(role)) {
-            assert.deepEqual([...set].sort(), evilIds.filter((e) => e !== id && roleOf(e) !== 'oberon').sort(), `${role} sees evil except Oberon`);
+            assert.deepEqual([...set].sort(), evilIds.filter((e) => e !== id && roleOf(e) !== 'oberon').sort(), `${role} sees evil except Oberon (Evil Lancelot included)`);
           } else {
             assert.equal(set.size, 0, `${role} knows nothing`);
           }
@@ -64,6 +69,26 @@ test('role knowledge matches the goals table for every combination', () => {
       }
     }
   }
+});
+
+test('Lancelot: the two know each other; the Minions see Evil Lancelot, who does not see them; Merlin sees him', () => {
+  const order = ids(8);
+  const roles = ['merlin', 'percival', 'goodlancelot', 'loyal', 'loyal', 'assassin', 'morgana', 'evillancelot'];
+  const a = new Map(order.map((id, i) => [id, roles[i]]));
+  const k = (i) => knowledgeFor(order[i], a, order);
+  assert.deepEqual(k(2).knows, ['p8']); assert.equal(k(2).kind, 'lancelot'); assert.match(k(2).note, /Evil Lancelot/);
+  assert.deepEqual(k(7).knows, ['p3']); assert.equal(k(7).kind, 'lancelot'); assert.match(k(7).note, /do not know who they are/);
+  assert.deepEqual(k(5).knows, ['p7', 'p8'], 'the Assassin sees Morgana and Evil Lancelot');
+  assert.match(k(5).note, /One of them is Evil Lancelot/);
+  assert.deepEqual(k(0).knows, ['p6', 'p7', 'p8'], 'Merlin sees every Minion, Evil Lancelot included');
+  assert.deepEqual(k(1).knows, ['p1', 'p7'], 'Percival is unchanged');
+  assert.deepEqual(k(3).knows, [], 'a Loyal Servant knows nobody');
+});
+
+test('Lancelot takes one good and one evil seat', () => {
+  const list = buildRoleList(7, { lancelot: true });
+  assert.deepEqual(list, ['merlin', 'goodlancelot', 'loyal', 'loyal', 'assassin', 'evillancelot', 'minion']);
+  assert.throws(() => buildRoleList(5, { lancelot: true, morgana: true, percival: true }), /Too many evil roles/);
 });
 
 test('knowledge lists are in seat order (cannot leak role order)', () => {
