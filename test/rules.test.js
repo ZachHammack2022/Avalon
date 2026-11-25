@@ -113,6 +113,16 @@ test('quest 4 at 7+ players needs two Fails; a single hidden Fail leaves a succe
   assert.equal(mk(6, 3, { a: 'fail', b: 'success', c: 'success' }, { a: 'b', b: 'a', c: 'a' }).outcome, 'fail');
 });
 
+test('success: the hero is a draw weighted by nominations, not simply the most-picked player (as the phone help says)', () => {
+  const heroes = { a: 0, c: 0 };
+  for (let seed = 1; seed <= 300; seed++) {
+    const r = mk(5, 0, { a: 'success', b: 'success', c: 'success' }, { a: 'c', b: 'c', c: 'a' }, seed);
+    heroes[r.hero]++;
+  }
+  assert.ok(heroes.a > 0, 'a player with one nomination can still be the hero');
+  assert.ok(heroes.c > heroes.a, 'more nominations, better odds');
+});
+
 test('success: hero is chosen among success players nominations only', () => {
   for (let seed = 1; seed <= 100; seed++) {
     const r = mk(7, 3, { a: 'success', b: 'fail', c: 'success', d: 'success' }, { a: 'c', b: 'b', c: 'a', d: 'c' }, seed);

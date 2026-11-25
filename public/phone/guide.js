@@ -8,7 +8,7 @@ export const HOW_TO = [
   { h: 'Winning', p: 'Good wins by completing 3 of 5 quests. Evil wins by sabotaging 3 quests, or if 5 teams in a row get rejected. If good wins, the Assassin still gets one guess at Merlin. A correct guess steals the win.' },
   { h: 'A round', p: 'The leader picks a team. Everyone votes Approve or Reject. If the team is approved, its members secretly play Success or Fail cards. Then watch the TV: the quest plays out as a cutscene.' },
   { h: 'Success and Fail', p: 'Good players can only play Success. Evil players may play Fail. One Fail sinks the quest. (Quest 4 with 7+ players needs two.) The TV shows the outcome, never who played what.' },
-  { h: 'Who stood out?', p: 'After playing your card you pick one teammate. On success, the most-picked player becomes the hero. On a failure, the culprit is drawn from what the Fail players picked, so Evil gets to frame someone!' },
+  { h: 'Who stood out?', p: 'After playing your card you pick one teammate. On a success, the hero is drawn from the Success players\' picks (more picks, better odds). On a failure, the culprit is drawn from what the Fail players picked, so Evil gets to frame someone!' },
   { h: 'Talk it out', p: 'Argue, accuse, defend. Say who you trust and why. Lying is part of the game, but only inside the game.' },
 ];
 
@@ -55,7 +55,7 @@ export function coachFor(screen, state) {
     }
     case 'voted': return 'Votes are revealed together once everyone is in.';
     case 'quest-card': return 'Play one card face-down. Good always plays Success, whichever card is tapped. Only Evil can truly Fail.';
-    case 'quest-pick': return 'Pick one teammate (or yourself). The story on the TV singles out the most-picked player.';
+    case 'quest-pick': return 'Pick one teammate (or yourself). The story on the TV singles out one of the players who got picked.';
     case 'quest-done': case 'watchQuest': return 'The cards are being played in secret.';
     case 'assassinate': return 'One guess. Name Merlin and Evil steals the win.';
     case 'waitAssassin': return 'Evil gets one guess at Merlin. Good wins only if they miss.';
@@ -81,7 +81,7 @@ export function counselFor(screen, state) {
       const need = g ? failsRequired(n, g.questIndex) : 1;
       return `You usually want to play Fail. ${need > 1 ? 'This quest needs TWO Fails, so it only sinks if another Minion fails too. ' : ''}If you are the only Minion here, a Success now can buy trust for later.`;
     }
-    case 'quest-pick': return evil ? 'If the quest fails, a Fail player\'s pick decides who is framed. Pick a Good player.' : 'Pick whoever impressed you. On a success the most-picked player is the hero.';
+    case 'quest-pick': return evil ? 'If the quest fails, a Fail player\'s pick decides who is framed. Pick a Good player.' : 'Pick whoever impressed you. On a success the hero is drawn from the Success players\' picks.';
     case 'assassinate': return 'Who steered teams away from your allies? Who seemed to know too much? That is Merlin.';
     case 'waitAssassin': return role === 'merlin' ? 'Hold your breath and keep a straight face.' : evil ? 'Help the Assassin: who seemed to know too much?' : 'Do not look at Merlin!';
     default: return evil ? GENERAL_TIPS.evil[2] : GENERAL_TIPS.good[2];
