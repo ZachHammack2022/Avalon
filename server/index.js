@@ -123,7 +123,7 @@ export function createGameServer({
           const res = r.join({ name: msg.name, token: msg.token, cls: msg.cls, color: msg.color }, conn);
           if (!res.ok) { conn.send({ t: 'error', code: 'joinFailed', msg: res.error }); return; }
           role = 'phone'; room = r; playerId = res.player.id;
-          conn.send({ t: 'joined', id: playerId, token: res.token, room: r.code, resumed: !!res.resumed });
+          conn.send({ t: 'joined', id: playerId, token: res.token, room: r.code, resumed: !!res.resumed, standIn: !!res.standIn });
           r.broadcast();
         } else {
           conn.send({ t: 'error', code: 'hello', msg: 'Say tv or join first.' });

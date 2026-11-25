@@ -9,7 +9,7 @@ refilled at 20/s; excess messages are dropped.
 | Client → server | Reply |
 |---|---|
 | `{t:'tv', room?}` | `{t:'room', code}`, `{t:'info', joinUrl, phoneBase}`, `{t:'state', pub}`. Unknown/missing `room` creates a new room. |
-| `{t:'join', room, name, token?, cls?, color?}` | `{t:'joined', id, token, room, resumed}` then `{t:'state', pub, me}`; or `{t:'error', code:'noRoom'|'joinFailed', msg}` |
+| `{t:'join', room, name, token?, cls?, color?}` | `{t:'joined', id, token, room, resumed, standIn}` then `{t:'state', pub, me}`; or `{t:'error', code:'noRoom'|'joinFailed', msg}`. `standIn` is true when a stand-in had been playing the resumed seat. |
 
 A `token` that matches a seat resumes it (the old socket for that seat is closed). New players cannot join once a game started.
 
@@ -45,7 +45,8 @@ me: { id, name, vip, takeover,
   game?: { n, questIndex, quest:{id,name}, teamSize, leader, rejectCount, team:[ids],
            results:[{questIndex,outcome,team,culprit,hero,failCount?}],   // only results whose cutscene has finished
            voted?:[ids] (vote), votes?:{id:bool} + approved (voteReveal), waitingOn? (questPlay), assassinationEnabled,
-           history:[{questIndex,leader,team,votes:{id:bool},approved}] (every revealed proposal; public) },
+           history:[{questIndex,leader,team,votes:{id:bool},approved,standIn?:[ids]}] (every revealed proposal; public;
+                    standIn = seats whose vote a stand-in cast while they were away) },
   reveal?: { winner, reason, roles:{id:role}, assassination, recap:[…] }  // gameover only, the ONLY place roles/cards/picks appear
 }
 ```

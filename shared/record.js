@@ -5,10 +5,11 @@
 import { QUEST_COUNT, failsRequired, teamSize } from './avalon.js';
 
 /**
- * @typedef {{ vote: 'yes'|'no'|'in'|null, onTeam: boolean, leader: boolean }} Cell
- *   vote: 'yes'/'no' once revealed, 'in' = has voted but the vote is still face-down, null = nothing yet
+ * @typedef {{ vote: 'yes'|'no'|'in'|null, onTeam: boolean, leader: boolean, standIn: boolean }} Cell
+ *   vote: 'yes'/'no' once revealed, 'in' = has voted but the vote is still face-down, null = nothing yet;
+ *   standIn: the player was away and a stand-in cast this vote for them (so it says nothing about the player)
  * @typedef {{ key: string, questIndex: number, attempt: number, leader: string, team: string[], approved: boolean|null,
- *   live: boolean, yes: number, no: number, outcome: 'success'|'fail'|null, failCount: number|null }} Column
+ *   live: boolean, yes: number, no: number, outcome: 'success'|'fail'|null, failCount: number|null, standIn: string[] }} Column
  *   live = the proposal being voted on right now; outcome = how the quest went, for the proposal that was sent;
  *   failCount = Fail cards in that quest, only in Classic mode (otherwise the count stays secret)
  */
@@ -23,10 +24,11 @@ export function recordFor(pub) {
 
   const cols = (g.history || []).map((h) => ({
     questIndex: h.questIndex, leader: h.leader, team: h.team || [], votes: h.votes || {}, approved: !!h.approved, live: false,
+    standIn: h.standIn || [],
   }));
   // the team on the table right now: names are public, votes stay face-down until everyone is in
   if (pub.phase === 'vote' && g.team && g.team.length) {
-    cols.push({ questIndex: g.questIndex, leader: g.leader, team: g.team, votes: null, voted: g.voted || [], approved: null, live: true });
+    cols.push({ questIndex: g.questIndex, leader: g.leader, team: g.team, votes: null, voted: g.voted || [], approved: null, live: true, standIn: [] });
   }
   const attempts = {};
   const columns = cols.map((c, i) => {
@@ -36,7 +38,7 @@ export function recordFor(pub) {
     const r = c.approved ? resultOf(c.questIndex) : null;
     return {
       key: `c${i}`, questIndex: c.questIndex, attempt, leader: c.leader, team: c.team.slice(), approved: c.approved, live: c.live, yes, no,
-      outcome: r ? r.outcome : null, failCount: r && r.failCount != null ? r.failCount : null,
+      outcome: r ? r.outcome : null, failCount: r && r.failCount != null ? r.failCount : null, standIn: c.standIn.slice(),
     };
   });
 
@@ -63,10 +65,12 @@ export function recordFor(pub) {
       vote: c.votes ? (c.votes[p.id] === true ? 'yes' : c.votes[p.id] === false ? 'no' : null) : (c.voted || []).includes(p.id) ? 'in' : null,
       onTeam: c.team.includes(p.id),
       leader: c.leader === p.id,
+      standIn: c.standIn.includes(p.id),
     }));
     const went = results.filter((r) => (r.team || []).includes(p.id)).map((r) => r.outcome);
     return {
       id: p.id, name: p.name, color: p.color, cls: p.cls,
+      away: !p.bot && p.connected === false && !finished, // a stand-in is playing this seat right now (or will shortly)
       cells,
       quests: went, // outcome of every quest this player went on, in order
       blamed: results.filter((r) => r.outcome === 'fail' && r.culprit === p.id).length,
@@ -80,11 +84,11 @@ export function recordFor(pub) {
 
 /** One plain sentence per column, for screen readers and tooltips. `nameOf(id)` -> display name. */
 export function describeColumn(col, nameOf) {
-  const who = col.team.map(nameOf);
-  const team = who.length <= 1 ? who.join('') : `${who.slice(0, -1).join(', ')} and ${who[who.length - 1]}`;
+  const team = list(col.team.map(nameOf));
   const head = `Quest ${col.questIndex + 1}, proposal ${col.attempt}: ${nameOf(col.leader)} proposed ${team}.`;
   if (col.live) return `${head} Voting now.`;
-  const verdict = `${col.approved ? 'Approved' : 'Rejected'} ${col.yes} to ${col.no}.`;
+  const stand = col.standIn && col.standIn.length ? ` A stand-in voted for ${list(col.standIn.map(nameOf))}.` : '';
+  const verdict = `${col.approved ? 'Approved' : 'Rejected'} ${col.yes} to ${col.no}.${stand}`;
   const fails = col.failCount ? ` with ${failText(col.failCount)}` : '';
   const outcome = col.outcome === 'success' ? ` The quest succeeded${fails}.` : col.outcome === 'fail' ? ` The quest failed${fails}.` : '';
   return `${head} ${verdict}${outcome}`;
@@ -92,3 +96,5 @@ export function describeColumn(col, nameOf) {
 
 /** "1 Fail card" / "2 Fail cards" */
 export const failText = (n) => `${n} Fail card${n === 1 ? '' : 's'}`;
+
+const list = (who) => (who.length <= 1 ? who.join('') : `${who.slice(0, -1).join(', ')} and ${who[who.length - 1]}`);

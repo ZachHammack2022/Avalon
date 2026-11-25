@@ -79,6 +79,21 @@ test('record: in Classic mode the Fail count of each quest is part of the record
   assert.ok(recordFor(pub('propose')).columns.every((c) => c.failCount === null));
 });
 
+test('record: votes a stand-in cast are marked, and so is a seat that is away right now', () => {
+  const hist = [history[0], { ...history[1], standIn: ['p4'] }, history[2]];
+  const away = players.map((p) => (p.id === 'p4' ? { ...p, connected: false } : { ...p, connected: true }));
+  const rec = recordFor({ ...pub('propose', { history: hist }), players: away });
+  const dee = rec.rows[3];
+  assert.deepEqual(dee.cells.map((c) => c.standIn), [false, true, false]);
+  assert.equal(dee.away, true);
+  assert.ok(rec.rows.filter((r) => r.id !== 'p4').every((r) => !r.away && r.cells.every((c) => !c.standIn)));
+  const name = (id) => players.find((p) => p.id === id).name;
+  assert.match(describeColumn(rec.columns[1], name), /Approved 3 to 2\. A stand-in voted for Dee\./);
+  // a bot is never "away", and nobody is once the game is over
+  assert.equal(recordFor({ ...pub('propose'), players: away.map((p) => ({ ...p, bot: true })) }).rows[3].away, false);
+  assert.equal(recordFor({ ...pub('gameover', {}, { reveal: { roles: {} } }), players: away }).rows[3].away, false);
+});
+
 test('record: plain-language column summaries', () => {
   const rec = recordFor(pub('vote', { team: ['p4', 'p5'], voted: [] }));
   const name = (id) => players.find((p) => p.id === id).name;

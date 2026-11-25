@@ -42,11 +42,12 @@ export function boardTree(pub, { flip = null } = {}) {
     el('th', 'nm', ''),
     ...groups.map((q) => el('th', `qh qs ${q.outcome || (q.current ? 'current' : '')}`, `Q${q.index + 1}`, { colspan: String(q.cols.length) })),
   ]);
-  const marks = { hero: false, blamed: false };
+  const marks = { hero: false, blamed: false, auto: false };
   const body = rec.rows.map((r, ri) => {
     const role = r.role ? ROLE_INFO[r.role] : null;
-    return el('tr', role ? `team-${role.team}` : '', [
-      el('th', 'nm', [el('i', 'dot', [], { style: `background:${r.color || '#888'}` }), el('span', 'n', r.name), role ? el('span', 'role', role.name) : null]),
+    return el('tr', [role ? `team-${role.team}` : '', r.away ? 'away' : ''].filter(Boolean).join(' '), [
+      el('th', 'nm', [el('i', 'dot', [], { style: `background:${r.color || '#888'}` }), el('span', 'n', r.name),
+        role ? el('span', 'role', role.name) : r.away ? el('span', 'aw', 'away') : null]),
       ...cols.map((c, ci) => {
         const cell = r.cells[ci];
         const q = questOf(c);
@@ -56,7 +57,9 @@ export function boardTree(pub, { flip = null } = {}) {
           c.live ? 'live' : '', c.approved === false ? 'rej' : '',
           sent && cell.onTeam ? `went ${c.outcome || 'pending'}` : '',
           firstOfQuest.has(c.key) ? 'qs' : '',
+          cell.standIn ? 'auto' : '',
           flip === c.key ? 'flip' : ''].filter(Boolean).join(' ');
+        if (cell.standIn) marks.auto = true;
         const mark = sent && c.outcome === 'fail' && q.culprit === r.id ? el('sub', 'mk blamed', '☠') : sent && c.outcome === 'success' && q.hero === r.id ? el('sub', 'mk hero', '★') : null;
         if (mark) marks[mark.cls.split(' ')[1]] = true;
         return el('td', cls, [GLYPH[cell.vote] || '', cell.leader ? el('sup', 'crown', '♛') : null, mark],
@@ -72,6 +75,7 @@ export function boardTree(pub, { flip = null } = {}) {
     // the story's marks, explained once they are on the board
     marks.hero ? el('span', '', [el('b', 'lg hero', '★'), 'hero']) : null,
     marks.blamed ? el('span', '', [el('b', 'lg blamed', '☠'), 'blamed']) : null,
+    marks.auto ? el('span', '', [el('b', 'lg auto', ''), 'stand-in vote']) : null,
   ]);
   return [top, grid, legend];
 }
