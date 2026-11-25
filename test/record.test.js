@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { awards, backedFailures, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
+import { awards, backedFailures, cleanText, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -274,4 +274,21 @@ test('team case: who on a proposed team went on a failed quest or voted to send 
   });
   assert.equal(teamCase(more, ['p5'], nm), 'Eli went on 1 failed quest and voted to send 1 failed team.');
   assert.equal(teamCase(more, ['p3'], nm), 'Cy went on 2 failed quests.');
+});
+
+test('clean record: who never went on or voted to send a failed quest, for the table while a leader picks', () => {
+  const nm = (id) => players.find((p) => p.id === id).name;
+  // quest 2 failed with p1, p3 and p5 on it, and p4 voted to send it from outside: only Bo is clean
+  assert.equal(cleanText(pub('propose'), nm), 'Never on or behind a failed quest: Bo.');
+  // a stand-in's vote says nothing about Dee
+  const away = history.map((h, i) => (i === 2 ? { ...h, standIn: ['p4'] } : h));
+  assert.equal(cleanText(pub('propose', { history: away }), nm), 'Never on or behind a failed quest: Bo and Dee.');
+  assert.equal(cleanText(pub('propose', { results: results.slice(0, 1) }), nm), null, 'nothing before a quest fails');
+  // Bo then goes on a failed quest too: nobody is left
+  const all = pub('propose', {
+    history: history.concat({ questIndex: 2, leader: 'p4', team: ['p2', 'p4'], votes: V('p2', 'p4'), approved: true }),
+    results: results.concat({ questIndex: 2, outcome: 'fail', team: ['p2', 'p4'], hero: null, culprit: 'p2' }),
+  });
+  assert.equal(cleanText(all, nm), 'Everyone has gone on or voted for a failed quest.');
+  assert.equal(cleanText({ phase: 'lobby', players }, nm), null);
 });

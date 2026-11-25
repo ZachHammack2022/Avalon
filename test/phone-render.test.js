@@ -6,7 +6,7 @@ import { installDom, textOf } from './fake-dom.js';
 import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
-import { awards, backedFailures, noToEvil, teamCase } from '../shared/record.js';
+import { awards, backedFailures, cleanText, noToEvil, teamCase } from '../shared/record.js';
 
 const document = installDom();
 await import('../public/phone/app.js');
@@ -441,6 +441,22 @@ test('phone: the vote screen reads the record against the proposed team', () => 
   assert.ok(line, 'the case line is shown');
   assert.equal(textOf(line).trim(), teamCase(found.pub, found.pub.game.team, nm));
   const early = gameStates(1).find((s) => screenFor(s) === 'vote' && !s.pub.game.results.length);
+  sq.inject(early);
+  assert.equal($('main').querySelector('.teamcase'), null);
+});
+
+test('phone: while someone else picks a team, the screen names who the record has nothing against', () => {
+  let found = null;
+  for (let seed = 1; seed < 60 && !found; seed++) {
+    found = gameStates(seed).find((s) => screenFor(s) === 'waitLeader' && s.pub.game.results.some((r) => r.outcome === 'fail'));
+  }
+  assert.ok(found, 'a wait for the leader after a failed quest');
+  sq.inject(found);
+  const nm = (id) => (id === found.me.id ? 'you' : found.pub.players.find((p) => p.id === id).name);
+  const line = $('main').querySelector('.teamcase');
+  assert.ok(line, 'the line is shown');
+  assert.equal(textOf(line).trim(), cleanText(found.pub, nm));
+  const early = gameStates(1).find((s) => screenFor(s) === 'waitLeader' && !s.pub.game.results.length);
   sq.inject(early);
   assert.equal($('main').querySelector('.teamcase'), null);
 });

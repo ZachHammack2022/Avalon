@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, teamCase } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, cleanText, teamCase } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -424,6 +424,12 @@ function caseLine(team) {
   return text ? h('p', { class: 'teamcase small center' }, icon('scroll'), ' ', text) : null;
 }
 
+/** While a leader picks: who the record has nothing against (nothing before a quest has failed). */
+function cleanLine() {
+  const text = cleanText(state.pub, (id) => (id === state.me.id ? 'you' : byId(id).name));
+  return text ? h('p', { class: 'teamcase small center' }, icon('scroll'), ' ', text) : null;
+}
+
 const waiting = (ic, text) => h('div', { class: 'waiting' }, h('div', { class: 'pulse' }, icon(ic)), h('p', {}, text));
 const youTag = (id) => (id === state.me.id ? 'you' : null);
 
@@ -519,7 +525,7 @@ const SCREENS = {
   waitLeader() {
     const { pub } = state; const L = byId(pub.game.leader);
     return page({ kicker: `Quest ${pub.game.questIndex + 1}`, title: `${L.name} is choosing`, sub: `A team of ${pub.game.teamSize} will go.`,
-      body: [h('div', { class: 'spot' }, avatar(L, 'xxl'), icon('leader', 'spotcrown'), h('b', {}, L.name))], record: true });
+      body: [h('div', { class: 'spot' }, avatar(L, 'xxl'), icon('leader', 'spotcrown'), h('b', {}, L.name)), cleanLine()], record: true });
   },
 
   propose() {
