@@ -743,3 +743,19 @@ test('bad / hostile messages are ignored without crashing', () => {
   }
   assert.ok(t.room.handle('nobody', { t: 'start' }).error);
 });
+
+test('an error inside a room timer goes to onError on a live server, and is rethrown in tests', () => {
+  const seen = [];
+  const { room, clock } = makeRoom({ seed: 3, onError: (e) => seen.push(e.message) });
+  fill(room, 1, 4);
+  room.handle(room.vip.id, { t: 'start' });
+  room._botAct = () => { throw new Error('bot boom'); }; // bots act on timers
+  assert.doesNotThrow(() => clock.advance(60000));
+  assert.ok(seen.includes('bot boom'), seen.join(', '));
+  // without onError the same error surfaces, so a bug cannot hide in a test
+  const strict = makeRoom({ seed: 3 });
+  fill(strict.room, 1, 4);
+  strict.room.handle(strict.room.vip.id, { t: 'start' });
+  strict.room._botAct = () => { throw new Error('bot boom'); };
+  assert.throws(() => strict.clock.advance(60000), /bot boom/);
+});

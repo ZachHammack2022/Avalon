@@ -37,14 +37,17 @@ export class Room {
    * @param {object} [o.clock]                { setTimeout, clearTimeout, now }
    * @param {object} [o.timing]               overrides for DEFAULT_TIMING
    * @param {number} [o.timeScale]            >1 speeds every server delay up (dev / integration tests)
+   * @param {(e: Error) => void} [o.onError]  called when a timer (a phase, a bot, a disconnect) throws; without it the
+   *                                          error is rethrown, which is what tests want
    */
-  constructor({ code, rng = makeRng(), clock = real, timing = {}, timeScale = 1, onEmpty } = {}) {
+  constructor({ code, rng = makeRng(), clock = real, timing = {}, timeScale = 1, onEmpty, onError } = {}) {
     this.code = code;
     this.rng = rng;
     this.clock = clock;
     this.timing = { ...DEFAULT_TIMING, ...timing };
     this.timeScale = timeScale;
     this.onEmpty = onEmpty;
+    this.onError = onError;
     this.tvs = new Set();
     this.players = [];
     this.departed = new Map(); // token -> {cls, color} of seats dropped by Play again, so a returning phone gets its look back
@@ -62,7 +65,14 @@ export class Room {
 
   // ---------- timers ----------
   ms(x) { return Math.max(0, Math.round(x / this.timeScale)); }
-  _after(ms, fn) { return this.destroyed ? null : this.clock.setTimeout(fn, this.ms(ms)); }
+  // timers run outside any message handler, so on a live server an error in one would end the whole process (every
+  // room with it); onError keeps it to this room
+  _after(ms, fn) {
+    if (this.destroyed) return null;
+    return this.clock.setTimeout(() => {
+      try { fn(); } catch (e) { if (this.onError) this.onError(e); else throw e; }
+    }, this.ms(ms));
+  }
   _setPhaseTimer(ms, fn) {
     this._clearPhaseTimer();
     const v = this.version;

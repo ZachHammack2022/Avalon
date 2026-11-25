@@ -117,7 +117,7 @@ export function createGameServer({
   function newRoom() {
     let code;
     do { code = Array.from({ length: 4 }, () => CODE_LETTERS[Math.floor(Math.random() * CODE_LETTERS.length)]).join(''); } while (rooms.has(code));
-    const room = new Room({ code, rng: rngFactory(), clock, timing, timeScale, onEmpty: () => {} });
+    const room = new Room({ code, rng: rngFactory(), clock, timing, timeScale, onEmpty: () => {}, onError: (e) => console.error(`[room ${code}] timer:`, e) });
     rooms.set(code, room);
     return room;
   }
