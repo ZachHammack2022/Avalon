@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { awards, backedFailures, cleanText, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
+import { awards, backedFailures, cleanText, failedTeamVotes, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -256,6 +256,15 @@ test('backed failures: the failed teams each player voted to send without going 
   // a quest whose result is not public yet (its cutscene still playing) does not count
   assert.deepEqual(backedFailures(pub('cutscene', { results: results.slice(0, 1) })), {});
   assert.deepEqual(backedFailures({ phase: 'lobby', players }), {});
+});
+
+test('failed team votes: how each player voted on the teams that went and failed', () => {
+  // quest 2 (p1, p3 and p5) failed: of the two outside it, p4 voted to send it and p2 against
+  assert.deepEqual(failedTeamVotes(pub('propose')), { p2: { against: 1, of: 1 }, p4: { against: 0, of: 1 } });
+  const away = history.map((h, i) => (i === 2 ? { ...h, standIn: ['p4'] } : h));
+  assert.deepEqual(failedTeamVotes(pub('propose', { history: away })), { p2: { against: 1, of: 1 } }, 'stand-in votes left out');
+  assert.deepEqual(failedTeamVotes(pub('cutscene', { results: results.slice(0, 1) })), {}, 'only public results');
+  assert.deepEqual(failedTeamVotes({ phase: 'lobby', players }), {});
 });
 
 test('team case: who on a proposed team went on a failed quest or voted to send one, in one line', () => {

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { installDom, textOf } from './fake-dom.js';
 import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
+import { percivalRead } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
 import { awards, backedFailures, cleanText, noToEvil, teamCase } from '../shared/record.js';
 
@@ -15,10 +16,11 @@ const $ = (id) => document.getElementById(id);
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
 /** Every state message every seat would get over a whole bot game (one human seat, played by its stand-in). */
-function gameStates(seed, bots = 6, { classic = false } = {}) {
+function gameStates(seed, bots = 6, { classic = false, roles } = {}) {
   const { room, clock } = makeRoom({ seed });
   const [h] = fill(room, 1, bots);
   if (classic) room.handle(room.vip.id, { t: 'setClassic', on: true });
+  if (roles) room.handle(room.vip.id, { t: 'setRoles', roles });
   const out = [];
   const broadcast = room.broadcast.bind(room);
   room.broadcast = () => {
@@ -466,6 +468,22 @@ test('phone: while someone else picks a team, the screen names who the record ha
   const early = gameStates(1).find((s) => screenFor(s) === 'waitLeader' && !s.pub.game.results.length);
   sq.inject(early);
   assert.equal($('main').querySelector('.teamcase'), null);
+});
+
+test("phone: Percival's held role card reads the record for telling Merlin from Morgana", () => {
+  let found = null;
+  for (let seed = 1; seed < 80 && !found; seed++) {
+    found = gameStates(seed, 6, { roles: { merlin: true, assassin: true, percival: true, morgana: true } })
+      .find((s) => s.me.role === 'percival' && s.pub.phase === 'propose' && percivalRead(s));
+  }
+  assert.ok(found, 'Percival after a failed quest');
+  sq.inject(found);
+  sq.showSecret();
+  const read = $('secret').querySelector('.rc-read');
+  assert.ok(read, 'the read is on the role card');
+  assert.equal(textOf(read).trim(), percivalRead(found));
+  sq.hideSecret();
+  assert.equal(textOf($('secret')), '', 'nothing secret stays in the page');
 });
 
 test('phone: in the full record every vote chip says whose vote it was and how they voted, stand-ins marked', () => {

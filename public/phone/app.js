@@ -4,7 +4,7 @@ import { screenFor, toggleSelection, canConfirm, knownPlayers, leaderName, nameO
 import { ROLE_INFO, ROLE_TOGGLE_INFO, KNOW_LABELS, rolesInPlay, rolesText } from '/shared/roles-info.js';
 import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
-import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
+import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, percivalRead, questStrip } from './guide.js';
 import { icon } from './icons.js';
 import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, cleanText, teamCase } from '/shared/record.js';
 
@@ -185,6 +185,7 @@ function showSecret() {
   const me = state.me; const info = ROLE_INFO[me.role];
   const known = knownPlayers(state);
   const counsel = counselFor(screenFor(state), state);
+  const read = percivalRead(state); // the record, read for telling Merlin from Morgana
   secret.replaceChildren(h('div', { class: 'rolecard' },
     h('div', { class: 'rc-top' }, 'Your role'),
     h('div', { class: 'rc-sigil' }, icon(me.role)),
@@ -193,7 +194,8 @@ function showSecret() {
     h('p', { class: 'rc-blurb' }, info.blurb),
     known.length ? h('div', { class: 'rc-known' },
       h('div', { class: 'label' }, KNOW_LABELS[me.knowKind] || 'You know'),
-      h('div', { class: 'players' }, known.map((p) => h('span', { class: 'pill' }, avatar(byId(p.id), 'sm'), p.name)))) : h('div', { class: 'rc-known' }, h('div', { class: 'label' }, 'You know'), h('div', { class: 'players' }, h('span', { class: 'pill none' }, me.note || 'Nobody for certain'))),
+      h('div', { class: 'players' }, known.map((p) => h('span', { class: 'pill' }, avatar(byId(p.id), 'sm'), p.name))),
+      read ? h('p', { class: 'rc-read' }, icon('scroll'), ' ', read) : null) : h('div', { class: 'rc-known' }, h('div', { class: 'label' }, 'You know'), h('div', { class: 'players' }, h('span', { class: 'pill none' }, me.note || 'Nobody for certain'))),
     counsel ? h('div', { class: 'rc-counsel' }, h('div', { class: 'label' }, 'Counsel for this moment'), counsel) : null));
   if (!seenRole()) { store.set(`sq.seen.${roomCode}`, me.role); setTimeout(render, 0); }
   secret.hidden = false; peekBtn.classList.add('revealing'); document.body.classList.add('peeking');

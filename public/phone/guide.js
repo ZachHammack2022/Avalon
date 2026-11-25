@@ -2,6 +2,7 @@
 // Pure data + functions (unit-tested in Node). Only ever uses the viewer's OWN role, so nothing leaks.
 import { ROLE_INFO } from '../../shared/roles-info.js';
 import { failsRequired, teamSize, MAX_REJECTS } from '../../shared/avalon.js';
+import { failedTeamVotes } from '../../shared/record.js';
 
 export const HOW_TO = [
   { h: 'The story', p: 'The Lost Crown has been stolen. Most of you are Loyal Servants of Arthur. Some of you are secret Minions of Mordred. Nobody knows who is who, except the Minions and a few special roles.' },
@@ -99,6 +100,21 @@ export function counselFor(screen, state) {
     case 'waitAssassin': return role === 'merlin' ? 'Hold your breath and keep a straight face.' : evil ? 'Help the Assassin: who seemed to know too much?' : 'Do not look at Merlin!';
     default: return evil ? GENERAL_TIPS.evil[2] : GENERAL_TIPS.good[2];
   }
+}
+
+/**
+ * Percival's private read of the record, for the held role card: how each of the two players Percival sees (Merlin
+ * and Morgana) voted on the teams that went and failed. Merlin sees evil and tends to vote those teams down; Morgana
+ * tends to wave them through. Null unless the viewer is Percival with Morgana in play and the record has something.
+ */
+export function percivalRead(state) {
+  const me = state && state.me; const pub = state && state.pub;
+  if (!me || me.role !== 'percival' || !Array.isArray(me.knows) || me.knows.length < 2 || !pub || !pub.game) return null;
+  const votes = failedTeamVotes(pub);
+  const nameOf = (id) => { const p = pub.players.find((x) => x.id === id); return p ? p.name : '?'; };
+  const parts = me.knows.filter((id) => votes[id]).map((id) => `${nameOf(id)} voted against ${votes[id].against} of ${votes[id].of} failed team${votes[id].of === 1 ? '' : 's'}`);
+  if (!parts.length) return null;
+  return `${parts.join('; ')}. Merlin sees the Minions, so Merlin tends to vote against teams that go on to fail.`;
 }
 
 /** Compact status strip: "Quest 3 of 5 · 3 on the team · needs 1 Fail". */

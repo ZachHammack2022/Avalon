@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { coachFor, counselFor, questStrip, roleTips, ROLE_TIPS, HOW_TO } from '../public/phone/guide.js';
+import { coachFor, counselFor, percivalRead, questStrip, roleTips, ROLE_TIPS, HOW_TO } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
 
 const players = Array.from({ length: 7 }, (_, i) => ({ id: `p${i}`, name: `P${i}` }));
@@ -49,4 +49,24 @@ test('roles in play: the special roles switched on, named in the usual order', a
   assert.equal(rolesText({ merlin: true, assassin: true, mordred: true }), 'Merlin, Assassin and Mordred');
   assert.equal(rolesText({}), 'No special roles');
   assert.equal(rolesText(null), 'No special roles');
+});
+
+test('Percival reads the record: how each of the two candidates voted on teams that failed', () => {
+  const V = (...yes) => Object.fromEntries(players.map((p) => [p.id, yes.includes(p.id)]));
+  const game = { questIndex: 2, results: [
+    { questIndex: 0, outcome: 'fail', team: ['p0', 'p1'], hero: null, culprit: 'p1' },
+    { questIndex: 1, outcome: 'fail', team: ['p0', 'p2', 'p3'], hero: null, culprit: 'p0' },
+  ], history: [
+    { questIndex: 0, leader: 'p0', team: ['p0', 'p1'], votes: V('p0', 'p1', 'p4', 'p5'), approved: true },
+    { questIndex: 1, leader: 'p1', team: ['p0', 'p2', 'p3'], votes: V('p0', 'p2', 'p3', 'p5'), approved: true },
+  ] };
+  const st2 = (role, knows) => ({ pub: { players, game }, me: { role, knows } });
+  // p4 voted against one of the two failed teams; p6 against both
+  assert.equal(percivalRead(st2('percival', ['p4', 'p6'])),
+    'P4 voted against 1 of 2 failed teams; P6 voted against 2 of 2 failed teams. Merlin sees the Minions, so Merlin tends to vote against teams that go on to fail.');
+  // a candidate who went on every failed team has no counted votes, so only the other is read
+  assert.match(percivalRead(st2('percival', ['p0', 'p6'])), /^P6 voted against 2 of 2 failed teams\./);
+  assert.equal(percivalRead(st2('percival', ['p6'])), null, 'without Morgana, Percival already knows Merlin');
+  assert.equal(percivalRead(st2('loyal', [])), null);
+  assert.equal(percivalRead({ pub: { players, game: { questIndex: 0, results: [], history: [] } }, me: { role: 'percival', knows: ['p4', 'p6'] } }), null, 'nothing before a quest fails');
 });
