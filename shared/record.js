@@ -2,7 +2,7 @@
 // side, proposals across, grouped by quest). It is the table's shared memory, so the TV keeps it on screen and every
 // phone shows it while people argue. Pure and shared by both. Public knowledge only: proposals once their votes are
 // revealed, quest results once their cutscene has ended, and roles only after the game (pub.reveal).
-import { QUEST_COUNT, failsRequired, teamSize } from './avalon.js';
+import { MAX_REJECTS, QUEST_COUNT, failsRequired, teamSize } from './avalon.js';
 
 /**
  * @typedef {{ vote: 'yes'|'no'|'in'|null, onTeam: boolean, leader: boolean, standIn: boolean }} Cell
@@ -98,3 +98,28 @@ export function describeColumn(col, nameOf) {
 export const failText = (n) => `${n} Fail card${n === 1 ? '' : 's'}`;
 
 const list = (who) => (who.length <= 1 ? who.join('') : `${who.slice(0, -1).join(', ')} and ${who[who.length - 1]}`);
+
+/**
+ * Who holds the crown for the rest of this quest: [the leader now, the next leader, …, the leader of the fifth
+ * proposal]. The fifth proposal must pass, or Evil wins. Only while a team is being chosen or voted on; null otherwise.
+ * Seat order comes from `game.order` (older servers: the player list, which is the same order).
+ */
+export function crownOrder(pub) {
+  const g = pub && pub.game;
+  if (!g || (pub.phase !== 'propose' && pub.phase !== 'vote')) return null;
+  const order = Array.isArray(g.order) && g.order.length ? g.order : (pub.players || []).map((p) => p.id);
+  const at = order.indexOf(g.leader);
+  if (at < 0) return null;
+  const left = Math.max(1, MAX_REJECTS - (g.rejectCount || 0)); // proposals this quest can still have, this one included
+  return Array.from({ length: Math.min(left, order.length) }, (_, k) => order[(at + k) % order.length]);
+}
+
+/** One sentence on where the crown goes if this team is rejected. `nameOf(id)` -> display name. */
+export function crownText(pub, nameOf) {
+  const order = crownOrder(pub);
+  if (!order) return '';
+  const next = order.slice(1).map(nameOf);
+  if (!next.length) return 'Fifth proposal: if this team is rejected, Evil wins.';
+  if (next.length === 1) return `If rejected, ${next[0]} leads the fifth and final proposal.`;
+  return `Next to lead: ${next.slice(0, -1).join(', ')}, then ${next[next.length - 1]} for the fifth proposal.`;
+}

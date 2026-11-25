@@ -57,6 +57,10 @@ test('TV cards: every phase renders plain text, without secrets, and the fail co
   assert.equal(cardFor(pub('roleReveal')).title, 'Check your phones');
   assert.match(cardFor(pub('propose')).lines[0], /Bo is choosing a team of 2/);
   assert.match(cardFor(pub('vote', { voted: ['p1'] })).lines.join(' '), /1 of 5/);
+  // where the crown goes next, and the warning on the fifth proposal
+  assert.match(cardFor(pub('propose')).lines.join(' '), /Next to lead: Cy, Dee, Eli, then Ann for the fifth proposal/);
+  assert.match(cardFor(pub('vote', { voted: [], rejectCount: 3 })).lines.join(' '), /If rejected, Cy leads the fifth and final proposal/);
+  assert.match(cardFor(pub('vote', { voted: [], rejectCount: 4 })).lines.join(' '), /Fifth proposal: if this team is rejected, Evil wins/);
   const rev = cardFor(pub('voteReveal', { approved: false, votes: { p1: true, p2: false, p3: false, p4: false, p5: true }, rejectCount: 1 }));
   assert.equal(rev.title, 'Team rejected!');
   assert.equal(rev.lines[0], '2 approve · 3 reject');

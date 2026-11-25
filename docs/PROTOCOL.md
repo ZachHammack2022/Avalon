@@ -42,7 +42,7 @@ me: { id, name, vip, takeover,
 { room, phase, phaseEndsAt, config:{roles:{…}, classic},
   players:[{id,name,cls,color,bot,vip,connected,takeover,ready}],
   validation?: {ok,errors,warnings}            // lobby only
-  game?: { n, questIndex, quest:{id,name}, teamSize, leader, rejectCount, team:[ids],
+  game?: { n, questIndex, quest:{id,name}, teamSize, leader, order:[ids] (seat order the crown follows), rejectCount, team:[ids],
            results:[{questIndex,outcome,team,culprit,hero,failCount?}],   // only results whose cutscene has finished
            voted?:[ids] (vote), votes?:{id:bool} + approved (voteReveal), waitingOn? (questPlay), assassinationEnabled,
            history:[{questIndex,leader,team,votes:{id:bool},approved,standIn?:[ids]}] (every revealed proposal; public;

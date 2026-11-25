@@ -362,6 +362,8 @@ input.code::placeholder { letter-spacing: .25em; }
 @media (max-width: 380px) { .recbtn { padding: 0 11px; gap: 0; } .recbtn span:not(.ic) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }
 .panel.record { gap: 8px; padding: 12px 10px 10px; }
 .panel.record > .row .label { display: inline-flex; align-items: center; gap: 6px; } .panel.record > .row .label .ic { color: var(--gold); font-size: 16px; }
+.panel.record .crown { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 13.500px; line-height: 1.35; color: var(--muted); }
+.panel.record .crown .ic { flex: none; margin-top: 1px; color: var(--gold); font-size: 15px; } .panel.record .crown.last { color: var(--bad); font-weight: 700; }
 .panel.record .more { min-height: 36px; padding: 4px 12px; font-size: 14px; font-weight: 700; color: var(--gold); border-radius: 999px; }
 .rb-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .rb-scroll { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; padding: 6px 2px 4px 0; border-radius: 10px; }

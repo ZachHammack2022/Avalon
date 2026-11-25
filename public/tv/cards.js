@@ -3,6 +3,7 @@
 import { QUEST_COUNT } from '../../shared/avalon.js';
 import { ROLE_INFO } from '../../shared/roles-info.js';
 import { QUESTS } from '../../shared/campaign-lost-crown.js';
+import { crownText } from '../../shared/record.js';
 
 const name = (pub, id) => { const p = pub.players.find((x) => x.id === id); return p ? p.name : '?'; };
 const names = (pub, ids) => ids.map((id) => name(pub, id));
@@ -23,9 +24,9 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
     case 'roleReveal':
       return { kind: 'roleReveal', title: 'Check your phones', lines: ['Keep them secret.', `${pub.players.filter((p) => p.ready).length} of ${pub.players.length} ready`] };
     case 'propose':
-      return { kind: 'propose', title: qline, lines: [`${name(pub, g.leader)} is choosing a team of ${g.teamSize}`, `Rejected proposals: ${g.rejectCount} of 5`] };
+      return { kind: 'propose', title: qline, lines: [`${name(pub, g.leader)} is choosing a team of ${g.teamSize}`, `Rejected proposals: ${g.rejectCount} of 5`, crownText(pub, (id) => name(pub, id))].filter(Boolean) };
     case 'vote':
-      return { kind: 'vote', title: 'Vote on the team', lines: [`Proposed: ${list(names(pub, g.team))}`, `${g.voted.length} of ${pub.players.length} have voted`, g.voted.length ? `Voted: ${names(pub, g.voted).join(', ')}` : ''].filter(Boolean) };
+      return { kind: 'vote', title: 'Vote on the team', lines: [`Proposed: ${list(names(pub, g.team))}`, `${g.voted.length} of ${pub.players.length} have voted`, g.voted.length ? `Voted: ${names(pub, g.voted).join(', ')}` : '', crownText(pub, (id) => name(pub, id))].filter(Boolean) };
     case 'voteReveal':
       return { kind: 'voteReveal', title: g.approved ? 'Team approved!' : 'Team rejected!', tone: g.approved ? 'good' : 'bad',
         // who voted which way is on the record board beside this card (the newest column turns over vote by vote)
