@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { botAssassinate, botCard, botPick, botPropose, botVote, distrust, merlinScore } from '../server/bots.js';
+import { botAssassinate, botCard, botPick, botPropose, botVote, distrust, merlinScore, pickDistrust } from '../server/bots.js';
 import { seeded } from '../shared/rng.js';
 
 const ids = ['a', 'b', 'c', 'd', 'e'];
@@ -116,4 +116,20 @@ test('a Merlin bot keeps its sight quiet: it votes down a team only it knows is 
   assert.ok(Math.abs(rate(merlin) - 0.5) < 0.03, 'nothing on the record against c: a coin flip');
   assert.ok(Math.abs(rate({ ...merlin, failedWith: { c: 1 } }) - 0.1) < 0.02, 'the record speaks against c too: rejected as before');
   assert.ok(Math.abs(rate({ ...merlin, proposedTeam: ['d', 'e'] }) - 0.65) < 0.03, 'a clean team: as any good player');
+});
+
+test('good bots picking a team also pass over whoever voted to send a team that failed', () => {
+  const backedFail = { b: 1 };
+  assert.equal(pickDistrust(base({ backedFail }), 'b'), 0.5);
+  assert.equal(pickDistrust(base({ backedFail, failedWith: { c: 1 } }), 'c'), 1, 'going on a failed quest weighs more');
+  for (let s = 1; s < 200; s++) {
+    const t = botPropose(base({ rng: seeded(s), backedFail }));
+    assert.ok(!t.includes('b'), `seed ${s}: ${t}`);
+    // but going on a failed quest still counts for more than having voted for one
+    assert.ok(botPropose(base({ rng: seeded(s), size: 4, backedFail, failedWith: { c: 1 } })).includes('b'));
+  }
+  // votes still go by what went wrong on the quests alone
+  const rng = seeded(5); let y = 0;
+  for (let i = 0; i < 4000; i++) if (botVote(base({ rng, backedFail, proposedTeam: ['b', 'c'] }))) y++;
+  assert.ok(Math.abs(y / 4000 - 0.65) < 0.03);
 });
