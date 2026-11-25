@@ -3,7 +3,7 @@
 import { QUEST_COUNT } from '../../shared/avalon.js';
 import { ROLE_INFO, rolesText } from '../../shared/roles-info.js';
 import { QUESTS } from '../../shared/campaign-lost-crown.js';
-import { awards, cleanText, crownText, endReason, rejectText, teamCase } from '../../shared/record.js';
+import { awards, cleanText, crownText, endReason, rejectText, sentByText, teamCase } from '../../shared/record.js';
 
 export { awards }; // shared with the phones' game-over screen
 
@@ -77,6 +77,8 @@ function resultCard(pub, r, quest) {
   // phones do, so the table argues from the record rather than from the cutscene
   const lines = [ok ? `Hero: ${name(pub, r.hero)}` : `Suspicion falls on ${name(pub, r.culprit)}, who may have been framed.`];
   if (r.failCount != null) lines.push(`${r.failCount} Fail card${r.failCount === 1 ? '' : 's'}`);
+  const sent = sentByText(pub, r, (id) => name(pub, id)); // the record's first word on a failure: who waved it through
+  if (sent) lines.push(sent);
   return { kind: 'result', title: ok ? 'Quest succeeded!' : 'Quest failed!', tone: ok ? 'good' : 'bad', lines, subtitle: quest ? quest.name : '' };
 }
 

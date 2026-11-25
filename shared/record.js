@@ -230,6 +230,20 @@ export function cleanText(pub, nameOf) {
 }
 
 /**
+ * Right after a quest fails, who voted to send that team without being on it, in one line: "Voted to send it from
+ * outside the team: Bo and Dee." Stand-in votes are left out. `r` is the quest's result (or cutscene payload) with
+ * questIndex and team. Null for a success or when the team's vote is not on the record.
+ */
+export function sentByText(pub, r, nameOf) {
+  const g = pub && pub.game;
+  if (!r || r.outcome !== 'fail' || !g || !Array.isArray(g.history)) return null;
+  const sent = g.history.filter((h) => h.questIndex === r.questIndex && h.approved).pop();
+  if (!sent) return null;
+  const ids = pub.players.map((p) => p.id).filter((id) => sent.votes[id] && !sent.team.includes(id) && !(sent.standIn && sent.standIn.includes(id)));
+  return ids.length ? `Voted to send it from outside the team: ${list(ids.map(nameOf))}.` : 'Nobody outside the team voted to send it.';
+}
+
+/**
  * How each player voted on the teams that went and failed: {id: {against, of}}. Votes on a team the player was on
  * (everyone approves those) and votes a stand-in cast for an absent player are left out, and only quests whose result
  * is public count. Merlin sees evil, so Merlin tends to vote against teams that go on to fail.

@@ -7,7 +7,7 @@ import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
 import { assassinRead, merlinRead, percivalRead } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
-import { awards, backedFailures, cleanText, noToEvil, teamCase, voteReport } from '../shared/record.js';
+import { awards, backedFailures, cleanText, noToEvil, sentByText, teamCase, voteReport } from '../shared/record.js';
 
 const document = installDom();
 await import('../public/phone/app.js');
@@ -527,6 +527,18 @@ test('phone: at game over the full record says how each player read the teams, n
   sq.openSheet('record');
   assert.doesNotMatch(textOf($('sheet')), /with the roles known/);
   $('sheet').querySelector('button.close').click();
+});
+
+test('phone: after a failed quest, the result screen says who voted to send that team from outside it', () => {
+  let found = null;
+  for (let seed = 1; seed < 60 && !found; seed++) {
+    found = gameStates(seed).find((s) => screenFor(s) === 'questResult' && s.pub.game.results.length && s.pub.game.results[s.pub.game.results.length - 1].outcome === 'fail');
+  }
+  assert.ok(found, 'a failed quest result');
+  sq.inject(found);
+  const r = found.pub.game.results[found.pub.game.results.length - 1];
+  const nm = (id) => (id === found.me.id ? 'you' : found.pub.players.find((p) => p.id === id).name);
+  assert.equal(textOf($('main').querySelector('.teamcase')).trim(), sentByText(found.pub, r, nm));
 });
 
 test('phone: in the full record every vote chip says whose vote it was and how they voted, stand-ins marked', () => {
