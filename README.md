@@ -18,8 +18,8 @@ npm start          # prints the TV URL and the phone URL
   grouped by quest, with the tally under each proposal). The TV keeps it beside the campfire all game; phones show it on every waiting and deciding screen, with
   a **Record** button at the top left for the full view. While a team is picked or voted on, the TV card and the phone's record
   say who leads next and who leads the fifth proposal. Wherever a phone asks someone to pick or vote on players (the leader's
-  team, the vote, the Assassin's target), each name carries a tick or cross for every quest that player went on; the Assassin also
-  sees how often each suspect voted down a team with a known Minion on it. Votes a
+  team, the vote, the Assassin's target), each name carries a tick or cross for every quest that player went on; the leader also
+  sees how many failed teams each player voted to send, and the Assassin how often each suspect voted down a team with a known Minion on it. Votes a
   stand-in cast for an absent player are marked. At game over, once roles are public, the TV and every phone show the awards,
   including the **Sharpest eye**: the good player (not Merlin) whose votes best read which teams had evil on them. Built from public state only (`shared/record.js`).
 * **Roles in play** are listed for everyone before the game starts: on the TV lobby card and on every phone, not only the host's.
