@@ -39,6 +39,7 @@ test('phone: every screen of real games renders, with the record inline wherever
   const announced = new Set();
   const sawCrown = new Set();
   const sawWent = new Set();
+  let sawWaiting = false;
   let lastScreen = '';
   let sawStandIn = false;
   for (const seed of [3, 8, 21]) {
@@ -94,6 +95,16 @@ test('phone: every screen of real games renders, with the record inline wherever
       if (autos.length) sawStandIn = true;
       // roles are never on a phone's record before the game is over
       assert.equal(table.querySelectorAll('.rl').length, s.pub.phase === 'gameover' ? s.pub.players.length : 0, screen);
+      // once only a few are left, the locked-in screen names who the table is waiting on
+      if (screen === 'voted') {
+        const left = s.pub.players.filter((p) => !s.pub.game.voted.includes(p.id));
+        const said = textOf(main);
+        if (left.length <= 3) {
+          assert.ok(left.every((p) => said.includes(p.id === s.me.id ? 'you' : p.name)), said);
+          assert.match(said, /Waiting on/);
+          sawWaiting = true;
+        } else assert.doesNotMatch(said, /Waiting on/);
+      }
       // the proposed team carries each member's quest history (shown results only)
       if (screen === 'vote' || screen === 'voted') {
         const members = main.querySelector('.team').querySelectorAll('.member');
@@ -113,6 +124,7 @@ test('phone: every screen of real games renders, with the record inline wherever
   assert.ok(announced.size > 8, 'screen changes are announced');
   assert.ok(sawCrown.has(0) && sawCrown.size > 1, `crown lines seen at reject counts ${[...sawCrown]}`);
   assert.ok(sawWent.size > 1, 'team members with one and with several past quests');
+  assert.ok(sawWaiting, 'a locked-in vote named the stragglers');
   assert.ok(sawStandIn, 'the stand-in seat shows up on the record');
   for (const sc of [...WITH_RECORD.filter((x) => x !== 'assassinate' && x !== 'waitAssassin'), 'lobby', 'roleReveal', 'voteReveal', 'quest-card']) assert.ok(seen.has(sc), `saw ${sc}`);
 });

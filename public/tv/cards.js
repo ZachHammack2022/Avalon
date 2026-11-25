@@ -25,8 +25,12 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
       return { kind: 'roleReveal', title: 'Check your phones', lines: ['Keep them secret.', `${pub.players.filter((p) => p.ready).length} of ${pub.players.length} ready`] };
     case 'propose':
       return { kind: 'propose', title: qline, lines: [`${name(pub, g.leader)} is choosing a team of ${g.teamSize}`, `Rejected proposals: ${g.rejectCount} of 5`, crownText(pub, (id) => name(pub, id))].filter(Boolean) };
-    case 'vote':
-      return { kind: 'vote', title: 'Vote on the team', lines: [`Proposed: ${list(names(pub, g.team))}`, `${g.voted.length} of ${pub.players.length} have voted`, g.voted.length ? `Voted: ${names(pub, g.voted).join(', ')}` : '', crownText(pub, (id) => name(pub, id))].filter(Boolean) };
+    case 'vote': {
+      // near the end the table wants to know who it is waiting for, not who is done
+      const left = pub.players.filter((p) => !g.voted.includes(p.id)).map((p) => p.name);
+      const who = !g.voted.length ? '' : left.length <= 3 ? `Waiting on ${list(left)}` : `Voted: ${names(pub, g.voted).join(', ')}`;
+      return { kind: 'vote', title: 'Vote on the team', lines: [`Proposed: ${list(names(pub, g.team))}`, `${g.voted.length} of ${pub.players.length} have voted`, who, crownText(pub, (id) => name(pub, id))].filter(Boolean) };
+    }
     case 'voteReveal':
       return { kind: 'voteReveal', title: g.approved ? 'Team approved!' : 'Team rejected!', tone: g.approved ? 'good' : 'bad',
         // who voted which way is on the record board beside this card (the newest column turns over vote by vote)
