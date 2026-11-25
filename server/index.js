@@ -3,6 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pipeline } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { Room } from './room.js';
@@ -45,6 +46,14 @@ export function parseRange(header, size) {
   }
   if (start >= size || size === 0) return 'unsatisfiable';
   return { start, end };
+}
+/**
+ * Stream a file (or one byte range of it) into a response. `pipeline` closes the file when the browser stops
+ * reading: video players cut off range requests all the time, and with a bare `pipe` every one of those kept its
+ * file open until the server ran out. A read error ends the response instead of crashing the process.
+ */
+export function sendFile(file, res, range) {
+  pipeline(fs.createReadStream(file, range || undefined), res, () => {});
 }
 const CODE_LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ';
 
@@ -104,11 +113,11 @@ export function createGameServer({
       if (range === 'unsatisfiable') { res.writeHead(416, { ...head, 'content-range': `bytes */${st.size}` }).end(); return; }
       if (range) {
         res.writeHead(206, { ...head, 'content-length': range.end - range.start + 1, 'content-range': `bytes ${range.start}-${range.end}/${st.size}` });
-        if (req.method === 'HEAD') res.end(); else fs.createReadStream(file, range).pipe(res);
+        if (req.method === 'HEAD') res.end(); else sendFile(file, res, range);
         return;
       }
       res.writeHead(200, { ...head, 'content-length': st.size });
-      if (req.method === 'HEAD') res.end(); else fs.createReadStream(file).pipe(res);
+      if (req.method === 'HEAD') res.end(); else sendFile(file, res);
     });
   });
 
