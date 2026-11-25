@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason, rejectText } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -303,7 +303,11 @@ function recordBoard({ big = false } = {}) {
             cell.leader ? icon('leader', 'crown') : null,
             blamed ? h('b', { class: 'mk blamed' }, '☠') : hero ? h('b', { class: 'mk hero' }, '★') : null);
         }));
-    })));
+    })),
+    // the tally under each proposal, so a glance gives how close every vote was
+    h('tfoot', {}, h('tr', { class: 'tally' }, h('th', { class: 'nm', scope: 'row' }, 'Votes'),
+      rec.columns.map((c) => h('td', { class: ['t', c.live ? 'live' : c.approved ? 'ok' : 'ko', firstOfQuest.has(c.key) ? 'qs' : ''].filter(Boolean).join(' '),
+        'aria-label': c.live ? `${c.voted} of ${rec.rows.length} have voted` : `${c.approved ? 'approved' : 'rejected'} ${c.yes} to ${c.no}` }, tallyText(c, rec.rows.length))))));
   return h('div', { class: 'rb-wrap' },
     h('div', { class: 'rb-scroll', tabindex: '0', role: 'region', 'aria-label': 'The record, scrolls sideways' }, table),
     h('ul', { class: 'sr' }, rec.columns.map((c) => h('li', {}, describeColumn(c, nm)))),

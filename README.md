@@ -15,9 +15,12 @@ npm start          # prints the TV URL and the phone URL
   The first person in is the **VIP** (start, bots, role toggles). Bots fill empty seats, so 1–2 humans can play.
 * **Intro:** the dragon intro (`public/intro/`, procedural three.js; video at `/intro/dragon-intro.mp4`) plays once when a game starts; any key skips, `I` replays it in the lobby, `?nointro` disables it. The live scene is at `/intro/`.
 * **The record:** every proposal, every vote and every quest result, as one board (players down the side, proposals across,
-  grouped by quest). The TV keeps it beside the campfire all game; phones show it on every waiting and deciding screen, with
+  grouped by quest, with the tally under each proposal). The TV keeps it beside the campfire all game; phones show it on every waiting and deciding screen, with
   a **Record** button at the top left for the full view. While a team is picked or voted on, the TV card and the phone's record
-  say who leads next and who leads the fifth proposal. Built from public state only (`shared/record.js`).
+  say who leads next and who leads the fifth proposal. Wherever a phone asks someone to pick or vote on players (the leader's
+  team, the vote, the Assassin's target), each name carries a tick or cross for every quest that player went on. Votes a
+  stand-in cast for an absent player are marked. Built from public state only (`shared/record.js`).
+* **Roles in play** are listed for everyone before the game starts: on the TV lobby card and on every phone, not only the host's.
 * **Cutscene preview harness:** `http://localhost:3000/preview` (no phones needed).
 * `npm run dev` restarts the server on change. `PORT=3001 npm start` changes the port.
 
@@ -51,7 +54,7 @@ docs/CUTSCENES.md            authoring guide for the cutscene content
 
 | Command | What it does |
 |---|---|
-| `npm test` | ~110 unit/integration tests, no browser (≈10 s); phone screens render in a tiny fake DOM (`test/fake-dom.js`) |
+| `npm test` | ~140 unit/integration tests, no browser (≈10 s); phone screens render in a tiny fake DOM (`test/fake-dom.js`) |
 | `npm run test:browser` | Headless Chromium: plays **every cutscene** in the preview harness (seek through all segments, fail on any console warning/error or blank frame) then a **full live game** through the real TV + phone pages. Needs Playwright (`--quick`, `--shots`, `--live-only`) |
 | `npm run sim -- 200` | Bot-only soak/balance simulation per player count on a virtual clock |
 | `npm run assets` / `assets:check` | Re-download+copy the KayKit packs / verify files and animation lists |
@@ -77,8 +80,9 @@ CI (`.github/workflows/ci.yml`) runs `npm test` and the asset check.
 * **Server authoritative.** `Room` never touches sockets (clients are `{send, close}` objects) and takes an injectable clock, which is how
   whole games run instantly in tests. The TV state is the public state (+ the cutscene payload only while a cutscene is current);
   phones get the same public state + their own `me` block. Role/knowledge/card/pick data lives only in `me` and, after the game, `reveal`.
-* **Quest flow** is the same two steps for every team member (card, then "Who stood out?"). The Fail button is shown to everyone and
-  disabled for good players. Results become public only once the cutscene ends.
+* **Quest flow** is the same two steps for every team member (card, then "Who stood out?"). Both cards look and behave the same on
+  every phone, in an order shuffled per player, and a good player's card always counts as Success, so a glance at a neighbour's
+  phone gives nothing away. Results become public only once the cutscene ends.
 * **Disconnects:** after 15 s a stand-in bot acts for the missing player (using only that seat's own knowledge) and hands control back on return.
 * **TV refresh mid-cutscene** gets the state (incl. result data) but no replayed cutscene message, so it shows the result card. Mid-cutscene
   reconnect resumption is the spec'd behaviour; a TV that was already playing keeps playing.

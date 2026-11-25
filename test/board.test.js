@@ -42,8 +42,10 @@ test('board: shields, reject pips, one column per proposal grouped under its que
   const heads = find(tree, 'qh');
   assert.deepEqual(heads.map((h) => [text(h), h.attrs.colspan]), [['Q1', '2'], ['Q2', '1']]);
   assert.equal(find(tree, 'bd-grid')[0].attrs.style, '--cols:3');
-  const rows = walk(tree).filter((n) => n.tag === 'tr' && n.kids[0] && has(n.kids[0], 'nm') && n.kids[0].kids.length);
+  const rows = walk(tree).filter((n) => n.tag === 'tr' && !has(n, 'tally') && n.kids[0] && has(n.kids[0], 'nm') && n.kids[0].kids.length);
   assert.equal(rows.length, 5);
+  // under every proposal, how the vote went
+  assert.deepEqual(find(tree, 't').map((t) => [text(t), t.cls.split(' ')[1]]), [['2–3', 'ko'], ['3–2', 'ok'], ['4–1', 'ok']]);
   const [ann] = rows;
   const cells = ann.kids.slice(1);
   assert.deepEqual(cells.map((c) => text(c).slice(0, 1)), ['✔', '✘', '✔']);
@@ -89,8 +91,10 @@ test('board: stand-in votes are striped and explained, and an away seat is tagge
 
 test('board: the team under vote shows live, with face-down marks for who has voted', () => {
   const tree = boardTree(pub('vote', { team: ['p4', 'p5'], voted: ['p2'] }));
-  const live = find(tree, 'live');
+  const live = find(tree, 'live').filter((c) => has(c, 'c'));
   assert.equal(live.length, 5);
+  // the live tally counts face-down votes, never how they went
+  assert.equal(text(find(tree, 't').pop()), '1/5');
   assert.deepEqual(live.map((c) => c.kids.filter((k) => typeof k === 'string').join('')), ['', '?', '', '', '']);
   assert.ok(has(live[3], 'team') && has(live[3], 'lead'));
   assert.ok(find(tree, 'qh').some((h) => text(h) === 'Q3' && has(h, 'current')));
@@ -102,9 +106,14 @@ test('board: a freshly revealed column turns over one vote at a time, in step wi
   assert.equal(flipKeyFor(p, 3), null); // already known
   assert.equal(flipKeyFor(p, null), null); // first paint (a refresh) does not replay
   assert.equal(flipKeyFor(pub('propose'), 2), null);
-  const flips = find(boardTree(p, { flip: 'c2' }), 'flip');
+  const all = find(boardTree(p, { flip: 'c2' }), 'flip');
+  const flips = all.filter((c) => has(c, 'c'));
   assert.equal(flips.length, 5);
   assert.deepEqual(flips.map((c) => c.attrs.style), players.map((_, i) => `animation-delay:${(FLIP_START + i * FLIP_STEP).toFixed(2)}s`));
+  // the tally appears only once the last vote has turned over, so it never gives the result away early
+  const tally = all.filter((c) => has(c, 't'));
+  assert.equal(tally.length, 1);
+  assert.equal(tally[0].attrs.style, `animation-delay:${(FLIP_START + 5 * FLIP_STEP).toFixed(2)}s`);
 });
 
 test('board: roles and team colours only at game over', () => {

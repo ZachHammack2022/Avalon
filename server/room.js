@@ -255,7 +255,7 @@ export class Room {
       me.quest = {
         onTeam,
         step: !onTeam ? null : !g.quest.cards.has(p.id) ? 'card' : !g.quest.picks.has(p.id) ? 'pick' : 'done',
-        canFail: k.team === 'evil', // button is shown to everyone; disabled for good
+        canFail: k.team === 'evil', // both cards look the same on every phone; a good player's phone always plays Success
         options: g.quest.teamIds,
       };
     }

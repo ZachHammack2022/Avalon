@@ -77,6 +77,11 @@ html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } h
 .bd-grid td.c sub.blamed { color: #fff; } .bd-grid td.c sub.hero { color: var(--gold); }
 .bd-grid td.c.flip { animation: bdflip .45s ease-out backwards; }
 @keyframes bdflip { from { transform: perspective(20vh) rotateY(90deg); background: #6b7280; color: transparent; } }
+.bd-grid tr.tally th.nm { font-size: 1.6vh; font-weight: 800; letter-spacing: .04em; color: #d9cbb4; text-transform: uppercase; }
+.bd-grid tr.tally td.t { max-width: var(--cell); text-align: center; white-space: nowrap; font-size: calc(var(--cell) * .34); font-weight: 800; letter-spacing: -.02em; color: #d9cbb4; }
+.bd-grid tr.tally td.t.ok { color: var(--good); } .bd-grid tr.tally td.t.ko { color: var(--bad); opacity: .8; } .bd-grid tr.tally td.t.live { opacity: .7; }
+.bd-grid tr.tally td.t.flip { animation: bdtally .35s ease-out backwards; }
+@keyframes bdtally { from { opacity: 0; } }
 .bd-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5vh 1.2vw; font-size: 1.7vh; opacity: .85; }
 .bd-legend b.lg { display: inline-grid; place-items: center; width: 2.1vh; height: 2.1vh; margin-right: .5vh; border-radius: 22%; font-size: 1.5vh; vertical-align: -.5vh; text-shadow: none; }
 .bd-legend b.yes { background: #e9d7ae; color: #245a2b; } .bd-legend b.no { background: #2c2731; color: #ff7a66; }
@@ -86,4 +91,4 @@ html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } h
 /* with the board up, the phase cards sit over the campfire half of the screen */
 body.board-on .card { left: 32vw; max-width: 58vw; }
 body.board-on .card.lobby, body.board-on .card.gameover { min-width: 40vw; }
-@media (prefers-reduced-motion: reduce) { .bd-grid td.c.flip { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .bd-grid td.c.flip, .bd-grid tr.tally td.t.flip { animation: none; } }

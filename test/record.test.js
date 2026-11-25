@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { crownOrder, crownText, describeColumn, endReason, recordFor, rejectText } from '../shared/record.js';
+import { crownOrder, crownText, describeColumn, endReason, recordFor, rejectText, tallyText } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -54,6 +54,10 @@ test('record: the team being voted on shows up live, with who has voted but not 
   assert.equal(live.approved, null);
   assert.equal(live.questIndex, 2);
   assert.deepEqual(rec.rows.map((r) => r.cells[3].vote), ['in', null, null, 'in', null]);
+  assert.equal(live.voted, 2);
+  assert.equal(tallyText(live, 5), '2/5');
+  assert.equal(tallyText(rec.columns[0], 5), '2–3');
+  assert.equal(rec.columns[0].voted, 5);
   assert.deepEqual(rec.rows.map((r) => r.cells[3].onTeam), [false, true, false, true, true]);
   assert.equal(rec.rows[3].cells[3].leader, true);
   // outside the vote phase there is no live column (the revealed one lives in history)

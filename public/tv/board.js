@@ -1,7 +1,7 @@
 // TV record board: the quest shields plus the whole vote record (players down the side, every proposal across,
 // grouped by quest), kept on screen beside the campfire so the table can argue from it. Data comes from
 // shared/record.js. boardTree() is pure (unit-tested in Node); toDom() turns the tree into elements in the browser.
-import { recordFor } from '../../shared/record.js';
+import { recordFor, tallyText } from '../../shared/record.js';
 import { ROLE_INFO } from '../../shared/roles-info.js';
 import { MAX_REJECTS } from '../../shared/avalon.js';
 
@@ -67,7 +67,12 @@ export function boardTree(pub, { flip = null } = {}) {
       }),
     ]);
   });
-  const grid = el('table', 'bd-grid', [el('thead', '', head), el('tbody', '', body)], { style: `--cols:${cols.length}` });
+  // the tally under each proposal; on a fresh reveal it appears once the last vote has turned over
+  const lastFlip = (FLIP_START + rec.rows.length * FLIP_STEP).toFixed(2);
+  const foot = el('tr', 'tally', [el('th', 'nm', 'Votes'), ...cols.map((c) => el('td',
+    ['t', c.live ? 'live' : c.approved ? 'ok' : 'ko', firstOfQuest.has(c.key) ? 'qs' : '', flip === c.key ? 'flip' : ''].filter(Boolean).join(' '),
+    tallyText(c, rec.rows.length), flip === c.key ? { style: `animation-delay:${lastFlip}s` } : undefined))]);
+  const grid = el('table', 'bd-grid', [el('thead', '', head), el('tbody', '', body), el('tfoot', '', foot)], { style: `--cols:${cols.length}` });
   const legend = el('div', 'bd-legend', [
     el('span', '', [el('b', 'lg yes', '✔'), 'approve']), el('span', '', [el('b', 'lg no', '✘'), 'reject']),
     el('span', '', [el('b', 'lg team', ''), 'on the team']), el('span', '', [el('b', 'lg crown', '♛'), 'leader']),
