@@ -73,7 +73,9 @@ export function teamLines(pub, roles) {
 
 function resultCard(pub, r, quest) {
   const ok = r.outcome === 'success';
-  const lines = [ok ? `Hero: ${name(pub, r.hero)}` : `${name(pub, r.culprit)} caused the disaster.`];
+  // the story shows the culprit causing the disaster, but the Fail players chose who to frame: the card says so, as the
+  // phones do, so the table argues from the record rather than from the cutscene
+  const lines = [ok ? `Hero: ${name(pub, r.hero)}` : `Suspicion falls on ${name(pub, r.culprit)}, who may have been framed.`];
   if (r.failCount != null) lines.push(`${r.failCount} Fail card${r.failCount === 1 ? '' : 's'}`);
   return { kind: 'result', title: ok ? 'Quest succeeded!' : 'Quest failed!', tone: ok ? 'good' : 'bad', lines, subtitle: quest ? quest.name : '' };
 }

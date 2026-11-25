@@ -84,7 +84,7 @@ test('TV cards: every phase renders plain text, without secrets, and the fail co
   assert.match(cardFor(pub('questPlay', { waitingOn: 2 })).lines.join(' '), /Waiting on 2/);
   const fail = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, team: ['p1', 'p3'] }] }));
   assert.equal(fail.title, 'Quest failed!');
-  assert.match(fail.lines[0], /Cy/);
+  assert.equal(fail.lines[0], 'Suspicion falls on Cy, who may have been framed.');
   assert.ok(!fail.lines.join(' ').includes('Fail card'));
   const classic = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, failCount: 2, team: [] }] }));
   assert.ok(classic.lines.join(' ').includes('2 Fail cards'));
