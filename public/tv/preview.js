@@ -48,9 +48,7 @@ async function load(c) {
   } else {
     const qi = QUESTS.findIndex((q) => q.id === cfg.quest);
     const team = ids.slice(0, cfg.team);
-    const culprit = cfg.outcome === 'fail' ? (cfg.culprit ?? team[(cfg.seed + 1) % team.length]) : null;
-    const hero = cfg.outcome === 'success' ? (cfg.hero ?? team[cfg.seed % team.length]) : null;
-    const payload = { questIndex: qi, questId: cfg.quest, outcome: cfg.outcome, team, culprit, hero, gag: cfg.outcome === 'fail' ? cfg.gag || QUESTS[qi].gags[0].id : null, seed: cfg.seed, prevOutcome: cfg.prev };
+    const payload = { questIndex: qi, questId: cfg.quest, outcome: cfg.outcome, team, gag: cfg.outcome === 'fail' ? cfg.gag || QUESTS[qi].gags[0].id : null, seed: cfg.seed, prevOutcome: cfg.prev };
     await player.load(payload, players);
   }
   $('scrub').max = player.duration; paused = !!params.get('paused'); $('pp').textContent = paused ? 'Play' : 'Pause';
@@ -83,10 +81,13 @@ window.__preview = {
   errors, stage, player, load, lastCaption: () => stage.lastCaption,
   async seek(t) { seeking = true; await player.seek(t); seeking = false; stage.render(0); },
   /** Where an actor's head is on screen (NDC, -1..1) for QA: {x, y, visible}. */
+  /** Whether `ref` is in shot: for a group (team:all), at least half of it must be. */
   onScreen(ref) {
-    const o = stage.objs(ref)[0]; if (!o) return null;
-    const v = o.obj.getWorldPosition(stage.camera.position.clone()); v.y += 1.5 * o.obj.scale.y; stage.camera.updateMatrixWorld(); v.project(stage.camera);
-    return { x: +v.x.toFixed(2), y: +v.y.toFixed(2), visible: v.z < 1 && Math.abs(v.x) < 0.98 && Math.abs(v.y) < 0.98 };
+    const os = stage.objs(ref); if (!os.length) return null;
+    stage.camera.updateMatrixWorld();
+    const pts = os.map((o) => { const v = o.obj.getWorldPosition(stage.camera.position.clone()); v.y += 1.5 * o.obj.scale.y; v.project(stage.camera); return { x: +v.x.toFixed(2), y: +v.y.toFixed(2), in: v.z < 1 && Math.abs(v.x) < 0.98 && Math.abs(v.y) < 0.98 }; });
+    const seen = pts.filter((p) => p.in).length;
+    return { seen, of: pts.length, pts, visible: seen * 2 >= pts.length };
   },
   pause() { paused = true; }, play() { paused = false; },
   get info() { return { cam: stage.camera.position.toArray().map((v) => +v.toFixed(1)), time: player.time, duration: player.duration, actors: stage.actors.size, props: stage.props.size, fps: stage.stats.fps, scene: stage.sceneName }; },

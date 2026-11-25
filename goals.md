@@ -1,6 +1,6 @@
 # Avalon: Vertical Slice Spec
 
-A family party game played on a TV, with everyone's phone as a controller (Jackbox-style). It follows **The Resistance: Avalon** rules 1:1, and each quest plays out as a funny **3D cutscene** on the TV. When a quest fails, the Minions of Mordred secretly choose **who gets framed**, and that player is shown causing the disaster in the cutscene.
+A family party game played on a TV, with everyone's phone as a controller (Jackbox-style). It follows **The Resistance: Avalon** rules 1:1, and each quest plays out as a funny **3D cutscene** on the TV. The whole team **succeeds or fails together**: the cutscene shows all of them causing the triumph or the disaster, and nobody on the team is singled out.
 
 This doc covers the first vertical slice: one campaign, **"The Lost Crown,"** with five quests.
 
@@ -10,7 +10,7 @@ This doc covers the first vertical slice: one campaign, **"The Lost Crown,"** wi
 
 **Goals**
 - Avalon rules 1:1, including all six optional roles.
-- Framing: on a failed quest, the cutscene shows one framed player causing the failure.
+- All together: a quest's cutscene shows the whole team succeeding or failing as one. Nobody is singled out as a hero or a culprit, so working out who sank a quest is left to the players and the record.
 - 5 cutscenes, each with a shared opening, a suspense moment, 4 fail gags, and a success ending.
 - Runs locally: a Node server on a Mac, the TV opens a URL, phones join on the same Wi-Fi.
 - Bots can fill seats so the game is testable with 1–2 humans.
@@ -59,15 +59,15 @@ public/
 
 - **The server is authoritative.** It holds all state, roles, votes and cards, picks cutscene variants, and is the only place that knows who is evil.
 - **The TV is a pure display.** It never receives secret information until the game-over reveal.
-- **Phones get public state plus their own private state only.** They never see anyone else's role, card, or framing pick.
+- **Phones get public state plus their own private state only.** They never see anyone else's role or card.
 - **Rooms:** the TV connects and gets a 4-letter room code. Phones join with the code and a name. The first human to join is the **VIP**, who sees lobby controls (start, add/remove bots, role toggles).
 - **Reconnect:** phones store a token in `localStorage` and resume their seat after a refresh or screen lock. A player disconnected for more than 15 seconds during a game is played by a bot until they return.
 - **Cutscene timing:** the server knows each script's duration from `shared/` and advances phases on its own timer. The TV just plays along, so a TV refresh never stalls the game. If the TV reconnects mid-cutscene, it skips to the result card.
 
 ### Message shapes (guidance, not a contract)
 - TV → server: `{t:'tv', room?}`
-- Phone → server: `join {room,name,token?}`, `start`, `addBot`, `removeBot`, `setRoles {...}`, `setAvatar {cls,color}`, `ready`, `propose {team:[ids]}`, `vote {approve}`, `play {card:'success'|'fail'}`, `pick {id}`, `assassinate {id}`, `again`
-- Server → TV: `state` (public), `cutscene {questId, outcome, team, culprit?, hero?, gag?, seed}`
+- Phone → server: `join {room,name,token?}`, `start`, `addBot`, `removeBot`, `setRoles {...}`, `setAvatar {cls,color}`, `ready`, `propose {team:[ids]}`, `vote {approve}`, `play {card:'success'|'fail'}`, `assassinate {id}`, `again`
+- Server → TV: `state` (public), `cutscene {questId, outcome, team, gag?, seed}`
 - Server → phone: `state` with a `me` block (role, what they know, legal actions)
 
 ---
@@ -106,23 +106,19 @@ Merlin and Assassin are on by default. The VIP toggles Percival, Morgana, Mordre
 - Morgana without Percival shows a warning but is allowed.
 - The Assassin is required whenever Merlin is on.
 
-### Quest resolution, with framing
-1. Each team member privately plays **Success** or **Fail**. Good players can only play Success; the Fail button is visible but disabled, so screens look the same at a glance.
-2. Every team member then answers the same prompt: **"Who stood out on this quest?"** and picks one teammate (any team member, including themselves).
-   - For a player who played **Fail**, the pick is the **framing target**.
-   - For a player who played **Success**, the pick is a **hero nomination**.
-   - Every player goes through the identical two-step flow with identical wording, so timing and screen-glances reveal nothing.
-3. Count the Fail cards. The quest fails if fails ≥ the required number (1, or 2 on quest 4 at 7+ players).
-4. **Failed quest:** the cutscene shows **exactly one culprit**, no matter how many Fails were played. If several evil players played Fail, pick one of their framing targets at random.
-5. **Successful quest:** pick a hero at random from the nominations made by Success players.
-6. **The fail count is never shown.** The TV shows only *Success* or *Failed*. This is a deliberate change from Avalon so that evil players never reveal how many of them were on a team. One consequence: on quest 4 at 7+ players, a single hidden Fail that didn't cause a failure leaves no trace.
+### Quest resolution: the team succeeds or fails together
+1. Each team member privately plays **Success** or **Fail**. Good players can only play Success; the Fail button is visible but disabled, so screens look the same at a glance. That card is the only thing a team member does: there is no second choice, so every player's flow is the same one step.
+2. Count the Fail cards. The quest fails if fails ≥ the required number (1, or 2 on quest 4 at 7+ players).
+3. **Failed quest:** the cutscene shows the **whole team** causing the disaster together. Nobody on it is singled out.
+4. **Successful quest:** the cutscene shows the **whole team** pulling it off together. Nobody on it is singled out as the hero.
+5. **The fail count is never shown.** The TV shows only *Success* or *Failed*. This is a deliberate change from Avalon so that evil players never reveal how many of them were on a team. One consequence: on quest 4 at 7+ players, a single hidden Fail that didn't cause a failure leaves no trace.
    - *Lobby toggle "Classic: show fail count" (default off), for players who want the original Avalon information.*
 
 ### Assassination
 If good reaches three successes, the TV plays a short dramatic beat ("The Assassin steps from the shadows…"). The Assassin picks a player on their phone. If they pick Merlin, evil wins.
 
 ### Game over
-The TV reveals every role and replays a highlight list: each quest's result and culprit or hero. The VIP can start another game with the same players.
+The TV reveals every role and replays a highlight list: each quest's result and the team that went. The VIP can start another game with the same players.
 
 ---
 
@@ -137,9 +133,9 @@ The TV reveals every role and replays a highlight list: each quest's result and 
 | **propose** | Campfire scene, leader's crown, quest track, reject counter, quest name and team size | Leader: pick N players, confirm. Others: "Leader is choosing…" |
 | **vote** | Proposed team highlighted; who has voted (not how) | Approve / Reject |
 | **voteReveal** | Every vote revealed (as in Avalon). Approved or rejected | Result |
-| **questPlay** | "The team sets out…", waiting on N players | Team: card → teammate pick. Non-team: "Watch the TV" |
-| **cutscene** | Plays the quest cutscene (about 20–25s) | "Watch the TV." Optionally a buzz when the culprit is revealed |
-| **questResult** | Result card: Success with hero name, or Failed with culprit name | Same |
+| **questPlay** | "The team sets out…", waiting on N players | Team: play a card. Non-team: "Watch the TV" |
+| **cutscene** | Plays the quest cutscene (about 20–25s) | "Watch the TV." |
+| **questResult** | Result card: Succeeded or Failed together, with the team's names | Same |
 | **assassination** | Drama beat | Assassin picks; others wait |
 | **gameover** | Winner, all roles, recap | VIP: play again |
 
@@ -154,18 +150,18 @@ The TV reveals every role and replays a highlight list: each quest's result and 
 2. **Approach (about 6–8s):** the team works toward the goal. **Identical for success and fail**, so nobody can tell the outcome early.
 3. **The moment (about 3s):** the music cuts, the camera pushes in, and everything holds.
 4. **Outcome:**
-   - **Fail (about 6–8s):** one gag starring the culprit, then the consequence, then a reaction shot of the team.
-   - **Success (about 5s):** a hero beat, then the team cheers.
+   - **Fail (about 6–8s):** one gag starring the whole team, then the consequence, then the team's sheepish reaction.
+   - **Success (about 5s):** a beat for the whole team, then the team cheers.
 
 ### Comedy direction (use throughout)
 - **The beat of silence:** hold about 1s on the mistake before the chaos starts.
-- **Oblivious pride:** the culprit often plays `Cheer` right after causing the disaster.
-- **Reaction shot:** quick cut to the teammates turning their heads slowly.
-- **Freeze-frame:** at the peak of the disaster, a record scratch, the frame freezes, and a caption reads *"Yep. That's {culprit}."* Then it continues.
+- **Oblivious pride:** the whole team often plays `Cheer` right after causing the disaster.
+- **Reaction:** the whole team's sheepish "…" once the consequence lands.
+- **Freeze-frame:** at the peak of the disaster, a record scratch, the frame freezes, and a caption reads *"Yep. That's the team."* Then it continues.
 - **Tone:** slapstick fails, dramatic successes. Family-friendly. Nobody gets hurt; at worst they're singed, flattened or soaked, cartoon-style.
 
 ### Engine
-- A cutscene is **data** (see §7): a list of beats with camera shots, actor actions, props, captions and SFX cues, plus slots such as `{culprit}`, `{hero}` and `{team}`.
+- A cutscene is **data** (see §7): a list of beats with camera shots, actor actions, props, captions and SFX cues, plus slots such as `{team}` and `{lead}`. No slot or actor ref may single out one player as a culprit or a hero.
 - Engine primitives:
   - **Camera shots:** `wide`, `follow(target)`, `closeUp(target)`, `pushIn(target)`, `lowAngle(target)`, `overShoulder(a,b)`, `orbit(target)`, `shake(intensity)`
   - **Actor actions:** `walkTo`, `runTo`, `play(anim)`, `lookAt`, `face`, `hide`, `tweenTo` (for cartoony motion such as falling, flattening or rolling)
@@ -174,7 +170,7 @@ The TV reveals every role and replays a highlight list: each quest's result and 
   - **UI:** caption, name banner, freeze-frame, record scratch, result card
 - Formations handle team sizes 2–5.
 - Each quest has a **seeded RNG** (sent from the server) so the gag choice and small variations look the same on reconnect.
-- **The server picks the gag** at random from the quest's list and sends it with the culprit, so the TV never makes a game-relevant random choice.
+- **The server picks the gag** at random from the quest's list and sends it with the team, so the TV never makes a game-relevant random choice.
 
 ### Audio
 Simple: a music loop per scene, a "moment" stinger, a success fanfare, a fail "wah-wah," and the record scratch. Synthesized with WebAudio, or CC0 files. A mute toggle is on the TV.
@@ -192,58 +188,58 @@ Each quest's opening caption can vary slightly based on the previous result ("Fr
 - **Approach:** the team edges across in single file, one carrying a lantern. The bridge creaks.
 - **Moment:** halfway across, the music stops and a rope groans.
 - **Fail gags** (the server picks one):
-  1. **The Sweater:** culprit tugs a loose rope "to tighten it." The whole bridge unravels plank by plank behind them like a sweater.
-  2. **"Catch!":** culprit tosses the lantern ahead to a teammate. It sails past, into the gorge. A long silence, then a tiny *clink* far below. Darkness.
-  3. **The Sturdiness Test:** culprit bounces twice to "test it," then drops straight through, leaving a cartoon-shaped hole. The team peers down.
-  4. **Premature Celebration:** at the halfway point, culprit throws up their arms: "WE MADE IT!" and does a victory dance. The bridge disagrees.
+  1. **The Sweater:** the team tugs a loose rope "to tidy it up." The whole bridge unravels plank by plank onto one ball of rope.
+  2. **"Catch!":** a gust takes the lantern and the whole team lunges for it at once. They bonk heads and it sails into the gorge. A long silence, then a tiny *clink* far below. Darkness.
+  3. **The Sturdiness Test:** the whole team bounces twice to "test it," then the planks under all of them let go at once.
+  4. **Premature Celebration:** at the halfway point, the team throws up their arms: "WE MADE IT!" and does a victory dance. The bridge disagrees.
 - **Fail consequence:** the team ends up dangling or dropping into the river below and washes away downstream. Reaction shot.
-- **Success:** the team reaches the far side just as the bridge collapses behind them. The hero turns to the camera and dusts off their hands.
+- **Success:** the team reaches the far side just as the bridge collapses behind them. The whole team turns to the camera and dusts off their hands.
 
 ### Quest 2: The Whispering Woods
 - **Setup:** a moonlit forest. A patrol of skeletons marches through. *"Sneak past the patrol."*
 - **Approach:** the team creeps from tree to tree behind the patrol.
 - **Moment:** a skeleton stops and slowly turns.
 - **Fail gags:**
-  1. **Thin Tree:** culprit hides behind a tree half their width. The skeletons tilt their heads in unison.
-  2. **Distraction:** culprit throws a rock to distract the patrol and hits a skeleton squarely in the skull. *Bonk.*
-  3. **Bush Disguise:** culprit's bush disguise works perfectly, except the legs stick out. Then the bush waddles.
-  4. **The Sneeze:** culprit sneezes so hard a skeleton falls apart. It reassembles angrily with its skull on its hip.
+  1. **Thin Tree:** the whole team hides, single file, behind one tree half their width. The skeletons tilt their heads in unison.
+  2. **Distraction:** the team throws a rock to distract the patrol and hits a skeleton squarely in the skull. *Bonk.*
+  3. **Bush Disguise:** the team's one-bush disguise works perfectly, except for all the legs sticking out. Then the bush waddles.
+  4. **The Sneeze:** the whole team sneezes at once, so hard a skeleton falls apart. It reassembles angrily with its skull on its hip.
 - **Fail consequence:** the skeletons chase the team out of the woods in a cartoon running loop.
-- **Success:** the patrol marches right past. The hero gives a silent thumbs-up from the shadows.
+- **Success:** the patrol marches right past. The whole team gives a silent thumbs-up from the shadows.
 
 ### Quest 3: The Vault
 - **Setup:** the usurper's treasury, an enormous round vault door with torches. *"The crown's map is locked in the royal vault."*
-- **Approach:** the team sneaks to the door and the hero kneels with lockpicks.
+- **Approach:** the team sneaks to the door and one of them kneels with lockpicks.
 - **Moment:** the tumblers click…
 - **Fail gags:**
-  1. **Polite Knock:** culprit steps forward and knocks politely. A guard opens the door. Beat. Guard and team stare.
-  2. **The Thank-You Note:** culprit leaves a note on the vault: *"Sorry for the robbery! ♥ — {culprit}."* The camera zooms on the signature. The guards read it and look up.
-  3. **DO NOT PULL:** culprit reads the sign aloud, "Do… not… pull," then pulls the lever. Alarm bells.
-  4. **Outward Door:** culprit cracks it perfectly and proudly swings the door open. It opens outward and flattens the team.
+  1. **Polite Knock:** the whole team steps forward and knocks politely. A guard opens the door. Beat. Guard and team stare.
+  2. **The Thank-You Note:** the team leaves a note on the vault: *"Sorry for the robbery! ♥ — the team."* The camera zooms on the signature. The guards read it and look up.
+  3. **DO NOT PULL:** the team reads the sign aloud together, "Do… not… pull," then pulls the lever. Alarm bells.
+  4. **Outward Door:** the team cracks it perfectly and all pull the door open together. It opens outward and flattens the team.
 - **Fail consequence:** alarm, guards pour in, and the team is tossed out the front gate.
-- **Success:** the door swings open with a golden glow. The hero holds up the map.
+- **Success:** the door swings open with a golden glow. The map rises over the whole team.
 
 ### Quest 4: The Dragon's Hoard *(two-fail quest at 7+ players)*
 - **Setup:** a cave. A dragon sleeps on a mountain of gold with the crown on top. *"Do. Not. Wake. The dragon."*
 - **Approach:** the team tiptoes through the gold as coins shift and slide.
 - **Moment:** extreme close-up of the dragon's eye. Silence.
 - **Fail gags:**
-  1. **Counting:** culprit starts counting the gold out loud, "One… two… three…", with a time-skip caption. The dragon's eye opens on "forty-seven."
-  2. **Good Boy:** culprit pets the dragon. It purrs. Then it sneezes fire, and the team emerges with charcoal faces and blinks.
-  3. **Plume:** culprit's helmet plume tickles the dragon's nose. Slow-motion sneeze build-up.
-  4. **Better Angle:** culprit climbs onto the dragon "for a better angle." The dragon wakes and flies off with the culprit waving from its back.
+  1. **Counting:** the team starts counting the gold out loud, "One… two… three…", with a time-skip caption. The dragon's eye opens on "forty-seven."
+  2. **Good Boy:** the team pets the dragon. It purrs. Then it sneezes fire, and the team emerges with charcoal faces and blinks.
+  3. **Plume:** the team checks the dragon is asleep with a feather to its nose. Slow-motion sneeze build-up.
+  4. **Better Angle:** the whole team climbs onto the dragon "for a better angle." The dragon wakes and shrugs them all off.
 - **Fail consequence:** the team flees the cave in a cartoon fireball chase.
-- **Success:** the hero lifts the crown in a low-angle shot as the dragon snores on.
+- **Success:** the whole team lifts the crown in a low-angle shot as the dragon snores on.
 
 ### Quest 5: The Throne Room
 - **Setup:** a grand hall. The usurper stands at the throne, mid-ceremony. *"Return the crown to the rightful heir."*
 - **Approach:** the team marches down the carpet and the crowd gasps.
 - **Moment:** the crown is raised over the heir's head…
 - **Fail gags:**
-  1. **Self-Coronation:** culprit puts the crown on their own head, bows to the crowd, then notices the guards.
-  2. **The Roll:** culprit trips. The crown rolls the full length of the hall like a wheel into the usurper's hands. Usurper: *"Oh! Thank you."*
-  3. **The Mug:** culprit solemnly crowns the heir with a tavern mug. The crowd falls silent, then the camera finds the real crown on the culprit's belt.
-  4. **The Speech:** culprit begins "a few words." Time-lapse: candles melt, the guards fall asleep, and the usurper crowns himself in the background.
+  1. **Self-Coronation:** the team crowns themselves, all of them at once, bows to the crowd, then notices the guards.
+  2. **The Roll:** everyone rushes to help at once and they collide. The crown rolls the full length of the hall like a wheel into the usurper's hands. Usurper: *"Oh! Thank you."*
+  3. **The Mug:** the team solemnly crowns the heir with a tavern mug. The crowd falls silent, then the camera finds the real crown on the floor.
+  4. **The Speech:** the team begins "a few words." Time-lapse: candles melt, the guards fall asleep, and the usurper crowns himself in the background.
 - **Fail consequence:** the usurper is crowned, and the team is escorted out.
 - **Success:** the heir is crowned, the hall cheers, and the camera slowly cranes up. If this is the third success, roll straight into the assassination beat.
 
@@ -278,14 +274,14 @@ Clone and copy the needed GLB/GLTF files and textures into `public/assets/kaykit
 Bots exist for testing and to fill seats. They can hold any role.
 - **Propose:** include themselves plus random others. Evil bots prefer including one evil player.
 - **Vote:** good bots approve about 65% of the time (always if on the team). Evil bots approve if an evil player is on the team. Everyone approves on the fifth proposal.
-- **Quest:** good bots play Success. Evil bots play Fail about 70% of the time, less often if they were on the last failed team. Framing target is a random good teammate. Hero nomination is random.
+- **Quest:** good bots play Success. Evil bots play Fail about 70% of the time, less often if they were on the last failed team. 
 - **Assassin bot:** picks at random among players it doesn't know are evil.
 
 ---
 
 ## 11. Milestones
 
-1. **Platform and rules, no 3D:** rooms, joining, reconnect, bots, roles and knowledge, propose/vote/quest/framing/assassination, game over. The TV shows plain text cards for each phase. **Exit:** a full game plays correctly with 1 human and bots for every player count from 5 to 10 and every role combination.
+1. **Platform and rules, no 3D:** rooms, joining, reconnect, bots, roles and knowledge, propose/vote/quest/assassination, game over. The TV shows plain text cards for each phase. **Exit:** a full game plays correctly with 1 human and bots for every player count from 5 to 10 and every role combination.
 2. **3D foundation:** asset loading, avatars with class and color, campfire scene for lobby, propose and vote, and the cutscene engine with camera shots, actions and captions.
 3. **Quests:** all five cutscenes, each with 4 fail gags and a success ending, plus the assassination and victory scenes.
 4. **Polish:** audio, transitions, readability from a couch, phone UX pass.
@@ -294,9 +290,9 @@ Bots exist for testing and to fill seats. They can hold any role.
 
 ## 12. Acceptance criteria
 
-- [ ] No secret information (roles, cards, framing picks, fail count) reaches the TV or any other player's phone before game over. Verify by inspecting WebSocket traffic.
+- [ ] No secret information (roles, cards, fail count) reaches the TV or any other player's phone before game over. Verify by inspecting WebSocket traffic.
 - [ ] Every team member's phone flow is identical in steps, wording and layout, regardless of role or card.
-- [ ] A failed quest always shows exactly one culprit, chosen from the framing picks of the Fail players.
+- [ ] A quest's cutscene and result show the whole team succeeding or failing together; nobody is singled out as a hero or a culprit.
 - [ ] Quest 4 at 7+ players requires two Fails.
 - [ ] Role knowledge matches the table in §4 for every combination.
 - [ ] A phone that refreshes or locks mid-game rejoins its seat. A TV that refreshes resumes at the current phase.

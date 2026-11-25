@@ -198,10 +198,7 @@ function autoPhone(client, { evilFails = true } = {}) {
     if (L.action === 'propose') { client.send({ t: 'propose', team: ids.slice(0, L.size) }); return; }
     if (L.action === 'vote') { client.send({ t: 'vote', approve: true }); return; }
     if (L.action === 'assassinate') { client.send({ t: 'assassinate', id: L.options[0] }); return; }
-    if (me.quest && me.quest.onTeam) {
-      if (me.quest.step === 'card') client.send({ t: 'play', card: me.quest.canFail && evilFails ? 'fail' : 'success' });
-      if (me.quest.step === 'pick') client.send({ t: 'pick', id: me.quest.options[0] });
-    }
+    if (me.quest && me.quest.onTeam && me.quest.step === 'card') client.send({ t: 'play', card: me.quest.canFail && evilFails ? 'fail' : 'success' });
   });
 }
 

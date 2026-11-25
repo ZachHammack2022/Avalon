@@ -253,7 +253,7 @@ main.enter > *:nth-child(2) { animation-delay: .04s; } main.enter > *:nth-child(
   .av.lg { --s: 40px; } .panel { padding: 8px 10px; } .member { width: 64px; }
   .rolecard { padding: 14px 14px; gap: 5px; } .rc-sigil { font-size: 56px; } .rc-name { font-size: 28px; } .rc-blurb { font-size: 14.500px; } .rc-known, .rc-counsel { font-size: 14px; padding-top: 7px; gap: 6px; }
   #secret { padding: 64px 14px 10px; }
-  main[data-screen=vote] .hint, main[data-screen=quest-card] .hint, main[data-screen=propose] .hint, main[data-screen=quest-pick] .hint, main[data-screen=assassinate] .hint { display: none; }
+  main[data-screen=vote] .hint, main[data-screen=quest-card] .hint, main[data-screen=propose] .hint, main[data-screen=assassinate] .hint { display: none; }
   .head h1::after { display: none; } .scroll { gap: 10px; } .team { gap: 8px 4px; } .member { font-size: 12.500px; }
 }
 @media (orientation: landscape) and (max-height: 500px) { #sheetbody { max-height: 98%; } .cardback { width: 150px; } }
@@ -405,7 +405,6 @@ input.code::placeholder { letter-spacing: .25em; }
 .rb td.c.qs::before { content: ""; position: absolute; left: -4px; top: -2px; bottom: -2px; width: 1px; background: #ffffff2a; }
 .rb td.c .crown { position: absolute; top: -7px; left: -5px; width: 13px; height: 13px; color: var(--gold); filter: drop-shadow(0 1px 1px #000); }
 .rb.big td.c .crown { width: 15px; height: 15px; top: -8px; left: -6px; }
-.rb td.c .mk { position: absolute; right: -5px; bottom: -6px; font-size: 12px; line-height: 1; text-shadow: 0 1px 2px #000; } .rb td.c .mk.blamed { color: #fff; } .rb td.c .mk.hero { color: var(--gold); }
 .rb-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.500px; color: var(--muted); }
 .rb-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .rb-legend .lg { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 22%; font-size: 11px; }
@@ -416,7 +415,6 @@ input.code::placeholder { letter-spacing: .25em; }
 .rb td.c.auto, .rb-legend .lg.auto { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.3) 0 3px, transparent 3px 7px); }
 .rb-legend .lg.auto { background-color: #8b8478; }
 .rb tr.away th.nm .n { opacity: .55; } .rb th.nm .aw { margin-left: 4px; font-size: 10.5px; font-weight: 700; color: var(--muted); }
-.rb-legend .lg.hero, .rb-legend .lg.blamed { width: auto; font-size: 13px; } .rb-legend .lg.hero { color: var(--gold); } .rb-legend .lg.blamed { color: #fff; }
 .rb-title { display: inline-flex; align-items: center; gap: 8px; } .rb-title .ic { color: var(--gold); }
 .rb-sub { margin-top: 6px; }
 .readlist { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }

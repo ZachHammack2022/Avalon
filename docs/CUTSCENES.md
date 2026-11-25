@@ -92,13 +92,15 @@ omit keeps playing the placeholder**, so you can do one segment or one gag at a 
 
 Rules the validator enforces (they come from the spec):
 
-* **setup/approach/moment are shared** by success and fail. They may not use `culprit`/`hero`/`{culprit}`/`{hero}` (that would leak
-  the outcome). Use `lead` (a seed-chosen team member, unrelated to the outcome) or `team:N` for the star of the approach.
-* `culprit` exists only in fail segments, `hero` only in success segments.
+* **The whole team succeeds or fails together.** No segment may single anyone out: `culprit`, `hero`, `team:others` and the
+  `{culprit}`/`{hero}` slots are refused everywhere. Outcome segments star `team:all` (use `formation` to move them as one and the
+  `chorus()` helper in `shared/cutscenes/util.js` for a line the whole team says at once).
+* **setup/approach/moment are shared** by success and fail, so they never hint at the outcome. Use `lead` (a seed-chosen team member,
+  unrelated to the outcome) or `team:N` for the star of the approach.
 * Player refs can only play the **76 Adventurer clips** (`PLAYER_ANIMS`); skeletons/custom actors can use all 95 (`shared/anims.js`).
 * No beat may start after its segment ends (and timed ops must not run >0.5 s past it). Durations are what the *server* uses to time
   the phase, so keep segments to the declared lengths. Change a duration in `durations`/`gag.duration` and the server follows.
-* `{culprit} {hero} {team} {lead} {intro}` are the caption slots. `{intro}` is the quest tagline with the "Fresh from their
+* `{team} {lead} {intro}` are the caption slots. `{intro}` is the quest tagline with the "Fresh from their
   triumph… / Still smelling of smoke…" prefix (use it in the first setup caption).
 
 ### Op cheat sheet (full list + arg types in `shared/cutscene-ops.js`)
@@ -110,23 +112,23 @@ Rules the validator enforces (they come from the spec):
 | FX | `fx` `firePuff|smoke|coinBurst|dust|sparkle|splash` |
 | Scene | `rig` calls an animation your scene registers (`{op:'rig', name:'bridge', action:'unravel', dur:3}`) |
 | Camera | `camera` `wide|follow|closeUp|pushIn|lowAngle|overShoulder|orbit|crane|cut` + `shake` |
-| UI/audio/time | `caption` `banner` `title` (time-skip cards) `freeze` (record scratch + hold + "Yep. That's {culprit}.") `sfx` `music` `slowmo` `fade` |
+| UI/audio/time | `caption` `banner` `title` (time-skip cards) `freeze` (record scratch + hold + "Yep. That's the team.") `sfx` `music` `slowmo` `fade` |
 
 Conventions:
 
 * **World:** Y up, 1 unit ≈ 1 m, characters ≈ 2 units tall. Yaw 0 faces +Z (toward the default camera), 90 faces +X. **The team travels
   along +X** in every scene. Positions are `[x,z]` (ground), `[x,y,z]`, a named **mark**, an actor ref, or `{at:ref, offset:[…]}`.
 * **Marks:** every scene must define `spawn start mid goal spot` (`public/tv/scenes/quests.js`). Add your own (`door`, `lever`, …).
-* **Targets** for `who`: `culprit hero lead team:0..4 team:all team:others` or any id you spawned / listed in `sceneIds`.
+* **Targets** for `who`: `lead team:0..4 team:all` or any id you spawned / listed in `sceneIds`.
 * `formation` positions the *whole team* (2–5 members): `line|row|column|arc|huddle`, `walk:true` to walk there over `dur`.
 * `play` loops idle/walk/pose clips and plays others once, then returns to Idle (`then:'Death_A_Pose'` to hold a pose).
   Hand slots for `attach`: `handslot.r`, `handslot.l`, `head`.
 * **Freeze:** `freeze` stops the *world* for `dur` seconds; the script clock keeps running, so schedule nothing inside the freeze window.
 * **Determinism:** the same payload+seed must look the same on a TV refresh. If you need randomness in a scene, use
   `seeded()` from `shared/rng.js`, never `Math.random()` in anything that affects the picture.
-* Comedy toolkit from the spec: hold ~1 s of silence (`music stop`, no motion) before chaos; culprit plays `Cheer` right after the
-  disaster (oblivious pride); reaction shot = `camera closeUp` on `team:others` + `lookAt … at:'culprit'` slowly; one `freeze`
-  at the peak.
+* Comedy toolkit: hold ~1 s of silence (`music stop`, no motion) before chaos; the whole team plays `Cheer` right after the
+  disaster (oblivious pride); reaction = an `emote` on `team:all` (a sheepish "…") after the consequence; one `freeze` at the peak.
+  A bubble from `say` sits over its first actor only, so for team speech use `chorus()` (one bubble over the middle of the group).
 
 ## Building a scene
 

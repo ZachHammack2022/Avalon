@@ -54,7 +54,7 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
       const rv = pub.reveal;
       const why = endReason(rv, (id) => name(pub, id));
       return { kind: 'gameover', title: rv.winner === 'good' ? 'Good wins!' : 'Evil wins!', tone: rv.winner === 'good' ? 'good' : 'bad',
-        lines: [why, ...teamLines(pub, rv.roles), ...rv.recap.map((q) => `${QUESTS[q.questIndex].name}: ${q.outcome === 'success' ? `Success. Hero: ${name(pub, q.hero)}` : `Failed. Culprit: ${name(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}`}${q.failCount != null ? ` [${q.failCount} Fail]` : ''}`), ...awards(pub, rv.recap)] };
+        lines: [why, ...teamLines(pub, rv.roles), ...rv.recap.map((q) => `${QUESTS[q.questIndex].name}: ${q.outcome === 'success' ? 'Success' : 'Failed'} (${list(names(pub, q.team))})${q.failCount != null ? ` [${q.failCount} Fail]` : ''}`), ...awards(pub)] };
     }
     default: return { kind: 'unknown', title: '', lines: [] };
   }
@@ -73,9 +73,9 @@ export function teamLines(pub, roles) {
 
 function resultCard(pub, r, quest) {
   const ok = r.outcome === 'success';
-  // the story shows the culprit causing the disaster, but the Fail players chose who to frame: the card says so, as the
-  // phones do, so the table argues from the record rather than from the cutscene
-  const lines = [ok ? `Hero: ${name(pub, r.hero)}` : `Suspicion falls on ${name(pub, r.culprit)}, who may have been framed.`];
+  // the whole team succeeds or fails together, as the story shows: nobody on it is singled out, so the table argues
+  // from the record rather than from the cutscene
+  const lines = [`${ok ? 'Succeeded' : 'Failed'} together: ${list(names(pub, r.team))}`];
   if (r.failCount != null) lines.push(`${r.failCount} Fail card${r.failCount === 1 ? '' : 's'}`);
   const sent = sentByText(pub, r, (id) => name(pub, id)); // the record's first word on a failure: who waved it through
   if (sent) lines.push(sent);

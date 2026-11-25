@@ -1,7 +1,8 @@
 # Avalon: The Lost Crown
 
 A family party game for the TV with phones as controllers (Jackbox-style). It follows **The Resistance: Avalon** 1:1 (5–10 players, all
-six optional roles). Every quest plays out as a funny 3D cutscene; when a quest fails, the Minions of Mordred secretly choose **who gets framed**.
+six optional roles). Every quest plays out as a funny 3D cutscene starring the whole team, who **succeed or fail together**: nobody on the
+team is singled out as the hero or the culprit, so working out who sank a quest is left to the players and the record.
 Full spec: [`goals.md`](goals.md).
 
 ```bash
@@ -40,7 +41,7 @@ npm start          # prints the TV URL and the phone URL
 
 | Milestone (goals §11) | State |
 |---|---|
-| 1. Platform + rules (rooms, reconnect, bots, roles, framing, assassination, game over) | **Done**, fully tested |
+| 1. Platform + rules (rooms, reconnect, bots, roles, assassination, game over) | **Done**, fully tested |
 | 2. 3D foundation (assets, avatars, campfire, cutscene engine) | **Done** |
 | 3. Quests (5 cutscenes × 4 gags + success, assassination, victory) | **Pipeline done; choreography is placeholder** (every gag plays; real comedy to be authored: [docs/CUTSCENES.md](docs/CUTSCENES.md)) |
 | 4. Polish (audio, transitions, couch readability, phone UX) | Baseline done: synthesized audio, fades, big type, wake lock, hold-to-reveal; needs a real-TV/real-phone pass |
@@ -50,7 +51,7 @@ npm start          # prints the TV URL and the phone URL
 ```
 server/index.js    HTTP static + WebSocket routing, room codes, heartbeat, GC
 server/room.js     one game: phase state machine, timers, reconnect/takeover, per-client state (injectable clock)
-server/rules.js    role assignment, knowledge, quest resolution + framing (pure)
+server/rules.js    role assignment, knowledge, quest resolution (pure)
 server/bots.js     bot decisions (pure)
 shared/            avalon tables + validation, campaign data, cutscene op contract, anims, rng, role/avatar info, record board model
 public/phone.html, phone/    controller UI (plain DOM) + pure view-model
@@ -79,7 +80,7 @@ CI (`.github/workflows/ci.yml`) runs `npm test` and the asset check.
 |---|---|
 | No secrets to TV / other phones before game over | `test/room.test.js` (full-game traffic audit, key + role-value scans), `test/server.test.js` (same over real WebSockets) |
 | Identical team-member flow | `room.test.js` (same state shape/legal actions; `canFail` is the only private difference), `ui-logic.test.js` (same screens) |
-| Failed quest = exactly one culprit from Fail players' picks | `rules.test.js`, invariants checked in every simulated game |
+| The whole team succeeds or fails together; nobody is singled out | `rules.test.js`, `room.test.js` (no culprit/hero in any payload, invariants checked in every simulated game), `campaign.test.js` (every outcome shows `team:all`; the validator refuses `culprit`/`hero`) |
 | Quest 4 at 7+ needs two Fails | `avalon.test.js`, `rules.test.js` |
 | Role knowledge table, every combination | `rules.test.js` (all valid player-count × role-config × several deals) |
 | Phone refresh/lock rejoins; TV refresh resumes | `room.test.js`, `server.test.js`, and `browser-check` (reloads both pages mid-session) |
@@ -91,8 +92,8 @@ CI (`.github/workflows/ci.yml`) runs `npm test` and the asset check.
 
 * **Server authoritative.** `Room` never touches sockets (clients are `{send, close}` objects) and takes an injectable clock, which is how
   whole games run instantly in tests. The TV state is the public state (+ the cutscene payload only while a cutscene is current);
-  phones get the same public state + their own `me` block. Role/knowledge/card/pick data lives only in `me` and, after the game, `reveal`.
-* **Quest flow** is the same two steps for every team member (card, then "Who stood out?"). Both cards look and behave the same on
+  phones get the same public state + their own `me` block. Role/knowledge/card data lives only in `me` and, after the game, `reveal`.
+* **Quest flow** is one step for every team member: play a card. There is no second choice. Both cards look and behave the same on
   every phone, in an order shuffled per player, and a good player's card always counts as Success, so a glance at a neighbour's
   phone gives nothing away. Results become public only once the cutscene ends.
 * **Disconnects:** after 15 s a stand-in bot acts for the missing player (using only that seat's own knowledge) and hands control back on return.

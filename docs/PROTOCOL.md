@@ -16,14 +16,15 @@ A `token` that matches a seat resumes it (the old socket for that seat is closed
 ## Phone → server (after joining)
 
 `setAvatar {cls?, color?}` (lobby; `color` is one of the ten palette colours and nobody else's: another person's is refused, a bot's swaps with the bot) · VIP/lobby: `start`, `addBot`, `removeBot {id?}`, `kick {id}`, `setRoles {roles:{merlin,assassin,percival,morgana,mordred,oberon}}`, `setClassic {on}` ·
-`leave` (lobby) · `ready` · `propose {team:[ids]}` · `vote {approve}` · `play {card:'success'|'fail'}` · `pick {id}` · `assassinate {id}` · `again` (VIP, game over).
+`leave` (lobby) · `ready` · `propose {team:[ids]}` · `vote {approve}` · `play {card:'success'|'fail'}` (the only quest action: there is no second choice) · `assassinate {id}` · `again` (VIP, game over).
 Illegal actions get `{t:'error', code:'action', msg}` and change nothing.
 
 ## Server → TV
 
 * `state {pub}`: public state (below) plus, only while `phase === 'cutscene'`, `pub.cutscene`.
-* `cutscene {questId, questIndex, outcome:'success'|'fail', team:[ids], culprit|null, hero|null, gag|null, seed, prevOutcome, failCount?}`
+* `cutscene {questId, questIndex, outcome:'success'|'fail', team:[ids], gag|null, seed, prevOutcome, failCount?}`
   sent once when the cutscene starts (never replayed on reconnect: the TV shows the result card instead). `failCount` only in Classic mode.
+  The whole team succeeds or fails together, so the payload names nobody as a culprit or a hero.
 
 ## Server → phone
 
@@ -33,7 +34,7 @@ Illegal actions get `{t:'error', code:'action', msg}` and change nothing.
 me: { id, name, vip, takeover,
       role, roleName, team:'good'|'evil', knowKind:'none'|'evil'|'allies'|'merlins', knows:[ids], note,   // once a game started
       legal: {action:'ready'|'propose'|'vote'|'assassinate'|'again'|'wait', size?, options?, done?},
-      quest?: {onTeam, step:'card'|'pick'|'done'|null, canFail, options:[ids]} }                         // during questPlay
+      quest?: {onTeam, step:'card'|'done'|null, canFail} }                                                // during questPlay
 ```
 
 ## Public state (`pub`)
@@ -43,11 +44,11 @@ me: { id, name, vip, takeover,
   players:[{id,name,cls,color,bot,vip,connected,takeover,ready}],
   validation?: {ok,errors,warnings}            // lobby only
   game?: { n, questIndex, quest:{id,name}, teamSize, leader, order:[ids] (seat order the crown follows), rejectCount, team:[ids],
-           results:[{questIndex,outcome,team,culprit,hero,failCount?}],   // only results whose cutscene has finished
+           results:[{questIndex,outcome,team,failCount?}],   // only results whose cutscene has finished
            voted?:[ids] (vote), votes?:{id:bool} + approved (voteReveal), waitingOn? (questPlay), assassinationEnabled,
            history:[{questIndex,leader,team,votes:{id:bool},approved,standIn?:[ids]}] (every revealed proposal; public;
                     standIn = seats whose vote a stand-in cast while they were away) },
-  reveal?: { winner, reason, roles:{id:role}, assassination, recap:[…] }  // gameover only, the ONLY place roles/cards/picks appear
+  reveal?: { winner, reason, roles:{id:role}, assassination, recap:[…] }  // gameover only, the ONLY place roles appear
 }
 ```
 

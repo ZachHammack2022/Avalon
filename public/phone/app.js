@@ -242,7 +242,7 @@ let lastScreen = '';
 let kickArmed = null; // lobby: a human's remove button was tapped once
 let rolesOpen = false; // lobby: role toggles expanded
 let lookOpen = false; // lobby: avatar picker expanded
-let choice = null; // pending vote / card / pick / assassination target on the current screen
+let choice = null; // pending vote / card / assassination target on the current screen
 
 function render() {
   const screen = screenFor(state);
@@ -274,7 +274,7 @@ function render() {
     lastPhase = phase;
   }
   if (screen !== lastScreen) {
-    if (['propose', 'vote', 'quest-card', 'quest-pick', 'assassinate'].includes(screen)) buzz(HAPTIC.turn);
+    if (['propose', 'vote', 'quest-card', 'assassinate'].includes(screen)) buzz(HAPTIC.turn);
     announce(main);
     main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
     lastScreen = screen;
@@ -312,7 +312,7 @@ function recordBoard({ big = false } = {}) {
   const groups = rec.quests.filter((q) => q.cols.length);
   const firstOfQuest = new Set(groups.map((q) => q.cols[0]));
   const said = { yes: 'approved', no: 'rejected', in: 'has voted', null: 'not voted yet' };
-  const marks = { hero: false, blamed: false, auto: false };
+  const marks = { auto: false };
   const table = h('table', { class: `rb ${big ? 'big' : ''}`, 'aria-label': 'The record' },
     h('thead', {}, h('tr', {}, h('th', { class: 'nm', scope: 'col' }, h('span', { class: 'sr' }, 'Player')),
       groups.map((q) => h('th', { class: `qh qs ${q.outcome || (q.current ? 'cur' : '')}`, colspan: String(q.cols.length), scope: 'colgroup' },
@@ -323,17 +323,14 @@ function recordBoard({ big = false } = {}) {
         h('th', { class: 'nm', scope: 'row' }, avatar(r, 'xs'), h('span', { class: 'n' }, r.name),
           role ? h('small', { class: 'rl' }, role.name) : r.away ? h('small', { class: 'aw' }, 'away') : null),
         rec.columns.map((c, ci) => {
-          const cell = r.cells[ci]; const sent = c.approved === true; const q = rec.quests[c.questIndex];
-          const blamed = sent && cell.onTeam && c.outcome === 'fail' && q.culprit === r.id;
-          const hero = sent && cell.onTeam && c.outcome === 'success' && q.hero === r.id;
-          if (blamed) marks.blamed = true; if (hero) marks.hero = true; if (cell.standIn) marks.auto = true;
+          const cell = r.cells[ci]; const sent = c.approved === true;
+          if (cell.standIn) marks.auto = true;
           const cls = ['c', cell.vote || 'none', cell.onTeam ? 'team' : '', c.live ? 'live' : '', c.approved === false ? 'rej' : '',
             sent && cell.onTeam ? `went ${c.outcome || 'pending'}` : '', firstOfQuest.has(c.key) ? 'qs' : '', cell.standIn ? 'auto' : ''].filter(Boolean).join(' ');
-          const label = `${r.name}, quest ${c.questIndex + 1} proposal ${c.attempt}: ${said[cell.vote]}${cell.standIn ? ' (by a stand-in)' : ''}${cell.onTeam ? ', on the team' : ''}${cell.leader ? ', leader' : ''}${blamed ? ', blamed for the fail' : ''}${hero ? ', hero' : ''}`;
+          const label = `${r.name}, quest ${c.questIndex + 1} proposal ${c.attempt}: ${said[cell.vote]}${cell.standIn ? ' (by a stand-in)' : ''}${cell.onTeam ? ', on the team' : ''}${cell.leader ? ', leader' : ''}${sent && cell.onTeam && c.outcome ? `, went, quest ${c.outcome === 'success' ? 'succeeded' : 'failed'}` : ''}`;
           return h('td', { class: cls, 'aria-label': label, title: describeColumn(c, nm) },
             cell.vote === 'yes' ? icon('check') : cell.vote === 'no' ? icon('cross') : cell.vote === 'in' ? h('i', { class: 'dot' }) : null,
-            cell.leader ? icon('leader', 'crown') : null,
-            blamed ? h('b', { class: 'mk blamed' }, '☠') : hero ? h('b', { class: 'mk hero' }, '★') : null);
+            cell.leader ? icon('leader', 'crown') : null);
         }));
     })),
     // the tally under each proposal, so a glance gives how close every vote was
@@ -347,8 +344,6 @@ function recordBoard({ big = false } = {}) {
       h('span', {}, h('b', { class: 'lg yes' }, icon('check')), 'approve'), h('span', {}, h('b', { class: 'lg no' }, icon('cross')), 'reject'),
       h('span', {}, h('b', { class: 'lg team' }), 'on the team'), h('span', {}, h('b', { class: 'lg lead' }, icon('leader')), 'leader'),
       big ? h('span', {}, h('b', { class: 'lg fail' }), 'went, quest failed') : null,
-      marks.hero ? h('span', {}, h('b', { class: 'lg hero' }, '★'), 'hero') : null,
-      marks.blamed ? h('span', {}, h('b', { class: 'lg blamed' }, '☠'), 'blamed') : null,
       marks.auto ? h('span', {}, h('b', { class: 'lg auto' }), 'stand-in vote') : null));
 }
 
@@ -601,12 +596,6 @@ const SCREENS = {
       body: [h('div', { class: 'qcards' }, pair)],
       actions: [h('p', { class: 'armhint' }, 'Tap a card to choose')] });
   },
-  'quest-pick'() {
-    const { me } = state;
-    return page({ kicker: 'Before the quest resolves', title: 'Who stood out?',
-      body: [h('div', { class: 'people' }, me.quest.options.map((id) => personChip(byId(id), { sel: choice === id, tag: youTag(id), mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
-      actions: [choice ? h('button', { class: 'primary big', onclick: () => send({ t: 'pick', id: choice }) }, `Pick ${byId(choice).name}`) : h('p', { class: 'armhint' }, 'Tap a name to choose')] });
-  },
   'quest-done'() {
     const g = state.pub.game;
     return page({ kicker: 'Card played', title: 'Waiting for the team', body: [teamRow(g.team), waiting('hourglass', g.waitingOn ? `${g.waitingOn} still deciding…` : 'Almost there…')], record: true });
@@ -620,11 +609,13 @@ const SCREENS = {
   questResult() {
     const { pub } = state; const r = lastResult(pub);
     if (!r) return page({ hint: false, title: 'Eyes on the TV', body: [waiting('tv', '')] });
-    const ok = r.outcome === 'success'; const who = byId(ok ? r.hero : r.culprit);
+    const ok = r.outcome === 'success';
+    // the whole team succeeds or fails together: nobody on it is singled out
     return page({ hint: false, kicker: `Quest ${r.questIndex + 1}`, title: ok ? 'Quest succeeded' : 'Quest failed',
-      body: [h('div', { class: `emblem ${ok ? 'good' : 'bad'}` }, icon(ok ? 'chalice' : 'brokensword')), h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'Suspicion falls on'), h('b', {}, who.name),
-        r.failCount != null ? h('small', {}, `${failText(r.failCount)} played`) : null),
-        ok ? null : h('p', { class: 'muted center small' }, 'That is who the story on the TV blamed. They may have been framed.'),
+      body: [h('div', { class: `emblem ${ok ? 'good' : 'bad'}` }, icon(ok ? 'chalice' : 'brokensword')),
+        h('div', { class: `panel result ${ok ? 'good' : 'bad'}` }, h('div', { class: 'label' }, ok ? 'The team succeeded together' : 'The team failed together'),
+          h('div', { class: 'team' }, r.team.map((id) => h('div', { class: 'member' }, avatar(byId(id), 'lg'), h('span', {}, byId(id).name)))),
+          r.failCount != null ? h('small', {}, `${failText(r.failCount)} played`) : null),
         ok ? null : sentLine(r)], record: true });
   },
 
@@ -655,8 +646,8 @@ const SCREENS = {
         ...['good', 'evil'].map((tm) => h('div', { class: `panel teamlist team-${tm}` }, h('div', { class: 'tl-head' }, icon(tm === 'good' ? 'loyal' : 'mordred'), tm === 'good' ? 'Loyal Servants of Arthur' : 'Minions of Mordred', (rv.winner === tm) ? h('span', { class: 'won' }, 'won') : null),
           h('div', { class: 'reveal' }, pub.players.filter((p) => ROLE_INFO[rv.roles[p.id]].team === tm).map((p) => { const r = ROLE_INFO[rv.roles[p.id]]; return h('div', { class: 'person' }, avatar(p), h('span', { class: 'pname' }, p.name, youTag(p.id) ? h('small', {}, 'you') : null), h('span', { class: 'rtag' }, icon(rv.roles[p.id]), r.name)); })))),
         rv.recap.length ? h('div', { class: 'panel' }, h('div', { class: 'label' }, rv.recap.length === 1 ? 'The quest' : `The ${rv.recap.length} quests played`),
-          h('div', { class: 'recap' }, rv.recap.map((q) => { const ok = q.outcome === 'success'; const fails = q.failCount != null ? ` · ${failText(q.failCount)}` : ''; return h('div', { class: ok ? 'good' : 'bad' }, h('span', { class: 'qn' }, icon(ok ? 'check' : 'cross'), `Quest ${q.questIndex + 1}`), h('span', {}, ok ? `Hero: ${nameOf(pub, q.hero)}${fails}` : `Suspected: ${nameOf(pub, q.culprit)}${q.framed ? ' (framed!)' : ''}${fails}`)); }))) : null,
-        ...[awards(pub, rv.recap)].filter((a) => a.length).map((a) => h('div', { class: 'panel' }, h('div', { class: 'label' }, 'Awards'), h('ul', { class: 'awards' }, a.map((line) => h('li', {}, line.replace(/^★ /, '')))))),
+          h('div', { class: 'recap' }, rv.recap.map((q) => { const ok = q.outcome === 'success'; const fails = q.failCount != null ? ` · ${failText(q.failCount)}` : ''; return h('div', { class: ok ? 'good' : 'bad' }, h('span', { class: 'qn' }, icon(ok ? 'check' : 'cross'), `Quest ${q.questIndex + 1}`), h('span', {}, `${ok ? 'Succeeded' : 'Failed'}: ${q.team.map((id) => nameOf(pub, id)).join(', ')}${fails}`)); }))) : null,
+        ...[awards(pub)].filter((a) => a.length).map((a) => h('div', { class: 'panel' }, h('div', { class: 'label' }, 'Awards'), h('ul', { class: 'awards' }, a.map((line) => h('li', {}, line.replace(/^★ /, '')))))),
       ],
       record: true,
       actions: [me.vip ? h('button', { class: 'primary big', onclick: () => send({ t: 'again' }) }, 'Play again') : h('p', { class: 'muted center' }, 'Waiting for the host…')] });
@@ -714,7 +705,7 @@ function drawSheetBody() {
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Good'), h('ul', {}, GENERAL_TIPS.good.map((t) => h('li', {}, t)))),
       h('div', { class: 'panel' }, h('h3', {}, 'If you are Evil'), h('ul', {}, GENERAL_TIPS.evil.map((t) => h('li', {}, t)))));
     if (inGame) content.push(h('div', { class: 'panel' }, h('h3', {}, 'Reading the quest shields'), h('p', { class: 'small' }, `Each shield is a quest; the number is how many go. Two red dots mean that quest needs two Fails to sink. The five pips count rejected teams: five in a row and Evil wins.${pub.config && pub.config.classic ? ' Classic mode is on, so a played quest shows how many Fail cards were in it.' : ''}`)),
-      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed. A star marks the hero of a success, and a skull the player the story blamed for a failure. A striped vote was cast by a stand-in while that player was away. The Votes row under each column is how that vote ended (while votes are face-down, how many are in). The crown passes down the rows in order; while a team is picked or voted on, the line under the record says who leads next. Wherever you pick or vote on players, the ticks and crosses beside each name are the quests that player went on.')),
+      h('div', { class: 'panel' }, h('h3', {}, 'Reading the record'), h('p', { class: 'small' }, 'Tap Record at the top left. Each row is a player and each column a proposal: a tick or cross is how they voted, a gold ring means they were on that team, and a crown marks who proposed it. A red ring means that team went and the quest failed: the whole team fails or succeeds together, so nobody on it is singled out. A striped vote was cast by a stand-in while that player was away. The Votes row under each column is how that vote ended (while votes are face-down, how many are in). The crown passes down the rows in order; while a team is picked or voted on, the line under the record says who leads next. Wherever you pick or vote on players, the ticks and crosses beside each name are the quests that player went on.')),
       h('div', { class: 'panel' }, h('h3', {}, 'The record in one line'), h('p', { class: 'small' }, 'Once a quest has failed, a line with a scroll sums up what the record says right now. While a leader picks, it names everyone never on or behind a failed quest: they went on none and voted to send none. While a team is voted on, it says who on that team went on a failed quest or voted to send one. Right after a quest fails, it says who voted to send that team from outside it. When you lead, each name also says how many failed teams that player voted to send, and once your team is full the line reads the case against it before you send it. Merlin, Percival and the Minions of Mordred also get a private read of the record on their role card, while they hold their name.')));
     const off = store.get('sq.coach') === 'off';
     content.push(h('button', { class: `toggle${off ? '' : ' on'}`, role: 'switch', 'aria-checked': String(!off), onclick: () => { store.set('sq.coach', off ? 'on' : 'off'); render(); drawSheet(); } }, h('span', { class: 'grow' }, 'Show hints on screen', h('small', {}, 'Turn off once you know the game.')), h('span', { class: 'sw' })));
@@ -763,7 +754,7 @@ function drawRecord() {
           const label = `${pl.name}: ${x.votes[pl.id] ? 'approve' : 'reject'}${auto ? ' (stand-in vote)' : ''}`;
           return h('span', { class: `vt ${x.votes[pl.id] ? 'y' : 'n'}${auto ? ' auto' : ''}`, role: 'img', 'aria-label': label, title: label }, avatar(pl, 'sm'), icon(x.votes[pl.id] ? 'check' : 'cross'));
         })))),
-      r ? h('p', { class: 'small muted' }, r.outcome === 'success' ? `Hero: ${nameOf(pub, r.hero)}` : `Suspicion fell on ${nameOf(pub, r.culprit)}`) : null));
+      r ? h('p', { class: 'small muted' }, `${r.outcome === 'success' ? 'Succeeded' : 'Failed'} together: ${r.team.map((id) => nameOf(pub, id)).join(', ')}`) : null));
   }
   const rx = recordScroll(sheetBody, false);
   sheetBody.replaceChildren(

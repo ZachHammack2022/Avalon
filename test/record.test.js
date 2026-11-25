@@ -11,8 +11,8 @@ const history = [
   { questIndex: 1, leader: 'p3', team: ['p1', 'p3', 'p5'], votes: V('p1', 'p3', 'p4', 'p5'), approved: true },
 ];
 const results = [
-  { questIndex: 0, outcome: 'success', team: ['p2', 'p3'], hero: 'p3', culprit: null },
-  { questIndex: 1, outcome: 'fail', team: ['p1', 'p3', 'p5'], hero: null, culprit: 'p5' },
+  { questIndex: 0, outcome: 'success', team: ['p2', 'p3'] },
+  { questIndex: 1, outcome: 'fail', team: ['p1', 'p3', 'p5'] },
 ];
 const pub = (phase, game = {}, extra = {}) => ({ phase, players, game: { questIndex: 2, leader: 'p4', team: [], rejectCount: 0, history, results, ...game }, ...extra });
 
@@ -43,8 +43,8 @@ test('record: every revealed proposal is a column, grouped by quest, with votes,
   assert.deepEqual(ann.quests, ['fail']);
   const cy = rec.rows[2];
   assert.deepEqual(cy.quests, ['success', 'fail']);
-  assert.equal(cy.hero, 1);
-  assert.equal(rec.rows[4].blamed, 1);
+  // the record marks the whole team that went the same way: nobody on it is a hero or the one to blame
+  for (const r of rec.rows) for (const k of ['hero', 'blamed']) assert.equal(r[k], undefined, k);
 });
 
 test('record: the team being voted on shows up live, with who has voted but not how', () => {
@@ -163,29 +163,32 @@ test('crown order: who leads each remaining proposal of this quest, ending with 
 });
 
 test('crown order: in real games it names the actual next leaders and the fifth proposal\'s leader', () => {
-  const { room, clock } = makeRoom({ seed: 5 });
-  const [h] = fill(room, 1, 6);
-  room.handle(room.vip.id, { t: 'start' });
-  room.detachPhone(h.p.id, h.conn); // its stand-in plays
   let checked = 0;
-  let last = null;
-  const broadcast = room.broadcast.bind(room);
-  room.broadcast = () => {
-    broadcast();
-    const pub = room.publicState();
-    assert.deepEqual(pub.game ? pub.game.order : room.playerIds(), room.playerIds());
-    if (pub.phase === 'propose' && (!last || last.leader !== pub.game.leader)) {
-      if (last && last.crown && last.questIndex === pub.game.questIndex) {
-        // the crown moved exactly where the record said it would
-        assert.equal(pub.game.leader, last.crown[1]);
-        assert.deepEqual(crownOrder(pub), last.crown.slice(1));
-        checked++;
+  // several seeded games, so at least one of them has a rejected team pass the crown on
+  for (let seed = 5; seed < 25 && !checked; seed++) {
+    const { room, clock } = makeRoom({ seed });
+    const [h] = fill(room, 1, 6);
+    room.handle(room.vip.id, { t: 'start' });
+    room.detachPhone(h.p.id, h.conn); // its stand-in plays
+    let last = null;
+    const broadcast = room.broadcast.bind(room);
+    room.broadcast = () => {
+      broadcast();
+      const pub = room.publicState();
+      assert.deepEqual(pub.game ? pub.game.order : room.playerIds(), room.playerIds());
+      if (pub.phase === 'propose' && (!last || last.leader !== pub.game.leader)) {
+        if (last && last.crown && last.questIndex === pub.game.questIndex) {
+          // the crown moved exactly where the record said it would
+          assert.equal(pub.game.leader, last.crown[1]);
+          assert.deepEqual(crownOrder(pub), last.crown.slice(1));
+          checked++;
+        }
+        last = { leader: pub.game.leader, questIndex: pub.game.questIndex, crown: crownOrder(pub) };
+        assert.equal(last.crown.length, 5 - pub.game.rejectCount);
       }
-      last = { leader: pub.game.leader, questIndex: pub.game.questIndex, crown: crownOrder(pub) };
-      assert.equal(last.crown.length, 5 - pub.game.rejectCount);
-    }
-  };
-  assert.ok(runUntil(room, clock, 'gameover'));
+    };
+    assert.ok(runUntil(room, clock, 'gameover'));
+  }
   assert.ok(checked > 0, 'saw a rejected team pass the crown on');
 });
 
@@ -227,7 +230,7 @@ test('vote reads: a vote is right when it waved a clean team through or voted do
   assert.deepEqual(reads.p4, { right: 3, of: 3 }, 'its own team on quest 2 is left out');
   // Merlin could see evil, so the award goes to the best good player who could not
   assert.deepEqual(sharpestEye(over()), { id: 'p4', right: 3, of: 3 });
-  assert.match(awards(over(), []).join('\n'), /^★ Sharpest eye: Dee, who read 3 of 3 teams right$/m);
+  assert.match(awards(over()).join('\n'), /^★ Sharpest eye: Dee, who read 3 of 3 teams right$/m);
   // the full record's report: every player with counted votes, in seat order, evil players marked
   assert.deepEqual(voteReport(over()), [
     { id: 'p1', evil: false, right: 3, of: 3 }, { id: 'p2', evil: false, right: 1, of: 1 }, { id: 'p3', evil: false, right: 1, of: 2 },
@@ -242,7 +245,7 @@ test('vote reads: a vote is right when it waved a clean team through or voted do
   // ...for that one: an evil player whose votes looked like Good's gets the best disguise instead
   assert.equal(bestDisguise(over()), null, 'the Assassin voted like Good on 0 of 2');
   assert.deepEqual(bestDisguise(over(hist, { ...roles, p4: 'morgana' })), { id: 'p4', right: 3, of: 3 });
-  assert.match(awards(over(hist, { ...roles, p4: 'morgana' }), []).join('\n'), /^★ Best disguise: Dee, who voted like Good on 3 of 3 teams$/m);
+  assert.match(awards(over(hist, { ...roles, p4: 'morgana' })).join('\n'), /^★ Best disguise: Dee, who voted like Good on 3 of 3 teams$/m);
   assert.equal(bestDisguise(over(away, { ...roles, p4: 'morgana' })), null, 'three counted votes at least');
   assert.equal(bestDisguise(pub('propose')), null, 'not before the roles are public');
 });
@@ -290,7 +293,7 @@ test('team case: who on a proposed team went on a failed quest or voted to send 
   // a player on two failed quests who also voted to send a third
   const more = pub('vote', {
     history: history.concat({ questIndex: 2, leader: 'p4', team: ['p1', 'p3'], votes: V('p1', 'p3', 'p5'), approved: true }),
-    results: results.concat({ questIndex: 2, outcome: 'fail', team: ['p1', 'p3'], hero: null, culprit: 'p1' }),
+    results: results.concat({ questIndex: 2, outcome: 'fail', team: ['p1', 'p3'] }),
   });
   assert.equal(teamCase(more, ['p5'], nm), 'Eli went on 1 failed quest and voted to send 1 failed team.');
   assert.equal(teamCase(more, ['p3'], nm), 'Cy went on 2 failed quests.');
@@ -307,7 +310,7 @@ test('clean record: who never went on or voted to send a failed quest, for the t
   // Bo then goes on a failed quest too: nobody is left
   const all = pub('propose', {
     history: history.concat({ questIndex: 2, leader: 'p4', team: ['p2', 'p4'], votes: V('p2', 'p4'), approved: true }),
-    results: results.concat({ questIndex: 2, outcome: 'fail', team: ['p2', 'p4'], hero: null, culprit: 'p2' }),
+    results: results.concat({ questIndex: 2, outcome: 'fail', team: ['p2', 'p4'] }),
   });
   assert.equal(cleanText(all, nm), 'Everyone has gone on or voted for a failed quest.');
   assert.equal(cleanText({ phase: 'lobby', players }, nm), null);

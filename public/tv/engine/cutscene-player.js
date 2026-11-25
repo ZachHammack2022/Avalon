@@ -1,5 +1,5 @@
 // Runs a cutscene (data from shared/campaign-lost-crown.js, or a custom script) on a Stage.
-// The server decides culprit/hero/gag/seed; this only plays them. Supports seek() for the preview harness.
+// The server decides the outcome, gag and seed; this only plays them. Supports seek() for the preview harness.
 import { buildTimeline, cutsceneSeconds, fillSlots, introCaption, makeResolver } from '/shared/cutscene.js';
 import { QUESTS } from '/shared/campaign-lost-crown.js';
 import { Timeline } from './timeline.js';
@@ -12,7 +12,7 @@ export class CutscenePlayer {
   }
 
   /**
-   * @param payload  server message {questIndex, outcome, team, culprit, hero, gag, seed, prevOutcome}
+   * @param payload  server message {questIndex, outcome, team, gag, seed, prevOutcome}
    * @param players  Map id -> {id,name,cls,color}
    */
   async load(payload, players) {

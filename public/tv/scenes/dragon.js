@@ -87,7 +87,7 @@ export function dragonScene() {
     hemi: { sky: 0xb89468, ground: 0x33200f, i: 1.5 }, sun: { color: 0x9fc4ff, i: 1.5, pos: [-16, 14, 10] },
     marks: {
       spawn: [-21, 3], start: [-11, 3], mid: [-1.6, 2.8], goal: [1.4, 2.2], spot: [1.4, 2.2], out: [-11, 3], nose: [1.15, 3.3], petSpot: [2.7, 1.0], coins: [-3.4, 4.4],
-      eye: [5.1, 2.1, 2.0], snout: [2.3, 1.7, 2.6], maw: [2.2, 1.3, 2.7], back: [7.9, 6.25, -0.9], climb: [7.2, 0, 3.4], heroSpot: [1.3, 4.2], head: [4.8, 2.4, 1.3],
+      eye: [5.1, 2.1, 2.0], snout: [2.3, 1.7, 2.6], maw: [2.2, 1.3, 2.7], back: [7.9, 6.25, -0.9], climb: [7.2, 0, 3.4], crownSpot: [1.3, 4.2], head: [4.8, 2.4, 1.3],
     },
     preload: ['knight', 'mage', 'rogue', 'barbarian', 'rogueHooded', 'dungeon:coin_stack_large', 'dungeon:coin_stack_medium', 'dungeon:coin_stack_small', 'dungeon:chest_gold', 'dungeon:trunk_large_A', 'dungeon:sword_shield_gold', 'hex:rock_single_A', 'hex:rock_single_B', 'hex:rock_single_D'],
     props: {

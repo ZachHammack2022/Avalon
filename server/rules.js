@@ -1,4 +1,4 @@
-// Server-side Avalon rules: role assignment, knowledge, quest resolution (incl. framing).
+// Server-side Avalon rules: role assignment, knowledge, quest resolution.
 // Everything here is pure (state in, state out); randomness comes from an injected rng.
 import {
   EVIL_COUNT, ROLES, failsRequired, isEvilRole, normalizeRoleConfig, validateRoleConfig,
@@ -63,27 +63,14 @@ export function knowledgeFor(selfId, assignment, order = [...assignment.keys()])
 }
 
 /**
- * Resolve a finished quest.
- *  cards: Map id -> 'success' | 'fail'; picks: Map id -> id of the "who stood out" nominee.
- *  Failed quest: exactly one culprit, drawn from the framing picks of players who played Fail.
- *  Successful quest: one hero, drawn from the nominations of players who played Success.
- * The fail count is returned but is only ever shown publicly in Classic mode.
+ * Resolve a finished quest. cards: Map id -> 'success' | 'fail'.
+ * The whole team succeeds or fails together: nobody on it is singled out. The fail count is returned but is only
+ * ever shown publicly in Classic mode.
  */
-export function resolveQuest({ playerCount, questIndex, cards, picks, rng }) {
-  const failers = [...cards].filter(([, c]) => c === 'fail').map(([id]) => id);
-  const successers = [...cards].filter(([, c]) => c !== 'fail').map(([id]) => id);
-  const failCount = failers.length;
+export function resolveQuest({ playerCount, questIndex, cards }) {
+  const failCount = [...cards.values()].filter((c) => c === 'fail').length;
   const outcome = failCount >= failsRequired(playerCount, questIndex) ? 'fail' : 'success';
-  let culprit = null;
-  let hero = null;
-  if (outcome === 'fail') {
-    // Fail-players' picks are framing targets. Duplicates stay in the pool (a pick named twice is likelier).
-    culprit = rng.pick(failers.map((id) => picks.get(id)));
-  } else {
-    // Success-players' picks are hero nominations. (A lone hidden Fail on a two-fail quest is excluded.)
-    hero = rng.pick(successers.map((id) => picks.get(id)));
-  }
-  return { outcome, failCount, culprit, hero, failers, successers };
+  return { outcome, failCount };
 }
 
 /** Who wins once quests are tallied. Returns null while undecided. */

@@ -36,7 +36,7 @@ function gameStates(seed, bots = 6, { classic = false, roles } = {}) {
 }
 
 const WITH_RECORD = ['waitLeader', 'propose', 'vote', 'voted', 'watchQuest', 'quest-done', 'cutscene', 'questResult', 'assassinate', 'waitAssassin', 'gameover'];
-const WITHOUT_RECORD = ['lobby', 'roleReveal', 'voteReveal', 'quest-card', 'quest-pick'];
+const WITHOUT_RECORD = ['lobby', 'roleReveal', 'voteReveal', 'quest-card'];
 
 test('phone: every screen of real games renders, with the record inline wherever players wait or decide', () => {
   const seen = new Set();
@@ -47,7 +47,7 @@ test('phone: every screen of real games renders, with the record inline wherever
   let sawWaiting = false;
   let lastScreen = '';
   let sawStandIn = false;
-  for (const seed of [3, 8, 5]) {
+  for (const seed of [3, 8, 6]) {
     for (const s of gameStates(seed)) {
       sq.inject(s);
       const screen = screenFor(s);
@@ -97,10 +97,10 @@ test('phone: every screen of real games renders, with the record inline wherever
         assert.equal(cells.length, cols);
         assert.ok(cells.every((td) => /quest \d proposal \d/.test(td.getAttribute('aria-label'))));
       }
-      // the legend explains the star and the skull only when the record shows them
-      const legend = textOf(panel.querySelector('.rb-legend'));
-      assert.equal(/hero/.test(legend), table.querySelectorAll('.mk.hero').length > 0, `${screen}: ${legend}`);
-      assert.equal(/blamed/.test(legend), table.querySelectorAll('.mk.blamed').length > 0, `${screen}: ${legend}`);
+          const legend = textOf(panel.querySelector('.rb-legend'));
+      // the whole team that went on a quest is marked the same way: nobody on it is a hero or blamed
+      assert.doesNotMatch(legend, /hero|blamed/, `${screen}: ${legend}`);
+      assert.equal(table.querySelectorAll('.mk').length, 0, screen);
       // the human seat in these games is played by a stand-in once its grace runs out: its votes are striped
       const autos = table.querySelectorAll('td.auto');
       assert.equal(/stand-in vote/.test(legend), autos.length > 0, `${screen}: ${legend}`);
@@ -310,7 +310,7 @@ test('phone: game over says why the game ended and lists only the quests that we
   // Classic: each quest's Fail count is in the recap
   assert.equal((text.match(/\d Fail cards?/g) || []).length >= played, true);
   // the awards the TV shows are on every phone too
-  const lines = awards(end.pub, end.pub.reveal.recap);
+  const lines = awards(end.pub);
   assert.ok(lines.length, 'this game has awards');
   for (const line of lines) assert.ok(text.includes(line.replace(/^★ /, '')), line);
   // an assassination miss names the real Merlin
@@ -322,7 +322,8 @@ test('phone: game over says why the game ended and lists only the quests that we
 });
 
 test('phone: the fifth rejected team says Evil wins, not that the crown passes on', () => {
-  const rev = gameStates(5).find((s) => s.pub.phase === 'voteReveal' && !s.pub.game.approved);
+  let rev = null;
+  for (let seed = 1; seed < 40 && !rev; seed++) rev = gameStates(seed).find((s) => s.pub.phase === 'voteReveal' && !s.pub.game.approved);
   assert.ok(rev, 'a team was rejected');
   for (const [count, text] of [[4, /one more and Evil wins/], [5, /5 teams in a row were rejected\. Evil wins\./]]) {
     const s = clone(rev);
@@ -477,7 +478,7 @@ test('phone: the leader sees, beside each name, the failed teams that player vot
   for (const id of pick) chips.find((c) => textOf(c.querySelector('.pname')).startsWith(found.pub.players.find((p) => p.id === id).name)).click();
   const nm = (id) => (id === found.me.id ? 'You' : found.pub.players.find((p) => p.id === id).name);
   assert.equal(textOf($('main').querySelector('.teamcase')).trim(), teamCase(found.pub, pick, nm));
-  assert.match(textOf($('main').querySelector('.teamcase')), /voted to send/);
+  assert.match(textOf($('main').querySelector('.teamcase')), /voted/);
 });
 
 test('phone: the vote screen reads the record against the proposed team', () => {

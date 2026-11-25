@@ -18,7 +18,7 @@ const colors = ['#e53935', '#1e88e5', '#43a047', '#fdd835', '#8e24aa', '#fb8c00'
 const players = names.map((name, i) => ({ id: `p${i}`, name, cls: cls[i], color: colors[i], bot: i > 2, vip: i === 0, connected: i !== 5, ready: i % 2 === 0 }));
 const roles = { p0: 'merlin', p1: 'minion', p2: 'loyal', p3: 'assassin', p4: 'percival', p5: 'morgana', p6: 'loyal' };
 const config = { roles: { merlin: true, assassin: true, percival: true, morgana: true, mordred: false, oberon: false }, classic: false };
-const results = [{ questIndex: 0, outcome: 'success', team: ['p0', 'p2'], hero: 'p2' }, { questIndex: 1, outcome: 'fail', team: ['p0', 'p1', 'p3'], culprit: 'p0' }];
+const results = [{ questIndex: 0, outcome: 'success', team: ['p0', 'p2'] }, { questIndex: 1, outcome: 'fail', team: ['p0', 'p1', 'p3'] }];
 const V = (...yes) => Object.fromEntries(players.map((p) => [p.id, yes.includes(p.id)]));
 const history = [
   { questIndex: 0, leader: 'p1', team: ['p1', 'p3'], votes: V('p1', 'p3', 'p5'), approved: false },
@@ -31,7 +31,7 @@ const pub = (phase, g, x = {}) => ({ room: 'KQXD', phase, players, config, ...(g
 const good = (legal, x = {}) => ({ id: 'p0', name: 'Zach', vip: true, role: 'merlin', team: 'good', knowKind: 'evil', knows: ['p1', 'p3', 'p5'], legal, ...x });
 const evil = (legal, x = {}) => ({ id: 'p0', name: 'Zach', vip: true, role: 'assassin', team: 'evil', knowKind: 'allies', knows: ['p1', 'p5'], note: 'These are your fellow Minions of Mordred.', legal, ...x });
 const wait = { action: 'wait' };
-const reveal = { winner: 'good', roles, recap: [...results.map((r) => ({ ...r, framed: r.questIndex === 1 })), { questIndex: 2, outcome: 'success', hero: 'p6' }, { questIndex: 3, outcome: 'fail', culprit: 'p4', framed: true }, { questIndex: 4, outcome: 'success', hero: 'p0' }] };
+const reveal = { winner: 'good', roles, recap: [...results, { questIndex: 2, outcome: 'success', team: ['p0', 'p4', 'p6'] }, { questIndex: 3, outcome: 'fail', team: ['p1', 'p2', 'p4', 'p6'] }, { questIndex: 4, outcome: 'success', team: ['p0', 'p2', 'p4', 'p6'] }] };
 
 /** [name, state | null, optional async step(page)] */
 const SHOTS = [
@@ -46,14 +46,13 @@ const SHOTS = [
   ['09-vote-chosen', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.click('.token.yes')],
   ['10-voted', { pub: pub('vote', { voted: ['p0', 'p1', 'p3', 'p6'] }), me: good(wait) }],
   ['11-vote-reveal', { pub: pub('voteReveal', { votes: { p0: true, p1: false, p2: true, p3: false, p4: true, p5: false, p6: true }, approved: true }), me: good(wait) }],
-  ['12-quest-card-good', { pub: pub('questPlay', { waitingOn: 3 }), me: good(wait, { quest: { onTeam: true, step: 'card', canFail: false, options: ['p0', 'p4', 'p6'] } }) }],
-  ['13-quest-card-evil', { pub: pub('questPlay', { waitingOn: 3 }), me: evil(wait, { quest: { onTeam: true, step: 'card', canFail: true, options: ['p0', 'p4', 'p6'] } }) }, (p) => p.click('.qcard.fail')],
-  ['14-secret-counsel-evil', { pub: pub('questPlay', { waitingOn: 3 }), me: evil(wait, { quest: { onTeam: true, step: 'card', canFail: true, options: ['p0', 'p4', 'p6'] } }) }, (p) => p.evaluate(() => __sq.showSecret())],
-  ['15-quest-pick', { pub: pub('questPlay', { waitingOn: 2 }), me: good(wait, { quest: { onTeam: true, step: 'pick', canFail: false, options: ['p0', 'p4', 'p6'] } }) }, (p) => p.click('.people button >> nth=2')],
+  ['12-quest-card-good', { pub: pub('questPlay', { waitingOn: 3 }), me: good(wait, { quest: { onTeam: true, step: 'card', canFail: false } }) }],
+  ['13-quest-card-evil', { pub: pub('questPlay', { waitingOn: 3 }), me: evil(wait, { quest: { onTeam: true, step: 'card', canFail: true } }) }, (p) => p.click('.qcard.fail')],
+  ['14-secret-counsel-evil', { pub: pub('questPlay', { waitingOn: 3 }), me: evil(wait, { quest: { onTeam: true, step: 'card', canFail: true } }) }, (p) => p.evaluate(() => __sq.showSecret())],
   ['16-watch-quest', { pub: pub('questPlay', { waitingOn: 2, team: ['p1', 'p4', 'p6'] }), me: good(wait, { quest: { onTeam: false } }) }],
   ['17-cutscene', { pub: pub('cutscene', {}), me: good(wait) }],
-  ['18-quest-result', { pub: pub('questResult', { questIndex: 3, results: [...results, { questIndex: 2, outcome: 'fail', team: ['p0', 'p4', 'p6'], culprit: 'p4' }] }), me: good(wait) }],
-  ['19-assassinate', { pub: pub('assassination', { results: [...results, { questIndex: 2, outcome: 'success', hero: 'p6' }, { questIndex: 3, outcome: 'success', hero: 'p0' }] }), me: evil({ action: 'assassinate', options: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'] }) }, (p) => p.click('.people button >> nth=3')],
+  ['18-quest-result', { pub: pub('questResult', { questIndex: 3, results: [...results, { questIndex: 2, outcome: 'fail', team: ['p0', 'p4', 'p6'] }] }), me: good(wait) }],
+  ['19-assassinate', { pub: pub('assassination', { results: [...results, { questIndex: 2, outcome: 'success', team: ['p0', 'p4', 'p6'] }, { questIndex: 3, outcome: 'success', team: ['p0', 'p2', 'p4', 'p6'] }] }), me: evil({ action: 'assassinate', options: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'] }) }, (p) => p.click('.people button >> nth=3')],
   ['20-gameover', { pub: pub('gameover', {}, { reveal }), me: good({ action: 'again' }) }],
   ['21-help-now', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('now'))],
   ['21b-record', { pub: pub('vote', { voted: [] }), me: good({ action: 'vote' }) }, (p) => p.evaluate(() => __sq.openSheet('record'))],

@@ -76,59 +76,36 @@ test('knowledge lists are in seat order (cannot leak role order)', () => {
 });
 
 const cards = (obj) => new Map(Object.entries(obj));
-const mk = (n, q, c, p, seed = 7) => resolveQuest({ playerCount: n, questIndex: q, cards: cards(c), picks: cards(p), rng: seeded(seed) });
+const mk = (n, q, c) => resolveQuest({ playerCount: n, questIndex: q, cards: cards(c) });
 
-test('one Fail fails a normal quest and shows exactly one culprit', () => {
-  const r = mk(5, 0, { a: 'success', b: 'fail' }, { a: 'a', b: 'a' });
+test('one Fail fails a normal quest; the result names the whole team, nobody singled out', () => {
+  const r = mk(5, 0, { a: 'success', b: 'fail' });
   assert.equal(r.outcome, 'fail');
-  assert.equal(r.culprit, 'a', "the failer's framing pick");
-  assert.equal(r.hero, null);
+  assert.equal(r.failCount, 1);
+  assert.deepEqual(Object.keys(r).sort(), ['failCount', 'outcome'], 'no culprit, no hero');
+  const ok = mk(5, 0, { a: 'success', b: 'success' });
+  assert.equal(ok.outcome, 'success');
+  assert.deepEqual(Object.keys(ok).sort(), ['failCount', 'outcome']);
 });
 
-test('culprit is always drawn from the FAIL players framing picks, never success players picks', () => {
-  for (let seed = 1; seed <= 200; seed++) {
-    const r = mk(8, 1, { a: 'success', b: 'fail', c: 'fail', d: 'success' }, { a: 'a', b: 'c', c: 'd', d: 'a' }, seed);
-    assert.equal(r.outcome, 'fail');
-    assert.ok(['c', 'd'].includes(r.culprit), `got ${r.culprit}`);
-  }
+test('resolving a quest needs only the cards (no second choice, no randomness)', () => {
+  const c = { a: 'fail', b: 'fail', c: 'success', d: 'success' };
+  const first = mk(8, 1, c);
+  for (let i = 0; i < 20; i++) assert.deepEqual(mk(8, 1, c), first);
+  assert.deepEqual(first, { outcome: 'fail', failCount: 2 });
 });
 
-test('with several Fails the culprit varies over the fail players picks (random)', () => {
-  const seen = new Set();
-  for (let seed = 1; seed <= 100; seed++) seen.add(mk(8, 1, { a: 'fail', b: 'fail', c: 'success', d: 'success' }, { a: 'c', b: 'd', c: 'a', d: 'a' }, seed).culprit);
-  assert.deepEqual([...seen].sort(), ['c', 'd']);
-});
-
-test('quest 4 at 7+ players needs two Fails; a single hidden Fail leaves a success (and no hero from the failer)', () => {
+test('quest 4 at 7+ players needs two Fails; a single hidden Fail leaves a success', () => {
   for (const n of [7, 8, 9, 10]) {
-    const one = mk(n, 3, { a: 'success', b: 'fail', c: 'success', d: 'success' }, { a: 'a', b: 'b', c: 'a', d: 'a' });
+    const one = mk(n, 3, { a: 'success', b: 'fail', c: 'success', d: 'success' });
     assert.equal(one.outcome, 'success', `n=${n}`);
     assert.equal(one.failCount, 1);
-    assert.notEqual(one.hero, 'b', "the failer's pick is a framing target, not a hero nomination");
-    const two = mk(n, 3, { a: 'fail', b: 'fail', c: 'success', d: 'success' }, { a: 'c', b: 'c', c: 'a', d: 'a' });
+    const two = mk(n, 3, { a: 'fail', b: 'fail', c: 'success', d: 'success' });
     assert.equal(two.outcome, 'fail');
   }
   // 5-6 players: quest 4 fails on one
-  assert.equal(mk(5, 3, { a: 'fail', b: 'success', c: 'success' }, { a: 'b', b: 'a', c: 'a' }).outcome, 'fail');
-  assert.equal(mk(6, 3, { a: 'fail', b: 'success', c: 'success' }, { a: 'b', b: 'a', c: 'a' }).outcome, 'fail');
-});
-
-test('success: the hero is a draw weighted by nominations, not simply the most-picked player (as the phone help says)', () => {
-  const heroes = { a: 0, c: 0 };
-  for (let seed = 1; seed <= 300; seed++) {
-    const r = mk(5, 0, { a: 'success', b: 'success', c: 'success' }, { a: 'c', b: 'c', c: 'a' }, seed);
-    heroes[r.hero]++;
-  }
-  assert.ok(heroes.a > 0, 'a player with one nomination can still be the hero');
-  assert.ok(heroes.c > heroes.a, 'more nominations, better odds');
-});
-
-test('success: hero is chosen among success players nominations only', () => {
-  for (let seed = 1; seed <= 100; seed++) {
-    const r = mk(7, 3, { a: 'success', b: 'fail', c: 'success', d: 'success' }, { a: 'c', b: 'b', c: 'a', d: 'c' }, seed);
-    assert.equal(r.outcome, 'success');
-    assert.ok(['c', 'a'].includes(r.hero));
-  }
+  assert.equal(mk(5, 3, { a: 'fail', b: 'success', c: 'success' }).outcome, 'fail');
+  assert.equal(mk(6, 3, { a: 'fail', b: 'success', c: 'success' }).outcome, 'fail');
 });
 
 test('role notes mention the evil that is hidden from you: Mordred for Merlin, Oberon for the other Minions', () => {

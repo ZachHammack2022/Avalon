@@ -1,6 +1,6 @@
 // Quest 1: The Old Bridge. Dusk, a deep gorge, a rickety rope bridge along +X from x=-9 to x=9.
 // The bridge is 12 "bays" (plank + rail segments + suspenders) hung from two pivots so it can sag, shed bays,
-// unravel like a sweater, punch a culprit-shaped hole, or split and swing down against the cliffs.
+// unravel like a sweater, punch a hole, or split and swing down against the cliffs.
 import * as THREE from 'three';
 import { beam, box, disc, mat, mesh, put, scatter, sky } from './kit.js';
 

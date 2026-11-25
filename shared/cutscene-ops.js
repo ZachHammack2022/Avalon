@@ -7,12 +7,11 @@
 //                  obj  free object | any  anything   | `?` prefix = optional
 //
 // Actor refs ("who"):
-//   'culprit'  framed player (FAIL outcome segments only)
-//   'hero'     nominated hero (SUCCESS outcome segments only)
-//   'lead'     a seed-chosen team member; usable everywhere. NOT outcome-related, so it is safe in
-//              the shared segments (setup/approach/moment), which must never hint at the outcome.
+//   'team:all' every team member. The whole team succeeds or fails together, so the outcome segments
+//              (success and every fail gag) show the team acting as one: nobody is singled out.
+//   'lead'     a seed-chosen team member who carries the lantern / crown / lockpick in the shared
+//              segments (setup/approach/moment). NOT outcome-related; never the one who causes a fail.
 //   'team:0'..'team:4'  n-th team member (0-based, team order as proposed)
-//   'team:all' every team member   'team:others' team members who are neither culprit nor hero
 //   '<id>'     any actor you spawned with spawnActor, or listed in a scene's `ids`
 // Positions: [x,y,z] | [x,z] (y = ground) | 'markName' (marks defined by the scene) | an actor ref
 //   (position of that actor) | {at:ref, offset:[x,y,z]}
@@ -55,10 +54,10 @@ export const OPS = {
   camera:    { args: { shot: 'str', '?target': 'pos', '?target2': 'pos', '?dur': 'num', '?dist': 'num', '?height': 'num', '?angle': 'num', '?intensity': 'num', '?pos': 'pos', '?ease': 'str', '?snap': 'bool', '?rel': 'bool', '?fov': 'num', '?lag': 'num' },
     desc: `shot: ${CAMERA_SHOTS.join(' | ')}. shake uses intensity (0-1) for dur seconds; cut uses pos+target. snap:true hard-cuts (no glide); rel:true measures angle from the way the target faces (0 = face-on); frame fits a group; lag = glide time constant.` },
   // --- UI / audio / time ---
-  caption:   { args: { text: 'str', '?dur': 'num', '?style': 'str' }, desc: 'Bottom caption (run through narrate()). Slots: {culprit} {hero} {team}.' },
+  caption:   { args: { text: 'str', '?dur': 'num', '?style': 'str' }, desc: 'Bottom caption (run through narrate()). Slots: {team} {lead} {intro}.' },
   banner:    { args: { who: 'who', '?text': 'str', '?dur': 'num' }, desc: 'Name banner over an actor (default: their name).' },
   title:     { args: { text: 'str', '?dur': 'num' }, desc: 'Full-screen title card (time-skip captions, etc.).' },
-  freeze:    { args: { '?caption': 'str', '?dur': 'num' }, desc: 'Record scratch + freeze frame + caption. Default caption: "Yep. That\'s {culprit}."' },
+  freeze:    { args: { '?caption': 'str', '?dur': 'num' }, desc: 'Record scratch + freeze frame + caption. Default caption: "Yep. That\'s the team."' },
   sfx:       { args: { name: 'str', '?volume': 'num' }, desc: `One-shot sound. name: ${SFX.join(' | ')}` },
   music:     { args: { track: 'str' }, desc: "'scene' loop, or 'stop' (the beat of silence)." },
   slowmo:    { args: { scale: 'num', dur: 'num' }, desc: 'Scale time for dur real seconds. (Segment timing is NOT stretched; keep `at` times consistent.)' },
@@ -69,8 +68,10 @@ export const OPS = {
 
 export const KNOWN = { CAMERA_SHOTS, FX_KINDS, SFX, EASES };
 
-const ACTOR_REF = /^(culprit|hero|lead|team:[0-4]|team:all|team:others|[a-z][A-Za-z0-9_-]*)$/;
-const RESERVED = new Set(['culprit', 'hero', 'lead']);
+const ACTOR_REF = /^(lead|team:[0-4]|team:all|[a-z][A-Za-z0-9_-]*)$/;
+const RESERVED = new Set(['lead']);
+// the old outcome refs: a quest result is the whole team's, so no script may single one player out
+const SINGLED_OUT = new Set(['culprit', 'hero', 'team:others']);
 const SHARED_SEGMENTS = ['setup', 'approach', 'moment'];
 
 /** Collect actor/prop ids a script spawns, so refs can be checked. */
@@ -127,24 +128,22 @@ export function validateBeat(b, ctx) {
   if (b.op === 'tweenTo' && b.ease && !EASES.includes(b.ease)) errs.push(`${where}: unknown ease "${b.ease}"`);
   for (const k of ['target', 'target2', 'pos', 'at', 'to']) if (typeof b[k] === 'string' && ACTOR_REF.test(b[k]) && (RESERVED.has(b[k]) || b[k].startsWith('team:'))) refs.push(b[k]);
 
+  // a quest result is the whole team's: no beat may point at one player as the one who saved or sank it
+  for (const k of Object.keys(b)) {
+    const v = b[k]; const r = v && typeof v === 'object' && !Array.isArray(v) ? v.at : v;
+    if (typeof r === 'string' && SINGLED_OUT.has(r)) errs.push(`${where}: "${r}" singles a player out; the team succeeds or fails together (use team:all)`);
+  }
   for (const [name, t] of Object.entries(types)) {
     const r = b[name];
-    if (t === 'who' && typeof r === 'string' && !RESERVED.has(r) && !r.startsWith('team:') && ACTOR_REF.test(r) && !ctx.ids.has(r)) {
+    if (t === 'who' && typeof r === 'string' && !SINGLED_OUT.has(r) && !RESERVED.has(r) && !r.startsWith('team:') && ACTOR_REF.test(r) && !ctx.ids.has(r)) {
       errs.push(`${where}: ${b.op}.${name} refers to "${r}", which is never spawned (spawnActor/spawnProp) or listed in the quest's sceneIds`);
     }
   }
-  for (const r of refs) {
-    if (!ACTOR_REF.test(r)) { errs.push(`${where}: bad actor ref "${r}"`); continue; }
-    if (r === 'culprit' && ctx.outcome !== 'fail') errs.push(`${where}: "culprit" is only available in fail segments (shared segments must not hint at the outcome)`);
-    if (r === 'hero' && ctx.outcome !== 'success') errs.push(`${where}: "hero" is only available in success segments`);
-    if (r === 'team:others' && !ctx.outcome) { /* fine: just team minus nobody known */ }
-  }
+  for (const r of refs) if (!ACTOR_REF.test(r) && !SINGLED_OUT.has(r)) errs.push(`${where}: bad actor ref "${r}"`);
   if (typeof b.text === 'string' || typeof b.caption === 'string') {
     const text = `${b.text || ''} ${b.caption || ''}`;
     for (const m of text.matchAll(/\{(\w+)\}/g)) {
-      if (!['culprit', 'hero', 'team', 'lead', 'intro'].includes(m[1])) errs.push(`${where}: unknown slot {${m[1]}}`);
-      if (m[1] === 'culprit' && ctx.outcome !== 'fail') errs.push(`${where}: {culprit} not allowed here`);
-      if (m[1] === 'hero' && ctx.outcome !== 'success') errs.push(`${where}: {hero} not allowed here`);
+      if (!['team', 'lead', 'intro'].includes(m[1])) errs.push(`${where}: unknown slot {${m[1]}}`);
     }
   }
   return errs;

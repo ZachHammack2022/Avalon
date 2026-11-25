@@ -14,7 +14,7 @@ test('secret counsel follows team; the on-screen hint never does', () => {
   assert.match(counselFor('quest-card', st('loyal')), /Success/);
   const evil = counselFor('quest-card', st('minion', { quest: { canFail: true } }));
   assert.match(evil, /Fail/); assert.match(evil, /TWO Fails/); // quest 4 with 7 players
-  for (const screen of ['roleReveal', 'waitLeader', 'propose', 'vote', 'voted', 'quest-card', 'quest-pick', 'watchQuest', 'assassinate', 'waitAssassin'])
+  for (const screen of ['roleReveal', 'waitLeader', 'propose', 'vote', 'voted', 'quest-card', 'watchQuest', 'assassinate', 'waitAssassin'])
     assert.equal(coachFor(screen, st('loyal')), coachFor(screen, st('minion')), screen);
 });
 test('vote hint warns on the last rejection', () => {
@@ -54,8 +54,8 @@ test('roles in play: the special roles switched on, named in the usual order', a
 test('Percival reads the record: how each of the two candidates voted on teams that failed', () => {
   const V = (...yes) => Object.fromEntries(players.map((p) => [p.id, yes.includes(p.id)]));
   const game = { questIndex: 2, results: [
-    { questIndex: 0, outcome: 'fail', team: ['p0', 'p1'], hero: null, culprit: 'p1' },
-    { questIndex: 1, outcome: 'fail', team: ['p0', 'p2', 'p3'], hero: null, culprit: 'p0' },
+    { questIndex: 0, outcome: 'fail', team: ['p0', 'p1'] },
+    { questIndex: 1, outcome: 'fail', team: ['p0', 'p2', 'p3'] },
   ], history: [
     { questIndex: 0, leader: 'p0', team: ['p0', 'p1'], votes: V('p0', 'p1', 'p4', 'p5'), approved: true },
     { questIndex: 1, leader: 'p1', team: ['p0', 'p2', 'p3'], votes: V('p0', 'p2', 'p3', 'p5'), approved: true },

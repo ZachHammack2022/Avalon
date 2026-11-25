@@ -37,12 +37,11 @@ export function boardTree(pub, { flip = null } = {}) {
   const cols = rec.columns;
   const groups = rec.quests.filter((q) => q.cols.length);
   const firstOfQuest = new Set(groups.map((q) => q.cols[0]));
-  const questOf = (c) => rec.quests[c.questIndex];
   const head = el('tr', '', [
     el('th', 'nm', ''),
     ...groups.map((q) => el('th', `qh qs ${q.outcome || (q.current ? 'current' : '')}`, `Q${q.index + 1}`, { colspan: String(q.cols.length) })),
   ]);
-  const marks = { hero: false, blamed: false, auto: false };
+  const marks = { auto: false };
   const body = rec.rows.map((r, ri) => {
     const role = r.role ? ROLE_INFO[r.role] : null;
     return el('tr', [role ? `team-${role.team}` : '', r.away ? 'away' : ''].filter(Boolean).join(' '), [
@@ -50,7 +49,6 @@ export function boardTree(pub, { flip = null } = {}) {
         role ? el('span', 'role', role.name) : r.away ? el('span', 'aw', 'away') : null]),
       ...cols.map((c, ci) => {
         const cell = r.cells[ci];
-        const q = questOf(c);
         const sent = c.approved === true;
         const cls = ['c', cell.vote || 'none',
           cell.onTeam ? 'team' : '', cell.leader ? 'lead' : '',
@@ -60,9 +58,7 @@ export function boardTree(pub, { flip = null } = {}) {
           cell.standIn ? 'auto' : '',
           flip === c.key ? 'flip' : ''].filter(Boolean).join(' ');
         if (cell.standIn) marks.auto = true;
-        const mark = sent && c.outcome === 'fail' && q.culprit === r.id ? el('sub', 'mk blamed', '☠') : sent && c.outcome === 'success' && q.hero === r.id ? el('sub', 'mk hero', '★') : null;
-        if (mark) marks[mark.cls.split(' ')[1]] = true;
-        return el('td', cls, [GLYPH[cell.vote] || '', cell.leader ? el('sup', 'crown', '♛') : null, mark],
+        return el('td', cls, [GLYPH[cell.vote] || '', cell.leader ? el('sup', 'crown', '♛') : null],
           flip === c.key ? { style: `animation-delay:${(FLIP_START + ri * FLIP_STEP).toFixed(2)}s` } : undefined);
       }),
     ]);
@@ -77,9 +73,6 @@ export function boardTree(pub, { flip = null } = {}) {
     el('span', '', [el('b', 'lg yes', '✔'), 'approve']), el('span', '', [el('b', 'lg no', '✘'), 'reject']),
     el('span', '', [el('b', 'lg team', ''), 'on the team']), el('span', '', [el('b', 'lg crown', '♛'), 'leader']),
     el('span', '', [el('b', 'lg fail', ''), 'quest failed']),
-    // the story's marks, explained once they are on the board
-    marks.hero ? el('span', '', [el('b', 'lg hero', '★'), 'hero']) : null,
-    marks.blamed ? el('span', '', [el('b', 'lg blamed', '☠'), 'blamed']) : null,
     marks.auto ? el('span', '', [el('b', 'lg auto', ''), 'stand-in vote']) : null,
   ]);
   return [top, grid, legend];
