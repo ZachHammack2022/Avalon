@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { coachFor, counselFor, merlinRead, percivalRead, questStrip, secretRead, roleTips, ROLE_TIPS, HOW_TO } from '../public/phone/guide.js';
+import { assassinRead, coachFor, counselFor, merlinRead, percivalRead, questStrip, secretRead, roleTips, ROLE_TIPS, HOW_TO } from '../public/phone/guide.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
 
 const players = Array.from({ length: 7 }, (_, i) => ({ id: `p${i}`, name: `P${i}` }));
@@ -84,4 +84,16 @@ test('Merlin reads the record: how often Merlin voted down a team with a visible
   assert.equal(merlinRead(st2([])), null);
   assert.equal(merlinRead(st2(hist, 'loyal')), null);
   assert.equal(secretRead(st2(hist)), merlinRead(st2(hist)));
+});
+
+test('the Assassin reads the record during the game: whose votes look most like Merlin\'s', () => {
+  const V = (...yes) => Object.fromEntries(players.map((p) => [p.id, yes.includes(p.id)]));
+  const t = (q, team, ...yes) => ({ questIndex: q, leader: team[0], team, votes: V(...yes), approved: false });
+  // p0 is the Assassin and knows p1. p5 voted down all three teams with a Minion; nobody else three in four
+  const hist = [t(0, ['p0', 'p2'], 'p0', 'p2', 'p1', 'p3', 'p4', 'p6'), t(0, ['p1', 'p3'], 'p0', 'p1', 'p3', 'p4', 'p6'), t(0, ['p1', 'p4'], 'p0', 'p1', 'p4', 'p2', 'p3')];
+  const st2 = (history, extra = {}) => ({ pub: { phase: 'propose', players, game: { questIndex: 0, results: [], history } }, me: { id: 'p0', role: 'assassin', knows: ['p1'], ...extra } });
+  assert.equal(assassinRead(st2(hist)), "Votes most like Merlin's so far: P5, who voted down 3 of 3 teams with a Minion you know on them.");
+  assert.equal(assassinRead(st2(hist.slice(0, 1))), null, 'one vote is not a pattern');
+  assert.equal(assassinRead(st2(hist, { role: 'minion' })), null, 'the Assassin only');
+  assert.equal(secretRead(st2(hist)), assassinRead(st2(hist)));
 });
