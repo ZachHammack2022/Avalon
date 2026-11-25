@@ -263,3 +263,18 @@ test('phone: the fifth rejected team says Evil wins, not that the crown passes o
     if (count === 5) assert.doesNotMatch(textOf($('main')), /crown passes on/);
   }
 });
+
+test('phone: the vote reveal marks a vote that a stand-in cast for an absent player', () => {
+  const rev = gameStates(5).find((s) => s.pub.phase === 'voteReveal');
+  const last = rev.pub.game.history[rev.pub.game.history.length - 1];
+  const s = clone(rev);
+  const away = s.pub.players[1].id;
+  s.pub.game.history[s.pub.game.history.length - 1] = { ...last, standIn: [away] };
+  sq.inject(s);
+  const rows = $('main').querySelectorAll('.vote');
+  assert.equal(rows.length, s.pub.players.length);
+  rows.forEach((row, i) => {
+    const tag = row.querySelector('small');
+    assert.equal(tag ? textOf(tag) : null, s.pub.players[i].id === away ? 'stand-in vote' : null);
+  });
+});
