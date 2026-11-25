@@ -4,6 +4,8 @@ import { FakeConn, fill, makeRoom, playBotGame, runUntil, findByRole } from './h
 import { EVIL_COUNT, ROLE_TOGGLES, TEAM_SIZES, failsRequired, isEvilRole, validateRoleConfig } from '../shared/avalon.js';
 import { QUESTS } from '../shared/campaign-lost-crown.js';
 import { cutsceneSeconds } from '../shared/cutscene.js';
+import { COLORS } from '../server/room.js';
+import { colorName } from '../shared/avatars.js';
 
 /** A scripted human table: every seat is a human conn, and strategies decide what they do. */
 function table(n, { seed = 1, config, classic } = {}) {
@@ -67,6 +69,42 @@ test('names are cleaned and made unique', () => {
   assert.equal(room.join({ name: '   ' }, new FakeConn()).ok, false);
   assert.equal(room.join({ name: 42 }, new FakeConn()).ok, false);
   assert.ok(room.join({ name: 'x'.repeat(50) }, new FakeConn()).player.name.length <= 12);
+});
+
+test('colours: each is one player\'s; taking a bot\'s colour swaps with the bot; only the palette is allowed', () => {
+  const { room } = makeRoom();
+  const [a, b] = fill(room, 2, 2);
+  const [bot1] = room.players.filter((p) => p.isBot);
+  const colours = () => room.players.map((p) => p.color);
+  const unique = () => assert.equal(new Set(colours()).size, room.players.length, colours().join(' '));
+  unique();
+  // another person's colour stays theirs
+  const before = a.p.color;
+  const res = act(room, a.p, { t: 'setAvatar', color: b.p.color });
+  assert.match(res.error, /^Human2 is already wearing \w+\.$/);
+  assert.equal(a.p.color, before);
+  // a bot hands its colour over and takes yours
+  const botHad = bot1.color;
+  assert.equal(act(room, a.p, { t: 'setAvatar', color: botHad.toUpperCase() }), undefined);
+  assert.equal(a.p.color, botHad);
+  assert.equal(bot1.color, before);
+  unique();
+  // a free colour from the palette is fine; anything else is refused
+  const free = COLORS.find((c) => !colours().includes(c));
+  assert.equal(act(room, b.p, { t: 'setAvatar', color: free }), undefined);
+  assert.equal(b.p.color, free);
+  assert.equal(act(room, b.p, { t: 'setAvatar', color: '#000000' }).error, 'bad color');
+  assert.equal(b.p.color, free);
+  unique();
+  // your own colour again is a no-op, not a clash with yourself
+  assert.equal(act(room, b.p, { t: 'setAvatar', color: free }), undefined);
+  assert.equal(colorName(free), colorName(free.toUpperCase()));
+  assert.equal(colorName('#e53935'), 'Red');
+  // a new seat cannot arrive wearing someone's colour, or one off the palette
+  const c = room.join({ name: 'Cy', color: a.p.color }, new FakeConn()).player;
+  const d = room.join({ name: 'Di', color: '#123456' }, new FakeConn()).player;
+  assert.ok(COLORS.includes(c.color) && COLORS.includes(d.color));
+  unique();
 });
 
 test('role toggles: VIP-only, Assassin forced with Merlin, invalid combos block start', () => {

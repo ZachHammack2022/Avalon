@@ -2,7 +2,7 @@
 // the UI only ever shows another player's role at game over.
 import { screenFor, toggleSelection, canConfirm, knownPlayers, leaderName, nameOf, lastResult, startHint } from './model.js';
 import { ROLE_INFO, ROLE_TOGGLE_INFO, KNOW_LABELS, rolesInPlay, rolesText } from '/shared/roles-info.js';
-import { AVATAR_CLASSES, AVATAR_COLORS } from '/shared/avatars.js';
+import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
@@ -437,7 +437,17 @@ const SCREENS = {
     const look = h('div', { class: 'panel look' },
       h('button', { class: 'lookme', 'aria-expanded': String(lookOpen), onclick: () => { lookOpen = !lookOpen; render(); } }, avatar(mine, 'lg'), h('span', { class: 'grow' }, h('span', { class: 'label' }, 'Your look'), h('b', {}, clsName)), h('span', { class: 'chg' }, lookOpen ? 'Done' : 'Change')),
       lookOpen ? h('div', { class: 'classes' }, AVATAR_CLASSES.map((c) => h('button', { class: c.id === mine.cls ? 'sel' : '', 'aria-pressed': String(c.id === mine.cls), onclick: () => send({ t: 'setAvatar', cls: c.id }), 'aria-label': c.name }, icon(c.id), h('small', {}, c.name.split(' ')[0])))) : null,
-      lookOpen ? h('div', { class: 'swatches' }, AVATAR_COLORS.map((c) => h('button', { class: `swatch ${c === mine.color ? 'sel' : ''}`, style: `--c:${c}`, 'aria-pressed': String(c === mine.color), onclick: () => send({ t: 'setAvatar', color: c }), 'aria-label': `Colour ${c}` }))) : null);
+      lookOpen ? h('div', { class: 'swatches', role: 'group', 'aria-label': 'Colour' }, AVATAR_COLORS.map((c) => {
+        // a colour someone else wears is theirs; a bot's you can take, and it gets yours
+        const wearer = c === mine.color ? null : pub.players.find((p) => p.color === c);
+        return h('button', {
+          class: ['swatch', c === mine.color ? 'sel' : '', wearer ? (wearer.bot ? 'bot' : 'taken') : ''].filter(Boolean).join(' '),
+          style: `--c:${c}`, 'aria-pressed': String(c === mine.color), disabled: !!(wearer && !wearer.bot),
+          onclick: () => send({ t: 'setAvatar', color: c }),
+          'aria-label': `${colorName(c)}${wearer ? `, worn by ${wearer.name}${wearer.bot ? ' (a bot, who will take yours)' : ''}` : ''}`,
+          title: wearer ? `${colorName(c)}: ${wearer.name}` : colorName(c),
+        });
+      })) : null);
     const roster = h('div', { class: 'panel' },
       h('div', { class: 'row' }, h('div', { class: 'label grow' }, `${n} at the campfire${n < MIN_PLAYERS ? ` · need ${MIN_PLAYERS}` : ''}`),
         vip ? h('div', { class: 'stepper', role: 'group', 'aria-label': 'Bots' }, h('button', { onclick: () => send({ t: 'removeBot' }), disabled: !pub.players.some((p) => p.bot), 'aria-label': 'Remove a bot' }, '−'), h('span', {}, `${pub.players.filter((p) => p.bot).length} bots`), h('button', { onclick: () => send({ t: 'addBot' }), disabled: n >= 10, 'aria-label': 'Add a bot' }, '+')) : null),

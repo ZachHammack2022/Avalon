@@ -95,6 +95,10 @@ button.mini { min-height: 44px; padding: 6px 14px; border-radius: 999px; font-si
 .swatch { height: 0; min-height: 0; padding: 0 0 100%; border-radius: 50%; background: var(--c); border: 2px solid #0008; box-shadow: none; position: relative; }
 .swatch::before { content: ""; position: absolute; inset: -9px; } /* 44px+ touch target around the dot */
 .swatch.sel { box-shadow: 0 0 0 2px var(--bg2), 0 0 0 4.500px var(--gold); }
+/* another person's colour: dimmed and struck through; a bot's: a small dot, since taking it swaps with the bot */
+.swatch.taken[disabled] { opacity: .3; }
+.swatch.taken::after { content: ""; position: absolute; left: 12%; right: 12%; top: calc(50% - 1px); height: 2px; background: #000c; transform: rotate(-45deg); }
+.swatch.bot::after { content: ""; position: absolute; width: 28%; height: 28%; left: 36%; top: 36%; border-radius: 50%; background: #000a; }
 .roster, .reveal, .people, .votes { display: flex; flex-direction: column; gap: 8px; }
 .person { display: flex; align-items: center; gap: 12px; min-height: 52px; text-align: left; width: 100%; }
 div.person { padding: 2px 0; }

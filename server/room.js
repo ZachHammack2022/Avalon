@@ -8,7 +8,7 @@ import {
 import { QUESTS } from '../shared/campaign-lost-crown.js';
 import { cutsceneSeconds } from '../shared/cutscene.js';
 import { makeRng } from '../shared/rng.js';
-import { AVATAR_CLASSES, AVATAR_COLORS } from '../shared/avatars.js';
+import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '../shared/avatars.js';
 import { assignRoles, knowledgeFor, resolveQuest, tally } from './rules.js';
 import { botAssassinate, botCard, botNames, botPick, botPropose, botVote } from './bots.js';
 
@@ -175,12 +175,13 @@ export class Room {
   }
   _addPlayer({ name, isBot, cls, color }) {
     const usedColors = new Set(this.players.map((p) => p.color));
+    const want = isColor(color) ? color.toLowerCase() : null; // a palette colour nobody wears yet, or the first free one
     const p = {
       id: `p${this.nextId++}`,
       name: this._uniqueName(name),
       isBot,
       cls: CLASSES.includes(cls) ? cls : this.rng.pick(CLASSES),
-      color: isColor(color) ? color : (COLORS.find((c) => !usedColors.has(c)) || this.rng.pick(COLORS)),
+      color: COLORS.includes(want) && !usedColors.has(want) ? want : (COLORS.find((c) => !usedColors.has(c)) || this.rng.pick(COLORS)),
       conn: null, connected: isBot, takeover: false, vip: false, ready: false, token: null, dcTimer: null,
     };
     this.players.push(p);
@@ -315,7 +316,16 @@ export class Room {
   _setAvatar(p, m) {
     if (this.phase !== 'lobby') return { error: 'Avatars are locked once the game starts.' };
     if (m.cls !== undefined) { if (!CLASSES.includes(m.cls)) return { error: 'bad class' }; p.cls = m.cls; }
-    if (m.color !== undefined) { if (!isColor(m.color)) return { error: 'bad color' }; p.color = m.color; }
+    if (m.color !== undefined) {
+      const color = isColor(m.color) ? m.color.toLowerCase() : null;
+      if (!COLORS.includes(color)) return { error: 'bad color' };
+      // everyone must be tellable apart on the TV: a colour is one player's. A bot hands its colour over and takes
+      // yours; another person keeps theirs.
+      const wearer = this.players.find((x) => x !== p && x.color.toLowerCase() === color);
+      if (wearer && !wearer.isBot) return { error: `${wearer.name} is already wearing ${colorName(color).toLowerCase()}.` };
+      if (wearer) wearer.color = p.color;
+      p.color = color;
+    }
   }
   _setRoles(p, m) {
     const bad = this._needLobby(p); if (bad) return bad;
