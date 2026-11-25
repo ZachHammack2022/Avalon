@@ -3,7 +3,7 @@
 import { QUEST_COUNT } from '../../shared/avalon.js';
 import { ROLE_INFO, rolesText } from '../../shared/roles-info.js';
 import { QUESTS } from '../../shared/campaign-lost-crown.js';
-import { awards, crownText, endReason, rejectText } from '../../shared/record.js';
+import { awards, crownText, endReason, rejectText, teamCase } from '../../shared/record.js';
 
 export { awards }; // shared with the phones' game-over screen
 
@@ -32,7 +32,7 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
       // near the end the table wants to know who it is waiting for, not who is done
       const left = pub.players.filter((p) => !g.voted.includes(p.id)).map((p) => p.name);
       const who = !g.voted.length ? '' : left.length <= 3 ? `Waiting on ${list(left)}` : `Voted: ${names(pub, g.voted).join(', ')}`;
-      return { kind: 'vote', title: 'Vote on the team', lines: [`Proposed: ${list(names(pub, g.team))}`, `${g.voted.length} of ${pub.players.length} have voted`, who, crownText(pub, (id) => name(pub, id))].filter(Boolean) };
+      return { kind: 'vote', title: 'Vote on the team', lines: [`Proposed: ${list(names(pub, g.team))}`, teamCase(pub, g.team, (id) => name(pub, id)), `${g.voted.length} of ${pub.players.length} have voted`, who, crownText(pub, (id) => name(pub, id))].filter(Boolean) };
     }
     case 'voteReveal':
       return { kind: 'voteReveal', title: g.approved ? 'Team approved!' : 'Team rejected!', tone: g.approved ? 'good' : 'bad',
