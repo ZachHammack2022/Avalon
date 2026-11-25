@@ -174,6 +174,10 @@ test('phone: the record is one tap away from the top bar during a game, and has 
   const tabs = sheet.querySelectorAll('button').filter((b) => b.getAttribute('role') === 'tab').map(textOf);
   assert.deepEqual(tabs, ['Now', 'How to play', 'Roles']);
   assert.match(textOf(sheet), /Reading the record/);
+  assert.match(textOf(sheet), /The Votes row under each column/);
+  // How to play teaches the record as part of the game
+  sheet.querySelectorAll('button').find((b) => textOf(b) === 'How to play').click();
+  assert.match(textOf(sheet), /The record.*best evidence/);
   // old links to the record tab still land on the record
   sq.openSheet('log');
   assert.equal(sheet.getAttribute('aria-label'), 'The record');
