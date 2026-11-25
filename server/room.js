@@ -47,6 +47,7 @@ export class Room {
     this.onEmpty = onEmpty;
     this.tvs = new Set();
     this.players = [];
+    this.departed = new Map(); // token -> {cls, color} of seats dropped by Play again, so a returning phone gets its look back
     this.nextId = 1;
     this.rolesCfg = normalizeRoleConfig();
     this.classic = false;
@@ -113,6 +114,13 @@ export class Room {
     if (this.players.length >= MAX_PLAYERS) return { ok: false, error: 'This room is full.' };
     const clean = this._cleanName(name);
     if (!clean) return { ok: false, error: 'Please enter a name.' };
+    // a phone whose seat Play again removed comes back with its old avatar (and its colour, unless someone took it)
+    const was = typeof token === 'string' ? this.departed.get(token) : null;
+    if (was) {
+      this.departed.delete(token);
+      if (cls === undefined) cls = was.cls;
+      if (color === undefined && !this.players.some((x) => x.color === was.color)) color = was.color;
+    }
     const p = this._addPlayer({ name: clean, isBot: false, cls, color });
     p.conn = conn;
     p.connected = true;
@@ -537,8 +545,15 @@ export class Room {
     if (!p.vip) return { error: 'Only the VIP can do that.' };
     this.g = null;
     for (const pl of this.players) { pl.ready = false; pl.takeover = false; }
-    // seats of humans who dropped out during the game are removed so they do not block the lobby
-    this.players = this.players.filter((pl) => pl.isBot || pl.connected);
+    // seats of humans who left during the game are removed so they do not block the lobby. A phone that dropped only a
+    // moment ago (a screen that locked during the game-over reveal) is still inside its grace period and keeps its seat:
+    // it reconnects into the lobby, or gets a stand-in if the next game starts first.
+    const gone = this.players.filter((pl) => !pl.isBot && !pl.connected && pl.dcTimer == null);
+    for (const pl of gone) {
+      this.departed.set(pl.token, { cls: pl.cls, color: pl.color });
+      if (this.departed.size > 20) this.departed.delete(this.departed.keys().next().value);
+    }
+    this.players = this.players.filter((pl) => !gone.includes(pl));
     this._enter('lobby');
   }
 
