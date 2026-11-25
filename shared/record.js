@@ -185,6 +185,28 @@ export function voteReads(pub) {
 const EVIL_ROLES = new Set(['minion', 'assassin', 'morgana', 'mordred', 'oberon']);
 
 /**
+ * For the Assassin's choice: how often each player voted down a team that had someone on it the asker knows is evil
+ * (`evilIds`: the Assassin and the allies they can see). Merlin, who sees evil, tends to say no to those. Votes on a
+ * player's own team and votes a stand-in cast for them are left out. Returns {id: {no, of}}. Uses only the public
+ * record and what the asker already knows.
+ */
+export function noToEvil(pub, evilIds) {
+  const history = (pub && pub.game && pub.game.history) || [];
+  const evil = new Set(evilIds);
+  const out = {};
+  for (const h of history) {
+    if (!h.team.some((id) => evil.has(id))) continue;
+    for (const [id, approve] of Object.entries(h.votes || {})) {
+      if (evil.has(id) || h.team.includes(id) || (h.standIn && h.standIn.includes(id))) continue;
+      const r = out[id] || (out[id] = { no: 0, of: 0 });
+      r.of++;
+      if (approve === false) r.no++;
+    }
+  }
+  return out;
+}
+
+/**
  * The good player whose votes read the table best, for a game-over award: {id, right, of}, or null when nobody stood
  * out (fewer than three counted votes, or under three in four right). Merlin is left out: Merlin could see evil.
  * Ties go to the player earlier in seat order, so the TV and every phone name the same person.

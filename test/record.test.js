@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { awards, crownOrder, crownText, describeColumn, endReason, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
+import { awards, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -234,4 +234,15 @@ test('vote reads: a vote is right when it waved a clean team through or voted do
   assert.equal(sharpestEye(over(away)), null, 'nobody with three counted votes besides Merlin');
   // three in four right is the bar; evil players are never in the running
   assert.equal(sharpestEye(over(hist, { ...roles, p4: 'morgana' })), null);
+});
+
+test('the Assassin\'s read: how often each player voted down a team with someone the Assassin knows is evil on it', () => {
+  // the file's history: p5 (say the Assassin) was on the third team only; with p2 as an ally, the first two count too
+  const p = pub('assassination');
+  assert.deepEqual(noToEvil(p, ['p5']), { p2: { no: 1, of: 1 }, p4: { no: 0, of: 1 } }, 'its own team and allies are left out');
+  assert.deepEqual(noToEvil(p, ['p5', 'p2']), { p1: { no: 1, of: 1 }, p3: { no: 1, of: 1 }, p4: { no: 1, of: 3 } });
+  // a vote a stand-in cast says nothing about the player
+  const away = pub('assassination', { history: history.map((h, i) => (i === 0 ? { ...h, standIn: ['p4'] } : h)) });
+  assert.deepEqual(noToEvil(away, ['p5', 'p2']).p4, { no: 0, of: 2 });
+  assert.deepEqual(noToEvil({ phase: 'lobby', players }, ['p5']), {});
 });
