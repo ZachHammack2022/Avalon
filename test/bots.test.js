@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EVIL_VOTE, botAssassinate, botCard, botPick, botPropose, botVote, distrust, merlinScore, pickDistrust } from '../server/bots.js';
+import { EVIL_VOTE, botAssassinate, botCard, botPropose, botVote, distrust, merlinScore, pickDistrust } from '../server/bots.js';
 import { seeded } from '../shared/rng.js';
 
 const ids = ['a', 'b', 'c', 'd', 'e'];
@@ -44,15 +44,6 @@ test('quest: good always plays Success; evil Fails ~70% (less after a failed tea
   const rate = (o) => { let f = 0; for (let i = 0; i < 5000; i++) if (botCard(base({ rng, team: 'evil', ...o })) === 'fail') f++; return f / 5000; };
   assert.ok(Math.abs(rate({}) - 0.7) < 0.03);
   assert.ok(rate({ lastTeamFailed: true }) < 0.5);
-});
-
-test('pick: framing target is a random good teammate; hero nomination is a teammate', () => {
-  for (let s = 1; s < 100; s++) {
-    const f = botPick(base({ rng: seeded(s), team: 'evil', allyIds: ['b'], teamIds: ['a', 'b', 'c'], card: 'fail' }));
-    assert.equal(f, 'c', 'not self, not an ally');
-    assert.ok(['a', 'b', 'c'].includes(botPick(base({ rng: seeded(s), teamIds: ['a', 'b', 'c'], card: 'success' }))));
-  }
-  assert.ok(['a', 'b'].includes(botPick(base({ team: 'evil', allyIds: ['b'], teamIds: ['a', 'b'], card: 'fail' }))), 'falls back when no good teammate');
 });
 
 test('assassin bot: never itself or a known ally', () => {

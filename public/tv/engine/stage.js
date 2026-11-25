@@ -383,7 +383,7 @@ export class Stage {
   _op_title(b) { this._say(() => this.hud && this.hud.title(this._text(b.text), b.dur ?? 2)); }
   _op_freeze(b) {
     const dur = b.dur ?? 1.2;
-    this._say(() => { this.audio && this.audio.sfx('scratch'); this.hud && this.hud.freeze(this._text(b.caption ?? "Yep. That's {culprit}."), dur); });
+    this._say(() => { this.audio && this.audio.sfx('scratch'); this.hud && this.hud.freeze(this._text(b.caption ?? "Yep. That's the team."), dur); });
     this.frozenLeft = dur;
   }
   _op_sfx(b) { this._say(() => this.audio && this.audio.sfx(b.name, b.volume ?? 1)); }

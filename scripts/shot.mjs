@@ -26,7 +26,7 @@ const logs = [];
 page.on('console', (m) => { if (['error', 'warning'].includes(m.type()) && !/GPU stall|GL Driver|software WebGL/.test(m.text())) logs.push(m.text()); });
 page.on('pageerror', (e) => logs.push(`pageerror ${e.message}`));
 await page.goto(`http://127.0.0.1:${port}/preview?panel=0&paused=1`);
-const { duration } = await page.evaluate((c) => __preview.load(c), special ? { special } : { quest, outcome, gag, team, seed, culprit: opt('culprit') || undefined });
+const { duration } = await page.evaluate((c) => __preview.load(c), special ? { special } : { quest, outcome, gag, team, seed });
 await page.evaluate(() => __preview.pause());
 let times;
 if (opt('t')) times = opt('t').split(',').map(Number);

@@ -151,7 +151,7 @@ test('malformed phone messages are refused without throwing, in every phase', ()
   const poke = () => {
     for (const t of builtins) assert.deepEqual(room.handle(a.p.id, { t }), { error: 'unknown action' }, t);
     for (const t of [5, null, ['vote'], { x: 1 }]) assert.ok(room.handle(a.p.id, { t }).error);
-    for (const t of ['propose', 'vote', 'play', 'pick', 'assassinate', 'setAvatar']) {
+    for (const t of ['propose', 'vote', 'play', 'assassinate', 'setAvatar']) {
       for (const f of fields) for (const v of junk) assert.doesNotThrow(() => room.handle(a.p.id, { t, [f]: v }), `${room.phase} ${t} ${f}=${JSON.stringify(v)}`);
     }
   };
@@ -180,17 +180,11 @@ function checkInvariants(room, reveal) {
   g.results.forEach((r, i) => {
     assert.equal(r.team.length, TEAM_SIZES[n][i], 'team size');
     assert.equal(r.outcome, r.failCount >= failsRequired(n, i) ? 'fail' : 'success');
-    if (r.outcome === 'fail') {
-      assert.ok(r.team.includes(r.culprit), 'culprit is on the team');
-      assert.equal(r.hero, null);
-      assert.ok(QUESTS[i].gags.some((gg) => gg.id === r.gag), 'a valid gag was picked server-side');
-      assert.ok(r.failers.some((f) => r.picks[f] === r.culprit), 'culprit comes from a Fail player pick');
-    } else {
-      assert.ok(r.team.includes(r.hero));
-      assert.equal(r.culprit, null);
-      assert.equal(r.gag, null);
-    }
-    for (const f of r.failers) assert.ok(isEvilRole(reveal.roles[f]), 'only evil play Fail');
+    if (r.outcome === 'fail') assert.ok(QUESTS[i].gags.some((gg) => gg.id === r.gag), 'a valid gag was picked server-side');
+    else assert.equal(r.gag, null);
+    // the whole team succeeds or fails together: nobody on it is singled out
+    for (const k of ['culprit', 'hero', 'picks', 'failers', 'framed']) assert.equal(r[k], undefined, k);
+    assert.ok(r.failCount <= r.team.filter((id) => isEvilRole(reveal.roles[id])).length, 'only evil play Fail');
   });
   const s = g.results.filter((r) => r.outcome === 'success').length;
   const f = g.results.length - s;
@@ -346,7 +340,7 @@ function openQuest(room, clock, team) {
   assert.equal(room.phase, 'questPlay');
 }
 
-test('quest cards: two-step flow, good can only play Success, non-team players cannot act', () => {
+test('quest cards: one step, good can only play Success, non-team players cannot act', () => {
   const { room, clock } = table(5, { seed: 11 });
   toPropose(room, clock);
   const good = goodIds(room); const evil = evilIds(room);
@@ -355,59 +349,59 @@ test('quest cards: two-step flow, good can only play Success, non-team players c
   const G = room.player(good[0]); const E = room.player(evil[0]); const outsider = room.player(good[1]);
   assert.ok(act(room, G, { t: 'play', card: 'fail' }).error, 'good cannot fail');
   assert.ok(act(room, outsider, { t: 'play', card: 'success' }).error, 'not on the quest');
-  assert.ok(act(room, G, { t: 'pick', id: E.id }).error, 'must play a card first');
+  assert.deepEqual(act(room, G, { t: 'pick', id: E.id }), { error: 'unknown action' }, 'there is no second choice to make');
   assert.equal(room.meState(G).quest.step, 'card');
+  assert.equal(room.meState(G).quest.options, undefined, 'no teammates to choose between');
   assert.equal(room.meState(G).quest.canFail, false);
   assert.equal(room.meState(E).quest.canFail, true);
   assert.equal(act(room, G, { t: 'play', card: 'success' }), undefined);
-  assert.equal(room.meState(G).quest.step, 'pick');
+  assert.equal(room.meState(G).quest.step, 'done', 'the card is the only thing to do');
   assert.ok(act(room, G, { t: 'play', card: 'success' }).error, 'one card only');
-  assert.ok(act(room, G, { t: 'pick', id: outsider.id }).error, 'pick must be a teammate');
-  assert.equal(act(room, G, { t: 'pick', id: G.id }), undefined, 'may nominate yourself');
-  assert.equal(room.meState(G).quest.step, 'done');
   assert.equal(room.phase, 'questPlay', 'waits for the other player');
   assert.equal(room.publicState().game.waitingOn, 1);
   act(room, E, { t: 'play', card: 'fail' });
-  act(room, E, { t: 'pick', id: G.id });
-  assert.equal(room.phase, 'cutscene');
+  assert.equal(room.phase, 'cutscene', 'the quest resolves as soon as every card is in');
 });
 
-test('framing: failed quest shows exactly one culprit, the Fail player\'s pick, and the server picks the gag', () => {
+test('a failed quest fails the whole team together: nobody is singled out, and the server picks the gag', () => {
   const { room, clock } = table(5, { seed: 12 });
   const tv = new FakeConn();
   room.attachTv(tv);
   toPropose(room, clock);
   const good = goodIds(room); const evil = evilIds(room);
   openQuest(room, clock, [good[0], evil[0]]);
-  act(room, room.player(good[0]), { t: 'play', card: 'success' }); act(room, room.player(good[0]), { t: 'pick', id: evil[0] });
-  act(room, room.player(evil[0]), { t: 'play', card: 'fail' }); act(room, room.player(evil[0]), { t: 'pick', id: good[0] });
+  act(room, room.player(good[0]), { t: 'play', card: 'success' });
+  act(room, room.player(evil[0]), { t: 'play', card: 'fail' });
   const cs = tv.last('cutscene');
   assert.equal(cs.outcome, 'fail');
-  assert.equal(cs.culprit, good[0], 'the framing target, not the Fail player');
-  assert.equal(cs.hero, null);
+  for (const k of ['culprit', 'hero', 'picks', 'failers']) assert.equal(cs[k], undefined, k);
   assert.equal(cs.questId, 'bridge');
   assert.ok(QUESTS[0].gags.some((g) => g.id === cs.gag));
   assert.equal(typeof cs.seed, 'number');
   assert.deepEqual(cs.team, [good[0], evil[0]].sort((a, b) => room.playerIds().indexOf(a) - room.playerIds().indexOf(b)));
+  clock.advance(cutsceneSeconds(QUESTS[0], 'fail', cs.gag) * 1000 + 900);
+  const r = tv.state.pub.game.results[0];
+  assert.deepEqual(Object.keys(r).sort(), ['outcome', 'questIndex', 'team'], 'the record shows the team and the outcome, nobody blamed');
 });
 
-test('success shows a hero nominated by a Success player; hidden Fail count never shown (not classic)', () => {
+test('a successful quest succeeds as a whole team: no hero; hidden Fail count never shown (not classic)', () => {
   const { room, clock } = table(5, { seed: 13 });
   const tv = new FakeConn();
   room.attachTv(tv);
   toPropose(room, clock);
   const good = goodIds(room);
   openQuest(room, clock, [good[0], good[1]]);
-  act(room, room.player(good[0]), { t: 'play', card: 'success' }); act(room, room.player(good[0]), { t: 'pick', id: good[1] });
-  act(room, room.player(good[1]), { t: 'play', card: 'success' }); act(room, room.player(good[1]), { t: 'pick', id: good[1] });
+  act(room, room.player(good[0]), { t: 'play', card: 'success' });
+  act(room, room.player(good[1]), { t: 'play', card: 'success' });
   const cs = tv.last('cutscene');
   assert.equal(cs.outcome, 'success');
-  assert.equal(cs.hero, good[1]);
-  assert.equal(cs.culprit, null);
+  assert.equal(cs.hero, undefined);
+  assert.equal(cs.culprit, undefined);
   assert.equal(cs.failCount, undefined);
   clock.advance(cutsceneSeconds(QUESTS[0], 'success') * 1000 + 900);
   assert.equal(room.phase, 'questResult');
   assert.equal(tv.state.pub.game.results[0].failCount, undefined);
+  assert.equal(tv.state.pub.game.results[0].hero, undefined);
 });
 
 test('Classic mode shows the fail count', () => {
@@ -417,8 +411,8 @@ test('Classic mode shows the fail count', () => {
   toPropose(room, clock);
   const good = goodIds(room); const evil = evilIds(room);
   openQuest(room, clock, [good[0], evil[0]]);
-  act(room, room.player(good[0]), { t: 'play', card: 'success' }); act(room, room.player(good[0]), { t: 'pick', id: evil[0] });
-  act(room, room.player(evil[0]), { t: 'play', card: 'fail' }); act(room, room.player(evil[0]), { t: 'pick', id: good[0] });
+  act(room, room.player(good[0]), { t: 'play', card: 'success' });
+  act(room, room.player(evil[0]), { t: 'play', card: 'fail' });
   assert.equal(tv.last('cutscene').failCount, 1);
 });
 
@@ -428,7 +422,7 @@ test('cutscene phase lasts the data-driven duration, then the result card, then 
   const good = goodIds(room);
   const q = QUESTS[0];
   openQuest(room, clock, [good[0], good[1]]);
-  for (const id of [good[0], good[1]]) { act(room, room.player(id), { t: 'play', card: 'success' }); act(room, room.player(id), { t: 'pick', id: good[0] }); }
+  for (const id of [good[0], good[1]]) act(room, room.player(id), { t: 'play', card: 'success' });
   const ms = cutsceneSeconds(q, 'success') * 1000;
   clock.advance(ms - 100);
   assert.equal(room.phase, 'cutscene');
@@ -445,7 +439,7 @@ test('results are not public until the cutscene is over', () => {
   toPropose(room, clock);
   const good = goodIds(room);
   openQuest(room, clock, [good[0], good[1]]);
-  for (const id of [good[0], good[1]]) { act(room, room.player(id), { t: 'play', card: 'success' }); act(room, room.player(id), { t: 'pick', id: good[0] }); }
+  for (const id of [good[0], good[1]]) act(room, room.player(id), { t: 'play', card: 'success' });
   assert.equal(room.phase, 'cutscene');
   assert.equal(room.publicState().game.results.length, 0);
   assert.equal(room.publicState().cutscene, undefined, 'phones never get the cutscene payload');
@@ -467,7 +461,6 @@ function playQuests(t, { wins }) {
     for (const id of room.g.quest.teamIds) {
       const isEvil = evil.includes(id);
       act(room, room.player(id), { t: 'play', card: wins === 'evil' && isEvil ? 'fail' : 'success' });
-      act(room, room.player(id), { t: 'pick', id: room.g.quest.teamIds[0] });
     }
     clock.advance(40000);
     if (room.phase === 'questResult') clock.advance(5000);
@@ -481,7 +474,10 @@ test('three failed quests: evil wins', () => {
   assert.equal(t.room.g.reveal.winner, 'evil');
   assert.equal(t.room.g.reveal.reason, 'quests');
   assert.equal(t.room.g.reveal.recap.length, 3);
-  assert.ok(t.room.g.reveal.recap.every((r) => r.framed === true || r.framed === false));
+  for (const r of t.room.g.reveal.recap) {
+    assert.equal(r.outcome, 'fail');
+    for (const k of ['culprit', 'hero', 'framed']) assert.equal(r[k], undefined, `recap ${k}`);
+  }
 });
 
 test('three successful quests with Merlin on: assassination; hit => evil wins', () => {
@@ -694,7 +690,7 @@ test('TV refresh mid-cutscene: it gets the current phase (and cutscene data), bu
   toPropose(t.room, t.clock);
   const good = goodIds(t.room);
   openQuest(t.room, t.clock, [good[0], good[1]]);
-  for (const id of [good[0], good[1]]) { act(t.room, t.room.player(id), { t: 'play', card: 'success' }); act(t.room, t.room.player(id), { t: 'pick', id: good[0] }); }
+  for (const id of [good[0], good[1]]) act(t.room, t.room.player(id), { t: 'play', card: 'success' });
   const tv2 = new FakeConn();
   t.room.attachTv(tv2);
   assert.equal(tv2.state.pub.phase, 'cutscene');

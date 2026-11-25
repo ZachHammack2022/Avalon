@@ -61,37 +61,58 @@ test('timeline is flat, sorted, and inside the cutscene duration', () => {
   }
 });
 
-test('every fail gag has comedy beats: freeze-frame + reaction shot; oblivious-pride cheer in most of them', () => {
+test('the whole team succeeds or fails together: no outcome singles anyone out', () => {
+  for (const q of QUESTS) {
+    const outcomes = { success: q.beats.success, ...q.beats.fail };
+    for (const [name, beats] of Object.entries(outcomes)) {
+      const text = JSON.stringify(beats);
+      assert.ok(!/culprit|hero|team:others/.test(text), `${q.id}.${name} must not single out a culprit or a hero`);
+      // whoever acts in an outcome is the team as a whole, never one numbered member
+      assert.ok(!/"team:[0-4]"/.test(text), `${q.id}.${name} must not pick out one team member`);
+      assert.ok(beats.some((b) => b.who === 'team:all' || b.at === 'team:all'), `${q.id}.${name} shows the whole team`);
+    }
+  }
+});
+
+test('every fail gag has comedy beats: freeze-frame + the whole team reacting; oblivious team pride in most of them', () => {
   for (const q of QUESTS) {
     let cheers = 0;
     for (const g of q.gags) {
       const beats = q.beats.fail[g.id];
       assert.equal(beats.filter((b) => b.op === 'freeze').length, 1, `${q.id}.${g.id} exactly one freeze`);
-      assert.ok(beats.some((b) => b.op === 'lookAt'), `${q.id}.${g.id} reaction`);
+      assert.ok(beats.some((b) => b.op === 'emote' && b.who === 'team:all'), `${q.id}.${g.id} the whole team reacts`);
       // nothing may be scheduled while the world is frozen (the script clock keeps running)
       const fz = beats.find((b) => b.op === 'freeze');
       for (const b of beats) assert.ok(!(b.t > fz.t && b.t < fz.t + (fz.dur ?? 1.2) - 1e-9), `${q.id}.${g.id}: ${b.op} @${b.t} lands inside the freeze`);
-      if (beats.some((b) => b.op === 'play' && b.anim === 'Cheer' && b.who === 'culprit')) cheers++;
+      if (beats.some((b) => b.op === 'play' && b.anim === 'Cheer' && b.who === 'team:all')) cheers++;
     }
-    assert.ok(cheers >= 2, `${q.id}: culprit should Cheer (oblivious pride) in at least two gags`);
+    assert.ok(cheers >= 2, `${q.id}: the whole team should Cheer (oblivious pride) in at least two gags`);
   }
 });
 
 test('the validator catches mistakes', () => {
   const ctx = { where: 'x', outcome: 'fail', ids: new Set() };
   assert.ok(validateBeat({ t: 0, op: 'nope' }, ctx).length);
-  assert.ok(validateBeat({ t: 0, op: 'walkTo', who: 'culprit' }, ctx).some((e) => /missing "to"/.test(e)));
+  assert.ok(validateBeat({ t: 0, op: 'walkTo', who: 'team:all' }, ctx).some((e) => /missing "to"/.test(e)));
   assert.ok(validateBeat({ t: 0, op: 'caption', text: 'x', bogus: 1 }, ctx).some((e) => /unknown arg/.test(e)));
-  assert.ok(validateBeat({ t: 0, op: 'play', who: 'culprit', anim: 'Moonwalk' }, ctx).some((e) => /animation "Moonwalk"/.test(e)));
+  assert.ok(validateBeat({ t: 0, op: 'play', who: 'team:all', anim: 'Moonwalk' }, ctx).some((e) => /animation "Moonwalk"/.test(e)));
   // skeleton-only clips are rejected for player avatars but fine for skeleton actors
-  assert.ok(validateBeat({ t: 0, op: 'play', who: 'culprit', anim: 'Walking_D_Skeletons' }, ctx).some((e) => /player avatars have no/.test(e)));
+  assert.ok(validateBeat({ t: 0, op: 'play', who: 'team:all', anim: 'Walking_D_Skeletons' }, ctx).some((e) => /player avatars have no/.test(e)));
   assert.equal(validateBeat({ t: 0, op: 'play', who: 'skel1', anim: 'Walking_D_Skeletons' }, { ...ctx, ids: new Set(['skel1']) }).length, 0);
   assert.ok(validateBeat({ t: 0, op: 'camera', shot: 'dutch' }, ctx).length);
   assert.ok(validateBeat({ t: 0, op: 'play', who: 'ghost', anim: 'Idle' }, ctx).some((e) => /never spawned/.test(e)));
-  assert.equal(validateBeat({ t: 0, op: 'play', who: 'culprit', anim: 'Idle' }, ctx).length, 0);
-  // outcome-dependent refs are refused in shared segments
-  assert.ok(validateBeat({ t: 0, op: 'play', who: 'culprit', anim: 'Idle' }, { ...ctx, outcome: null }).length);
-  assert.ok(validateBeat({ t: 0, op: 'caption', text: '{hero} wins' }, { ...ctx, outcome: 'fail' }).length);
+  assert.equal(validateBeat({ t: 0, op: 'play', who: 'team:all', anim: 'Idle' }, ctx).length, 0);
+  assert.equal(validateBeat({ t: 0, op: 'play', who: 'team:2', anim: 'Idle' }, { ...ctx, outcome: null }).length, 0);
+  // nobody is singled out: the team succeeds or fails together, so culprit / hero refs and slots are refused
+  for (const who of ['culprit', 'hero', 'team:others']) {
+    for (const outcome of ['fail', 'success', null]) {
+      assert.ok(validateBeat({ t: 0, op: 'play', who, anim: 'Idle' }, { ...ctx, outcome }).some((e) => /singles a player out/.test(e)), `${who} (${outcome})`);
+    }
+  }
+  assert.ok(validateBeat({ t: 0, op: 'lookAt', who: 'team:all', at: 'culprit' }, ctx).some((e) => /singles a player out/.test(e)));
+  assert.ok(validateBeat({ t: 0, op: 'say', at: { at: 'hero', offset: [0, 1, 0] }, text: 'x' }, ctx).some((e) => /singles a player out/.test(e)));
+  assert.ok(validateBeat({ t: 0, op: 'caption', text: '{hero} wins' }, { ...ctx, outcome: 'success' }).length);
+  assert.ok(validateBeat({ t: 0, op: 'caption', text: '{culprit} trips' }, { ...ctx, outcome: 'fail' }).length);
   assert.ok(validateBeat({ t: 0, op: 'caption', text: '{wat}' }, ctx).length);
   // a spawned id is fine
   assert.equal(validateBeat({ t: 0, op: 'hide', who: 'skel1' }, { ...ctx, ids: new Set(['skel1']) }).length, 0);
@@ -111,14 +132,15 @@ test('every op has a description and only well-formed arg types', () => {
 });
 
 test('slot filling and the seeded resolver', () => {
-  const payload = { team: ['a', 'b', 'c'], culprit: 'b', hero: null, seed: 123 };
+  const payload = { team: ['a', 'b', 'c'], seed: 123 };
   const nameOf = (id) => ({ a: 'Ann', b: 'Bo', c: 'Cy' }[id]);
-  assert.equal(fillSlots('{culprit} and {team}', payload, nameOf), 'Bo and Ann, Bo and Cy');
+  assert.equal(fillSlots('{team} fail together', payload, nameOf), 'Ann, Bo and Cy fail together');
+  assert.equal(fillSlots('{lead} leads', payload, nameOf, 'c'), 'Cy leads');
   assert.equal(fillSlots('{intro}!', payload, nameOf, 'a', 'Hi'), 'Hi!');
   const r1 = makeResolver(payload); const r2 = makeResolver(payload);
   assert.equal(r1.lead, r2.lead, 'lead is deterministic per seed (same on reconnect)');
-  assert.deepEqual(r1.players('culprit'), ['b']);
-  assert.deepEqual(r1.players('team:others'), ['a', 'c']);
+  assert.equal(r1.players('culprit'), null, 'no culprit: the payload never names one');
+  assert.equal(r1.players('hero'), null, 'no hero either');
   assert.deepEqual(r1.players('team:all'), ['a', 'b', 'c']);
   assert.deepEqual(r1.players('team:4'), []);
   assert.equal(r1.players('skel1'), null);

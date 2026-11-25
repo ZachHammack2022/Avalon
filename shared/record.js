@@ -52,8 +52,6 @@ export function recordFor(pub) {
       fails: n >= 5 && n <= 10 ? failsRequired(n, i) : 1,
       outcome: r ? r.outcome : null,
       current: !r && !finished && i === g.questIndex,
-      hero: r ? r.hero || null : null,
-      culprit: r ? r.culprit || null : null,
       failCount: r && r.failCount != null ? r.failCount : null,
       team: r ? (r.team || []).slice() : [],
       cols: columns.filter((c) => c.questIndex === i).map((c) => c.key),
@@ -74,8 +72,6 @@ export function recordFor(pub) {
       away: !p.bot && p.connected === false && !finished, // a stand-in is playing this seat right now (or will shortly)
       cells,
       quests: went, // outcome of every quest this player went on, in order
-      blamed: results.filter((r) => r.outcome === 'fail' && r.culprit === p.id).length,
-      hero: results.filter((r) => r.outcome === 'success' && r.hero === p.id).length,
       role: roles ? roles[p.id] || null : null,
     };
   });
@@ -334,20 +330,13 @@ export function bestDisguise(pub) {
 }
 
 /**
- * End-of-game superlatives, for the TV card and every phone: the hero, the scapegoat (framed and innocent), the walking
- * disaster (most blamed), the sharpest eye (best votes among good players who could not see evil) and the best
- * disguise (the evil player whose votes looked most like Good's).
+ * End-of-game superlatives, for the TV card and every phone, read from the votes alone (quests are won and lost by
+ * the whole team, so no quest result singles anyone out): the sharpest eye (best votes among good players who could
+ * not see evil) and the best disguise (the evil player whose votes looked most like Good's).
  */
-export function awards(pub, recap) {
+export function awards(pub) {
   const nameOf = (id) => { const p = pub.players.find((x) => x.id === id); return p ? p.name : '?'; };
-  const tally = (pick) => { const m = new Map(); for (const q of recap) { const id = pick(q); if (id) m.set(id, (m.get(id) || 0) + 1); } return [...m].sort((x, y) => y[1] - x[1])[0]; };
   const out = [];
-  const blamed = tally((q) => (q.outcome === 'fail' ? q.culprit : null));
-  const framed = tally((q) => (q.outcome === 'fail' && q.framed ? q.culprit : null));
-  const hero = tally((q) => (q.outcome === 'success' ? q.hero : null));
-  if (hero) out.push(`★ Hero of the realm: ${nameOf(hero[0])}${hero[1] > 1 ? ` (${hero[1]} quests)` : ''}`);
-  if (framed) out.push(`★ Scapegoat: ${nameOf(framed[0])}, framed ${framed[1] === 1 ? 'once' : `${framed[1]} times`} and completely innocent`);
-  if (blamed && !(framed && framed[0] === blamed[0] && framed[1] === blamed[1])) out.push(`★ Walking disaster: ${nameOf(blamed[0])} (${blamed[1]} ${blamed[1] === 1 ? 'catastrophe' : 'catastrophes'})`);
   const eye = sharpestEye(pub);
   if (eye) out.push(`★ Sharpest eye: ${nameOf(eye.id)}, who read ${eye.right} of ${eye.of} teams right`);
   const cover = bestDisguise(pub);

@@ -81,16 +81,6 @@ export function botCard(ctx) {
   return ctx.rng.chance(p) ? 'fail' : 'success';
 }
 
-/** Framing target (Fail) or hero nomination (Success): a random good-looking teammate, else anyone. */
-export function botPick(ctx) {
-  const { selfId, teamIds, card, rng } = ctx;
-  if (card === 'fail') {
-    const goodish = teamIds.filter((id) => id !== selfId && !ctx.allyIds.includes(id));
-    return rng.pick(goodish.length ? goodish : teamIds);
-  }
-  return rng.pick(teamIds);
-}
-
 /**
  * How much a player played like Merlin, read the way a human Assassin would: from the public vote record and who the
  * Assassin knows is evil. Merlin sees evil, so Merlin tends to vote down teams with evil on them, wave through clean

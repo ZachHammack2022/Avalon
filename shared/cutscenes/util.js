@@ -10,3 +10,5 @@ export const emote = (t, who, text, dur = 1.1, color) => b(t, 'emote', { who, te
 export const sfx = (t, name, volume) => b(t, 'sfx', { name, ...(volume !== undefined ? { volume } : {}) });
 export const play = (t, who, anim, extra = {}) => b(t, 'play', { who, anim, ...extra });
 export const rig = (t, name, action, args, dur) => b(t, 'rig', { name, action, ...(dur !== undefined ? { dur } : {}), ...(args ? { args } : {}) });
+/** The whole team says it at once: one bubble over the middle of the group (nobody on the team is singled out). */
+export const chorus = (t, text, dur = 1.4, style) => b(t, 'say', { at: 'team:all', height: 3.1, text, dur, ...(style ? { style } : {}) });

@@ -45,16 +45,12 @@ export function makeResolver(payload) {
   const rng = seeded(payload.seed >>> 0);
   const team = payload.team;
   const lead = team[Math.floor(rng.next() * team.length)];
-  const others = team.filter((id) => id !== payload.culprit && id !== payload.hero);
   return {
     lead,
     /** returns an array of player ids (possibly empty), or null if `ref` is not a player ref (custom id). */
     players(ref) {
-      if (ref === 'culprit') return payload.culprit ? [payload.culprit] : [];
-      if (ref === 'hero') return payload.hero ? [payload.hero] : [];
       if (ref === 'lead') return [lead];
       if (ref === 'team:all') return team.slice();
-      if (ref === 'team:others') return others;
       const m = /^team:([0-4])$/.exec(ref);
       if (m) return team[+m[1]] ? [team[+m[1]]] : [];
       return null;
@@ -62,13 +58,15 @@ export function makeResolver(payload) {
   };
 }
 
-/** Fill {culprit} {hero} {team} {lead} in captions. `nameOf(id)`. */
+/**
+ * Fill {team} {lead} {intro} in captions, and {target} (the Assassin's target: endings only, never a quest script).
+ * `nameOf(id)`.
+ */
 export function fillSlots(text, payload, nameOf, lead, intro = '') {
   const names = (ids) => ids.map(nameOf);
   const list = (arr) => (arr.length <= 1 ? arr.join('') : `${arr.slice(0, -1).join(', ')} and ${arr[arr.length - 1]}`);
   return String(text)
-    .replace(/\{culprit\}/g, payload.culprit ? nameOf(payload.culprit) : 'Someone')
-    .replace(/\{hero\}/g, payload.hero ? nameOf(payload.hero) : 'Someone')
+    .replace(/\{target\}/g, payload.target ? nameOf(payload.target) : 'Someone')
     .replace(/\{intro\}/g, intro)
     .replace(/\{lead\}/g, lead ? nameOf(lead) : 'Someone')
     .replace(/\{team\}/g, list(names(payload.team)));

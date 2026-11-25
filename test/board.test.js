@@ -10,8 +10,8 @@ const history = [
   { questIndex: 1, leader: 'p3', team: ['p1', 'p3', 'p5'], votes: V('p1', 'p3', 'p4', 'p5'), approved: true },
 ];
 const results = [
-  { questIndex: 0, outcome: 'success', team: ['p2', 'p3'], hero: 'p3', culprit: null },
-  { questIndex: 1, outcome: 'fail', team: ['p1', 'p3', 'p5'], hero: null, culprit: 'p5' },
+  { questIndex: 0, outcome: 'success', team: ['p2', 'p3'] },
+  { questIndex: 1, outcome: 'fail', team: ['p1', 'p3', 'p5'] },
 ];
 const pub = (phase, game = {}, extra = {}) => ({ phase, players, game: { questIndex: 2, leader: 'p4', team: [], rejectCount: 1, history, results, ...game }, ...extra });
 
@@ -55,16 +55,14 @@ test('board: shields, reject pips, one column per proposal grouped under its que
   // Ann went on quest 2, which failed; a quest's first column carries the divider
   assert.ok(has(cells[2], 'went') && has(cells[2], 'fail') && has(cells[2], 'qs'));
   assert.ok(!has(cells[1], 'qs'));
-  // the culprit and the hero are marked on the proposal that was sent
+  // the whole team that went is marked the same way: nobody on it is singled out as a hero or a culprit
   const eli = rows[4].kids.slice(1);
-  assert.equal(find(eli[2], 'blamed').length, 1);
+  assert.ok(has(eli[2], 'went') && has(eli[2], 'fail'));
   const cy = rows[2].kids.slice(1);
-  assert.equal(find(cy[1], 'hero').length, 1);
+  assert.ok(has(cy[1], 'went') && !has(cy[1], 'fail'));
+  assert.equal(find(tree, 'hero').length + find(tree, 'blamed').length + find(tree, 'mk').length, 0);
   assert.equal(find(tree, 'bd-legend').length, 1);
-  // the legend explains the star and the skull once they are on the board, and not before
-  assert.match(text(find(tree, 'bd-legend')[0]), /★hero☠blamed/);
-  const early = boardTree(pub('propose', { questIndex: 1, results: [] }));
-  assert.doesNotMatch(text(find(early, 'bd-legend')[0]), /hero|blamed/);
+  assert.doesNotMatch(text(find(tree, 'bd-legend')[0]), /hero|blamed/);
 });
 
 test('board: Classic mode keeps the Fail count under each played shield', () => {

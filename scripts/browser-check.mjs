@@ -70,15 +70,12 @@ if (!process.argv.includes('--live-only')) {
         if (info.actors < team) fail(`${label}: only ${info.actors} actors`);
         if (shots && (t === times[4] || t === times[0])) await page.screenshot({ path: `.shots/${q.id}-${outcome}-${gag || 'win'}-${t.toFixed(0)}.png` });
       }
-      // the punchline must frame its star: culprit on screen at the freeze-frame, hero on screen at their banner
-      if (outcome === 'fail') {
-        const fz = segs[3].beats.find((b) => b.op === 'freeze');
-        await page.evaluate((t) => __preview.seek(t), segs[3].start + fz.t + 0.1);
-        const at = await page.evaluate(() => __preview.onScreen('culprit'));
-        if (!at || !at.visible) fail(`${label}: culprit is off screen at the freeze-frame (${JSON.stringify(at)})`);
-      } else {
-        const bn = segs[3].beats.find((b) => b.op === 'banner' && b.who === 'hero');
-        if (bn) { await page.evaluate((t) => __preview.seek(t), segs[3].start + bn.t + 0.4); const at = await page.evaluate(() => __preview.onScreen('hero')); if (!at || !at.visible) fail(`${label}: hero is off screen during their hero beat (${JSON.stringify(at)})`); }
+      // the punchline is the whole team's: most of the team on screen at the freeze-frame, and at the team's banner
+      const star = segs[3].beats.find((b) => b.op === 'freeze') || segs[3].beats.find((b) => b.op === 'banner' && b.who === 'team:all');
+      if (star) {
+        await page.evaluate((t) => __preview.seek(t), segs[3].start + star.t + (star.op === 'freeze' ? 0.1 : 0.4));
+        const at = await page.evaluate(() => __preview.onScreen('team:all'));
+        if (!at || !at.visible) fail(`${label}: the team is off screen at the ${star.op === 'freeze' ? 'freeze-frame' : 'team banner'} (${JSON.stringify(at)})`);
       }
       const errs = await page.evaluate(() => __preview.errors.filter((e) => !/GPU stall|GL Driver/.test(e)));
       if (errs.length) fail(`${label}: ${[...new Set(errs)].slice(0, 3).join(' | ')}`);
@@ -158,7 +155,6 @@ if (!process.argv.includes('--live-only')) {
       if (L.action === 'assassinate') return first('.people button') && go();
       if (st.me.quest && st.me.quest.onTeam) {
         if (st.me.quest.step === 'card') return first('.qcard.success') && go();
-        if (st.me.quest.step === 'pick') return first('.people button') && go();
       }
       return false;
     });

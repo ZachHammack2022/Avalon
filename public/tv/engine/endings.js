@@ -44,7 +44,7 @@ export function assassinationScript(reveal, ids) {
     flat.push(
       face(4.95, a.target), B(4.95, 'sfx', { name: 'bonk' }), B(4.95, 'flash', { dur: 0.25 }), B(4.95, 'removeProp', { id: 'arrow' }),
       B(4.95, 'fx', { kind: 'stars', at: [ts.x, 1.7, ts.z], count: 14 }), B(4.95, 'play', { who: a.target, anim: 'Hit_B' }), B(5.0, 'emote', { who: a.target, text: '★', dur: 0.8 }),
-      B(5.3, 'caption', { text: 'A rubber arrow, right between the eyes. {culprit} WAS Merlin!', dur: 2.9 }),
+      B(5.3, 'caption', { text: 'A rubber arrow, right between the eyes. {target} WAS Merlin!', dur: 2.9 }),
       B(5.5, 'banner', { who: a.target, text: 'Merlin', dur: 2.6 }),
       B(5.9, 'camera', { shot: 'cut', pos: [0, 5.5, 14.5], target: [0, 1, -1], snap: true }),
       B(5.9, 'play', { who: a.target, anim: 'Lie_Down', speed: 2.4, then: 'Lie_Idle' }), B(6.0, 'sfx', { name: 'wahwah' }),
@@ -56,7 +56,7 @@ export function assassinationScript(reveal, ids) {
     flat.push(
       B(4.9, 'sfx', { name: 'thud' }), B(4.9, 'fx', { kind: 'dust', at: miss, count: 12 }),
       face(4.95, a.target), B(5.0, 'emote', { who: a.target, text: '…', dur: 0.8, color: '#ffffff' }),
-      B(5.3, 'caption', { text: 'Thunk. Into a tree. {culprit} was never Merlin!', dur: 2.9 }),
+      B(5.3, 'caption', { text: 'Thunk. Into a tree. {target} was never Merlin!', dur: 2.9 }),
       B(5.5, 'banner', { who: a.target, text: ROLE_INFO[reveal.roles[a.target]].name, dur: 2.6 }),
       B(5.9, 'camera', { shot: 'cut', pos: [0, 5.5, 14.5], target: [0, 1, -1], snap: true }),
       B(5.9, 'rig', { name: 'fire', action: 'high' }), B(5.95, 'sfx', { name: 'fanfare' }),
@@ -65,7 +65,7 @@ export function assassinationScript(reveal, ids) {
       ...(merlin ? [B(6.4, 'banner', { who: merlin, text: 'Merlin', dur: 1.8 }), B(6.5, 'fx', { kind: 'sparkle', at: [seat(merlin).x, 1.8, seat(merlin).z], count: 22 })] : []),
     );
   }
-  return { scene: 'night', flat: flat.sort((x, y) => x.t - y.t), duration: 8, payload: { team: ids, culprit: a.target, hero: null, seed: 7 }, cast: ids };
+  return { scene: 'night', flat: flat.sort((x, y) => x.t - y.t), duration: 8, payload: { team: ids, target: a.target, seed: 7 }, cast: ids };
 }
 
 /** Throne room (scene cast: usurper, heir, crowd c1..c8). Good: the heir is crowned and everybody cheers. Evil: the usurper is crowned and the evil players are revealed one by one beside the throne. */
@@ -89,5 +89,5 @@ export function victoryScript(reveal, ids) {
     evil.forEach((id, i) => flat.push(B(0.1, 'place', { who: id, at: [16.0, 0.7, zs[i % 4]], face: -90 }), B(0.12, 'hide', { who: id }), B(3 + i * 1.3, 'show', { who: id }), B(3 + i * 1.3, 'fx', { kind: 'smoke', at: [16.0, 1.6, zs[i % 4]], count: 12 }), B(3 + i * 1.3, 'play', { who: id, anim: 'Cheer' }), B(3 + i * 1.3, 'banner', { who: id, text: ROLE_INFO[reveal.roles[id]].name, dur: 9 }), B(3 + i * 1.3, 'sfx', { name: 'ding' })));
     flat.push(B(2.6, 'camera', { shot: 'cut', pos: [6, 4.6, 13], target: [15, 2.2, 0], lag: 1.0 }));
   }
-  return { scene: 'throne', flat: flat.sort((x, y) => x.t - y.t), duration: 12, payload: { team: ids, culprit: null, hero: null, seed: 9 }, cast: ids };
+  return { scene: 'throne', flat: flat.sort((x, y) => x.t - y.t), duration: 12, payload: { team: ids, seed: 9 }, cast: ids };
 }

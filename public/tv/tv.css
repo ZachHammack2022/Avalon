@@ -73,8 +73,6 @@ html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } h
 .bd-grid tr.away th.nm .n { opacity: .55; } .bd-grid th.nm .aw { margin-left: .8vh; font-size: 1.6vh; font-weight: 800; color: #d9cbb4; opacity: .8; }
 .bd-grid td.c.qs::before { content: ""; position: absolute; left: -.6vh; top: -.2vh; bottom: -.2vh; width: .15vh; background: rgba(255,255,255,.18); }
 .bd-grid td.c sup.crown { position: absolute; top: -.9vh; left: -.6vh; font-size: max(1.5vh, calc(var(--cell) * .45)); color: var(--gold); text-shadow: 0 .2vh .4vh #000; }
-.bd-grid td.c sub.mk { position: absolute; right: -.6vh; bottom: -.8vh; font-size: max(1.5vh, calc(var(--cell) * .45)); text-shadow: 0 .2vh .4vh #000; }
-.bd-grid td.c sub.blamed { color: #fff; } .bd-grid td.c sub.hero { color: var(--gold); }
 .bd-grid td.c.flip { animation: bdflip .45s ease-out backwards; }
 @keyframes bdflip { from { transform: perspective(20vh) rotateY(90deg); background: #6b7280; color: transparent; } }
 .bd-grid tr.tally th.nm { font-size: 1.6vh; font-weight: 800; letter-spacing: .04em; color: #d9cbb4; text-transform: uppercase; }
@@ -87,7 +85,6 @@ html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } h
 .bd-legend b.yes { background: #e9d7ae; color: #245a2b; } .bd-legend b.no { background: #2c2731; color: #ff7a66; }
 .bd-legend b.team { outline: .3vh solid var(--gold); outline-offset: -.3vh; } .bd-legend b.fail { outline: .3vh solid var(--bad); outline-offset: -.3vh; }
 .bd-legend b.crown { width: auto; color: var(--gold); font-size: 2vh; }
-.bd-legend b.hero, .bd-legend b.blamed { width: auto; font-size: 2vh; } .bd-legend b.hero { color: var(--gold); } .bd-legend b.blamed { color: #fff; }
 /* with the board up, the phase cards sit over the campfire half of the screen */
 body.board-on .card { left: 32vw; max-width: 58vw; }
 body.board-on .card.lobby, body.board-on .card.gameover { min-width: 40vw; }

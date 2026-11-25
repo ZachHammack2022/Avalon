@@ -18,7 +18,6 @@ test('phone: screen selection follows phase + legal action', () => {
   assert.equal(screenFor(st(pub('vote'), { action: 'vote' })), 'vote');
   assert.equal(screenFor(st(pub('vote'), { action: 'wait' })), 'voted');
   assert.equal(screenFor(st(pub('questPlay'), { action: 'wait' }, { onTeam: true, step: 'card' })), 'quest-card');
-  assert.equal(screenFor(st(pub('questPlay'), { action: 'wait' }, { onTeam: true, step: 'pick' })), 'quest-pick');
   assert.equal(screenFor(st(pub('questPlay'), { action: 'wait' }, { onTeam: true, step: 'done' })), 'quest-done');
   assert.equal(screenFor(st(pub('questPlay'), { action: 'wait' }, { onTeam: false })), 'watchQuest');
   assert.equal(screenFor(st(pub('assassination'), { action: 'assassinate' })), 'assassinate');
@@ -82,35 +81,37 @@ test('TV cards: every phase renders plain text, without secrets, and the fail co
   assert.match(fifth, /5 teams in a row were rejected\. Evil wins\./);
   assert.doesNotMatch(fifth, /crown passes on/);
   assert.match(cardFor(pub('questPlay', { waitingOn: 2 })).lines.join(' '), /Waiting on 2/);
-  const fail = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, team: ['p1', 'p3'] }] }));
+  const fail = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'] }] }));
   assert.equal(fail.title, 'Quest failed!');
-  assert.equal(fail.lines[0], 'Suspicion falls on Cy, who may have been framed.');
+  assert.equal(fail.lines[0], 'Failed together: Ann and Cy', 'the whole team fails together, nobody singled out');
   // with the team's vote on the record, the card says who voted it through from outside
-  const sent = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, team: ['p1', 'p3'] }],
+  const sent = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'] }],
     history: [{ questIndex: 0, leader: 'p2', team: ['p1', 'p3'], votes: { p1: true, p2: true, p3: true, p4: false, p5: true }, approved: true }] }));
   assert.equal(sent.lines[sent.lines.length - 1], 'Voted to send it from outside the team: Bo and Eli.');
   assert.ok(!fail.lines.join(' ').includes('Fail card'));
-  const classic = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, failCount: 2, team: [] }] }));
+  const classic = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', failCount: 2, team: [] }] }));
   assert.ok(classic.lines.join(' ').includes('2 Fail cards'));
-  const ok = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'success', culprit: null, hero: 'p4', team: [] }] }));
-  assert.match(ok.lines[0], /Hero: Dee/);
+  const ok = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'success', team: ['p2', 'p4'] }] }));
+  assert.equal(ok.lines[0], 'Succeeded together: Bo and Dee');
+  assert.doesNotMatch([...fail.lines, ...ok.lines].join(' '), /hero|framed|suspicion|culprit/i);
   assert.equal(cardFor(pub('assassination')).kind, 'assassination');
 });
 
 test('TV: a refresh mid-cutscene shows the result card (skip to result)', () => {
-  const card = cardFor(pub('cutscene', {}, { cutscene: { outcome: 'fail', culprit: 'p2', hero: null } }));
+  const card = cardFor(pub('cutscene', {}, { cutscene: { outcome: 'fail', team: ['p2', 'p3'] } }));
   assert.equal(card.kind, 'result');
-  assert.match(card.lines[0], /Bo/);
+  assert.equal(card.lines[0], 'Failed together: Bo and Cy');
 });
 
-test('TV: game over card lists both sides with their roles and the recap with framing', () => {
-  const rv = { winner: 'evil', reason: 'assassination-hit', roles: { p1: 'merlin', p2: 'assassin', p3: 'loyal', p4: 'minion', p5: 'loyal' }, recap: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, framed: true, failCount: 1 }] };
+test('TV: game over card lists both sides with their roles and the recap with each whole team', () => {
+  const rv = { winner: 'evil', reason: 'assassination-hit', roles: { p1: 'merlin', p2: 'assassin', p3: 'loyal', p4: 'minion', p5: 'loyal' }, recap: [{ questIndex: 0, outcome: 'fail', team: ['p2', 'p3'], failCount: 1 }] };
   const c = cardFor(pub('gameover', {}, { reveal: rv }));
   assert.equal(c.title, 'Evil wins!');
   const text = c.lines.join('\n');
   assert.match(text, /^Loyal Servants: Ann \(Merlin\), Cy and Eli$/m);
   assert.match(text, /^Minions of Mordred: Bo \(Assassin\) and Dee$/m);
-  assert.match(text, /Cy \(framed!\)/);
+  assert.match(text, /^The Old Bridge: Failed \(Bo and Cy\) \[1 Fail\]$/m);
+  assert.doesNotMatch(text, /framed|hero|culprit/i);
   assert.match(text, /found Merlin/);
   const miss = cardFor(pub('gameover', {}, { reveal: { ...rv, winner: 'good', reason: 'assassination-miss', assassination: { assassin: 'p2', target: 'p3', hit: false } } }));
   assert.equal(miss.lines[0], 'The Assassin struck Cy, but Merlin was Ann.');
@@ -135,17 +136,10 @@ test('whole game via the exact public state the TV cards consume: every phase of
   void Room; void FakeClock; void playBotGame;
 });
 
-test('game-over awards: hero, scapegoat and walking disaster come from the recap', () => {
-  const pub = { players: [{ id: 'a', name: 'Ann' }, { id: 'b', name: 'Bo' }, { id: 'c', name: 'Cy' }] };
-  const recap = [
-    { outcome: 'success', hero: 'a' }, { outcome: 'success', hero: 'a' },
-    { outcome: 'fail', culprit: 'b', framed: true }, { outcome: 'fail', culprit: 'c', framed: false }, { outcome: 'fail', culprit: 'c', framed: false },
-  ];
-  const lines = awards(pub, recap);
-  assert.match(lines[0], /Hero of the realm: Ann \(2 quests\)/);
-  assert.match(lines[1], /Scapegoat: Bo, framed once/);
-  assert.match(lines[2], /Walking disaster: Cy \(2 catastrophes\)/);
-  assert.deepEqual(awards(pub, []), []);
+test('game-over awards come from the votes, never from blaming or crowning one member of a quest team', () => {
+  const pub = { players: [{ id: 'a', name: 'Ann' }, { id: 'b', name: 'Bo' }, { id: 'c', name: 'Cy' }], game: { history: [], results: [] }, reveal: { roles: {}, recap: [] } };
+  assert.deepEqual(awards(pub), []);
+  assert.doesNotMatch(awards.toString(), /hero|scapegoat|disaster|culprit/i);
 });
 
 test('TV: the game over card fits a full table: two lines for the sides, however many players', () => {
@@ -153,8 +147,8 @@ test('TV: the game over card fits a full table: two lines for the sides, however
   const kinds = ['merlin', 'percival', 'loyal', 'loyal', 'loyal', 'loyal', 'assassin', 'morgana', 'mordred', 'oberon'];
   const roles = Object.fromEntries(ten.map((p, i) => [p.id, kinds[i]]));
   const recap = [0, 1, 2, 3, 4].map((questIndex) => (questIndex % 2
-    ? { questIndex, outcome: 'fail', culprit: 'q2', hero: null, framed: true }
-    : { questIndex, outcome: 'success', hero: 'q3', culprit: null }));
+    ? { questIndex, outcome: 'fail', team: ['q1', 'q7'] }
+    : { questIndex, outcome: 'success', team: ['q1', 'q2'] }));
   const c = cardFor({ ...pub('gameover', {}, { reveal: { winner: 'good', reason: 'quests', roles, recap } }), players: ten });
   // the card is cut off at 80% of the screen height: about 15 lines at the game-over size
   assert.ok(c.lines.length <= 12, `${c.lines.length} lines`);
@@ -163,7 +157,7 @@ test('TV: the game over card fits a full table: two lines for the sides, however
 });
 
 test('TV: while a leader picks, the card names who the record has nothing against', () => {
-  const failed = { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'], hero: null, culprit: 'p1' }],
+  const failed = { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'] }],
     history: [{ questIndex: 0, leader: 'p2', team: ['p1', 'p3'], votes: { p1: true, p2: true, p3: true, p4: false, p5: false }, approved: true }] };
   const c = cardFor(pub('propose', { ...failed, questIndex: 1 }));
   assert.equal(c.lines[1], 'Never on or behind a failed quest: Dee and Eli.', c.lines.join(' | '));
@@ -171,7 +165,7 @@ test('TV: while a leader picks, the card names who the record has nothing agains
 });
 
 test('TV: the vote card reads the record against the proposed team once a quest has failed', () => {
-  const failed = { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'], hero: null, culprit: 'p1' }],
+  const failed = { results: [{ questIndex: 0, outcome: 'fail', team: ['p1', 'p3'] }],
     history: [{ questIndex: 0, leader: 'p2', team: ['p1', 'p3'], votes: { p1: true, p2: true, p3: true, p4: false, p5: false }, approved: true }] };
   const c = cardFor(pub('vote', { ...failed, questIndex: 1, team: ['p1', 'p2'], voted: [] }));
   assert.ok(c.lines.includes('Ann went on 1 failed quest. Bo voted to send 1 failed team.'), c.lines.join(' | '));

@@ -12,7 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { makeRng } from '../shared/rng.js';
 import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '../shared/avatars.js';
 import { assignRoles, knowledgeFor, resolveQuest, tally } from './rules.js';
-import { botAssassinate, botCard, botNames, botPick, botPropose, botVote } from './bots.js';
+import { botAssassinate, botCard, botNames, botPropose, botVote } from './bots.js';
 
 export const DEFAULT_TIMING = {
   roleRevealMs: 30000,
@@ -235,13 +235,13 @@ export class Room {
     if (this.phase === 'vote') pub.game.voted = [...g.votes.keys()];
     if (this.phase === 'voteReveal') pub.game.votes = Object.fromEntries(g.votes);
     if (this.phase === 'voteReveal') pub.game.approved = g.lastApproved;
-    if (this.phase === 'questPlay') pub.game.waitingOn = g.quest.teamIds.filter((id) => !g.quest.picks.has(id)).length;
+    if (this.phase === 'questPlay') pub.game.waitingOn = g.quest.teamIds.filter((id) => !g.quest.cards.has(id)).length;
     if (this.phase === 'gameover') pub.reveal = g.reveal;
     return pub;
   }
 
   _publicResult(r) {
-    const out = { questIndex: r.questIndex, outcome: r.outcome, team: r.team, culprit: r.culprit, hero: r.hero };
+    const out = { questIndex: r.questIndex, outcome: r.outcome, team: r.team };
     if (this.classic) out.failCount = r.failCount;
     return out;
   }
@@ -269,9 +269,8 @@ export class Room {
       const onTeam = g.quest.teamIds.includes(p.id);
       me.quest = {
         onTeam,
-        step: !onTeam ? null : !g.quest.cards.has(p.id) ? 'card' : !g.quest.picks.has(p.id) ? 'pick' : 'done',
+        step: !onTeam ? null : !g.quest.cards.has(p.id) ? 'card' : 'done',
         canFail: k.team === 'evil', // both cards look the same on every phone; a good player's phone always plays Success
-        options: g.quest.teamIds,
       };
     }
     return me;
@@ -466,7 +465,7 @@ export class Room {
 
   _beginQuest() {
     const g = this.g;
-    g.quest = { teamIds: g.team.slice(), cards: new Map(), picks: new Map() };
+    g.quest = { teamIds: g.team.slice(), cards: new Map() };
     this._enter('questPlay');
     this._scheduleBots();
   }
@@ -479,34 +478,23 @@ export class Room {
     if (m.card !== 'success' && m.card !== 'fail') return { error: 'bad card' };
     if (m.card === 'fail' && ROLES[this.g.roles.get(p.id)].team === 'good') return { error: 'Good players can only play Success.' };
     q.cards.set(p.id, m.card);
-  }
-
-  _pick(p, m) {
-    if (this.phase !== 'questPlay') return { error: 'Not now.' };
-    const q = this.g.quest;
-    if (!q.teamIds.includes(p.id)) return { error: 'You are not on the quest.' };
-    if (!q.cards.has(p.id)) return { error: 'Play a card first.' };
-    if (q.picks.has(p.id)) return { error: 'Already picked.' };
-    if (!q.teamIds.includes(m.id)) return { error: 'Pick someone on the team.' };
-    q.picks.set(p.id, m.id);
-    if (q.picks.size === q.teamIds.length) this._resolveQuest();
+    if (q.cards.size === q.teamIds.length) this._resolveQuest();
   }
 
   _resolveQuest() {
     const g = this.g;
     const q = g.quest;
     const quest = QUESTS[g.questIndex];
-    const r = resolveQuest({ playerCount: this.players.length, questIndex: g.questIndex, cards: q.cards, picks: q.picks, rng: this.rng });
+    const r = resolveQuest({ playerCount: this.players.length, questIndex: g.questIndex, cards: q.cards });
     const gag = r.outcome === 'fail' ? this.rng.pick(quest.gags).id : null;
     const prev = g.results[g.results.length - 1];
     const payload = {
       questId: quest.id, questIndex: g.questIndex, outcome: r.outcome, team: q.teamIds.slice(),
-      culprit: r.culprit, hero: r.hero, gag, seed: this.rng.int(2 ** 32), prevOutcome: prev ? prev.outcome : null,
+      gag, seed: this.rng.int(2 ** 32), prevOutcome: prev ? prev.outcome : null,
     };
     if (this.classic) payload.failCount = r.failCount;
     g.results.push({
-      questIndex: g.questIndex, outcome: r.outcome, team: q.teamIds.slice(), culprit: r.culprit, hero: r.hero,
-      gag, failCount: r.failCount, failers: r.failers, picks: Object.fromEntries(q.picks),
+      questIndex: g.questIndex, outcome: r.outcome, team: q.teamIds.slice(), gag, failCount: r.failCount,
     });
     g.cutscene = payload;
     this._enter('cutscene');
@@ -557,8 +545,7 @@ export class Room {
       roles: Object.fromEntries(g.roles),
       assassination: g.assassination || null,
       recap: g.results.map((r) => ({
-        questIndex: r.questIndex, outcome: r.outcome, team: r.team, culprit: r.culprit, hero: r.hero, gag: r.gag,
-        failCount: r.failCount, framed: r.outcome === 'fail' ? !r.failers.includes(r.culprit) : false,
+        questIndex: r.questIndex, outcome: r.outcome, team: r.team, gag: r.gag, failCount: r.failCount,
       })),
     };
     this._enter('gameover');
@@ -589,7 +576,7 @@ export class Room {
       case 'roleReveal': return this.players.filter((p) => !p.ready).map((p) => p.id);
       case 'propose': return [g.order[g.leader]];
       case 'vote': return this.players.filter((p) => !g.votes.has(p.id)).map((p) => p.id);
-      case 'questPlay': return g.quest.teamIds.filter((id) => !g.quest.picks.has(id));
+      case 'questPlay': return g.quest.teamIds.filter((id) => !g.quest.cards.has(id));
       case 'assassination': return [this._assassinId()];
       default: return [];
     }
@@ -641,10 +628,7 @@ export class Room {
       case 'propose': res = this._propose(p, { team: botPropose(ctx) }); break;
       case 'vote': if (!p.isBot) this.g.standIn.add(p.id); res = this._vote(p, { approve: botVote(ctx) }); break;
       case 'questPlay': {
-        const q = this.g.quest;
-        let card = q.cards.get(p.id);
-        if (!card) { card = botCard(ctx); res = this._play(p, { card }); }
-        if (!res || !res.error) res = this._pick(p, { id: botPick({ ...ctx, card }) });
+        res = this._play(p, { card: botCard(ctx) });
         break;
       }
       case 'assassination': res = this._assassinate(p, { id: botAssassinate(ctx) }); break;
@@ -668,5 +652,5 @@ const ACTIONS = Object.freeze(Object.assign(Object.create(null), {
   setAvatar: Room.prototype._setAvatar, setRoles: Room.prototype._setRoles, setClassic: Room.prototype._setClassic,
   addBot: Room.prototype._addBot, removeBot: Room.prototype._removeBot, kick: Room.prototype._kick, leave: Room.prototype._leave,
   start: Room.prototype._start, ready: Room.prototype._ready, propose: Room.prototype._propose, vote: Room.prototype._vote,
-  play: Room.prototype._play, pick: Room.prototype._pick, assassinate: Room.prototype._assassinate, again: Room.prototype._again,
+  play: Room.prototype._play, assassinate: Room.prototype._assassinate, again: Room.prototype._again,
 }));

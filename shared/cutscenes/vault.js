@@ -1,6 +1,7 @@
 // Quest 3: The Vault. At the outcome the team stands single file on the carpet (centre `mid`, facing the door, +X)
 // and the lead is at the wheel (`pick`). Guards: g1/g2 hidden off-stage, g3 on his break inside the vault.
-import { b, cam, cap, emote, play, rig, say, seq, sfx } from './util.js';
+// The whole team succeeds or fails together: every outcome shows all of them doing it, nobody singled out.
+import { b, cam, cap, chorus, emote, play, rig, say, seq, sfx } from './util.js';
 
 export const vaultSceneIds = ['g1', 'g2', 'g3'];
 const DOOR_CAM = { pos: [3.2, 3.1, 6.8], target: [11.5, 2.2, 0], snap: true }; // three-quarter view of the door over the team
@@ -27,8 +28,7 @@ const tossOut = (t, text, end = 8) => [
   b(t + 1.55, 'fx', { kind: 'dust', at: 'gate', count: 20, scale: 1.5 }),
   sfx(t + 1.6, 'wahwah'),
   rig(t + 1.7, 'vault', 'gate', null, 0.5),
-  b(t + 1.9, 'lookAt', { who: 'team:others', at: 'culprit', dur: 0.6 }),
-  emote(t + 2.0, 'team:others', '…', +Math.min(1.0, end + 0.4 - t - 2.0).toFixed(2), '#ffffff'),
+  emote(t + 2.0, 'team:all', '…', +Math.min(1.0, end + 0.4 - t - 2.0).toFixed(2), '#ffffff'),
 ];
 
 export function vaultBeats(q) {
@@ -76,36 +76,32 @@ export function vaultBeats(q) {
     rig(0, 'vault', 'spin', null, 0.9),
     emote(0.1, 'team:all', '!', 0.7),
     cap(0.3, q.success, 3.8),
-    b(0.3, 'walkTo', { who: 'lead', to: { at: 'lead', offset: [-0.9, 0, 0] }, dur: 0.5, anim: 'Walking_Backwards' }),
     sfx(0.9, 'creak'), sfx(1.0, 'fwoosh', 0.6),
     rig(0.9, 'vault', 'open', null, 1.3),
     b(1.6, 'fx', { kind: 'sparkle', at: [12, 2.5, 0], count: 40, scale: 2.2 }),
     b(1.7, 'flash', { color: '#ffe9a0', dur: 0.5 }),
-    // the hero strides into the glow and holds up the map
-    b(1.6, 'runTo', { who: 'hero', to: [11.2, 1.2], dur: 0.8 }),
-    b(2.3, 'spawnProp', { id: 'map', model: 'builtin:note', scale: 0.8, text: 'X' }),
-    b(2.35, 'attach', { prop: 'map', who: 'hero', slot: 'handslot.r', offset: [0, 0.1, 0] }),
-    b(2.4, 'face', { who: 'hero', at: [0, 3], dur: 0.2 }),
-    cam(2.5, 'lowAngle', { target: 'hero', angle: -18, dist: 4.2, snap: true }),
-    play(2.6, 'hero', 'Cheer'),
+    // the whole team strides into the glow together, and the map rises over all of them
+    b(1.6, 'formation', { name: 'huddle', center: [10.9, 1.0], spacing: 1.0, run: true, dur: 0.8 }),
+    b(2.4, 'face', { who: 'team:all', at: [0, 3], dur: 0.2 }),
+    b(2.3, 'spawnProp', { id: 'map', model: 'builtin:note', scale: 1.3, text: 'X', at: { at: [10.9, 1.0], offset: [0, 3.1, 0] }, rot: [0, -90, 0] }),
+    cam(2.5, 'lowAngle', { target: 'team:all', angle: -18, dist: 6.5, snap: true }),
+    play(2.6, 'team:all', 'Cheer'),
     sfx(2.6, 'fanfare'),
-    b(2.6, 'banner', { who: 'hero', dur: 2.4 }),
-    b(2.9, 'fx', { kind: 'sparkle', at: 'hero', count: 24 }),
+    b(2.6, 'banner', { who: 'team:all', dur: 2.4 }),
+    b(2.9, 'fx', { kind: 'sparkle', at: 'team:all', count: 30, scale: 1.4 }),
     cam(3.7, 'frame', { target: 'team:all', angle: -30, height: 2.4, lag: 0.4 }),
-    play(3.8, 'team:others', 'Cheer'),
-    b(3.8, 'hop', { who: 'team:others', count: 2, height: 0.45, stagger: 0.07 }),
+    play(3.8, 'team:all', 'Cheer'),
+    b(3.8, 'hop', { who: 'team:all', count: 2, height: 0.45, stagger: 0.07 }),
   );
 
-  // ---------- fail gags ----------
+  // ---------- fail gags: the whole team does it together ----------
   const knock = seq(
     cam(0, 'cut', DOOR_CAM),
-    cap(0.1, '{culprit} steps forward and knocks. Politely.', 2.8),
-    b(0.1, 'walkTo', { who: 'culprit', to: 'knock', dur: 0.8 }),
-    b(0.95, 'face', { who: 'culprit', at: 'door', dur: 0.15 }),
-    play(1.1, 'culprit', 'Interact'),
+    cap(0.1, 'The whole team steps up to the vault and knocks. Politely.', 2.8),
+    b(0.1, 'formation', { name: 'line', center: 'knock', facing: 90, spacing: 1.05, walk: true, dur: 0.8 }),
+    play(1.1, 'team:all', 'Interact'),
     sfx(1.2, 'knock'),
-    say(1.25, 'culprit', 'Hello?', 0.9),
-    emote(1.4, 'team:others', '!', 0.7),
+    chorus(1.25, 'Hello?', 0.9),
     // ...and someone answers
     sfx(2.3, 'creak'),
     rig(2.3, 'vault', 'open', { glow: false }, 0.7),
@@ -113,7 +109,7 @@ export function vaultBeats(q) {
     cam(3.0, 'cut', { pos: [9.9, 2.0, 6.4], target: [11.7, 1.4, 0.6], snap: true }),
     emote(3.1, 'g3', '?', 0.8, '#ffffff'),
     play(3.3, 'g3', 'Use_Item'), // sips his tea
-    say(3.9, 'culprit', 'Is the crown in?', 0.5),
+    chorus(3.9, 'Is the crown in?', 0.5),
     b(4.3, 'freeze', { dur: 1.2 }),
     emote(5.55, 'g3', '!', 0.5, '#ff5544'),
     play(5.55, 'g3', 'Taunt'),
@@ -122,21 +118,21 @@ export function vaultBeats(q) {
 
   const note = seq(
     cam(0, 'cut', { pos: [5.2, 3.0, 9.6], target: [11, 1.8, 3], snap: true }),
-    cap(0.1, '{culprit} leaves a thank-you note. It seemed only polite.', 3.0),
-    b(0.1, 'runTo', { who: 'culprit', to: 'noteSpot', dur: 0.7 }),
-    b(0.85, 'face', { who: 'culprit', at: 90, dur: 0.15 }),
-    play(0.95, 'culprit', 'Use_Item'),
+    cap(0.1, 'The team leaves a thank-you note. It seemed only polite.', 3.0),
+    b(0.1, 'formation', { name: 'huddle', center: [10.9, 4.0], spacing: 0.9, run: true, dur: 0.7 }),
+    b(0.85, 'face', { who: 'team:all', at: 90, dur: 0.15 }),
+    play(0.95, 'team:all', 'Use_Item'),
     sfx(1.3, 'pop'),
-    b(1.3, 'spawnProp', { id: 'note', model: 'builtin:note', at: [12.82, 1.7, 4.7], rot: [0, -90, 0], scale: 1.9, text: 'Sorry for the\nrobbery! ♥\n— {culprit}' }),
-    b(1.5, 'face', { who: 'culprit', at: 0, dur: 0.2 }),
-    play(1.6, 'culprit', 'Cheer'),
-    say(1.65, 'culprit', 'Manners!', 0.9),
+    b(1.3, 'spawnProp', { id: 'note', model: 'builtin:note', at: [12.82, 1.7, 4.7], rot: [0, -90, 0], scale: 1.9, text: 'Sorry for the\nrobbery! ♥\n— the team' }),
+    b(1.5, 'face', { who: 'team:all', at: 0, dur: 0.2 }),
+    play(1.6, 'team:all', 'Cheer'),
+    chorus(1.65, 'Manners!', 0.9),
     cam(2.2, 'cut', { pos: [9.3, 2.75, 4.7], target: [12.8, 2.65, 4.7], snap: true, fov: 26 }),
     // two guards wander in, walk straight past the team, and stop to read
     b(2.2, 'place', { who: 'g1', at: [3, 6.0], face: 90 }), b(2.2, 'place', { who: 'g2', at: [1.4, 6.3], face: 90 }),
     b(2.25, 'show', { who: 'g1' }), b(2.25, 'show', { who: 'g2' }),
     b(2.3, 'walkTo', { who: 'g1', to: 'guardA', dur: 1.5, anim: 'Walking_D_Skeletons' }), b(2.3, 'walkTo', { who: 'g2', to: 'guardB', dur: 1.5, anim: 'Walking_D_Skeletons' }),
-    b(2.6, 'walkTo', { who: 'culprit', to: [11.2, 3.0], dur: 0.6 }),
+    b(2.6, 'formation', { name: 'huddle', center: [11.0, 2.6], spacing: 0.9, walk: true, dur: 0.6 }),
     cam(3.4, 'cut', { pos: [4.6, 3.2, 11.5], target: [10.2, 1.6, 3.6], snap: true }),
     b(3.85, 'lookAt', { who: 'g1', at: [12.8, 4.7], dur: 0.2 }), b(3.85, 'lookAt', { who: 'g2', at: [12.8, 4.7], dur: 0.2 }),
     b(3.6, 'tremble', { who: 'team:all', dur: 1.0, amount: 0.03 }),
@@ -149,23 +145,25 @@ export function vaultBeats(q) {
 
   const lever = seq(
     cam(0, 'cut', { pos: [7.0, 3.0, 2.2], target: [4.4, 2.2, -6.3], snap: true }),
-    cap(0.1, '{culprit} finds a lever. And a sign.', 2.6),
-    b(0.1, 'runTo', { who: 'culprit', to: 'lever', dur: 0.8 }),
-    b(0.95, 'face', { who: 'culprit', at: 180, dur: 0.15 }),
-    say(1.1, 'culprit', 'Do…', 0.5),
-    say(1.6, 'culprit', 'not…', 0.5),
-    say(2.1, 'culprit', 'pull.', 0.6),
-    emote(2.2, 'culprit', '?', 0.6, '#ffffff'),
-    cam(2.7, 'frame', { target: 'team:others', angle: -30, height: 2.2, snap: true }),
-    b(2.7, 'lookAt', { who: 'team:others', at: 'culprit', dur: 0.2 }),
-    say(2.8, 'team:others', 'NO—', 0.5, 'shout'),
+    cap(0.1, 'The team finds a lever. And a sign.', 2.6),
+    b(0.1, 'formation', { name: 'huddle', center: { at: 'lever', offset: [0, 0, 1.4] }, spacing: 0.9, run: true, dur: 0.8 }),
+    b(0.95, 'face', { who: 'team:all', at: 180, dur: 0.15 }),
+    // they read it out loud, all together, one word at a time
+    chorus(1.1, 'Do…', 0.5),
+    chorus(1.6, 'not…', 0.5),
+    chorus(2.1, 'pull.', 0.6),
+    emote(2.2, 'team:all', '?', 0.6, '#ffffff'),
+    cam(2.7, 'frame', { target: 'team:all', angle: -30, height: 2.2, snap: true }),
+    b(2.7, 'face', { who: 'team:all', at: 0, dur: 0.2 }),
+    chorus(2.8, 'So… pull?', 0.5),
     cam(3.3, 'cut', { pos: [6.4, 2.8, -0.6], target: [4.4, 1.9, -6.3], snap: true }),
-    play(3.3, 'culprit', 'Interact'),
+    b(3.3, 'face', { who: 'team:all', at: 180, dur: 0.1 }),
+    play(3.3, 'team:all', 'Interact'),
     sfx(3.5, 'thud'),
     rig(3.5, 'vault', 'pull', null, 0.4),
-    b(3.9, 'face', { who: 'culprit', at: 0, dur: 0.2 }),
-    play(4.0, 'culprit', 'Cheer'),
-    say(4.05, 'culprit', 'Pulled it!', 0.4),
+    b(3.9, 'face', { who: 'team:all', at: 0, dur: 0.2 }),
+    play(4.0, 'team:all', 'Cheer'),
+    chorus(4.05, 'Pulled it!', 0.4),
     b(4.4, 'freeze', { dur: 1.2 }),
     sfx(5.65, 'bell'),
     b(5.65, 'flash', { color: '#ff3020', dur: 0.4 }),
@@ -174,35 +172,30 @@ export function vaultBeats(q) {
 
   const outward = seq(
     cam(0, 'cut', { pos: [4.6, 3.6, 10.5], target: [10.6, 1.8, 0.8], snap: true }),
-    cap(0.1, '{culprit} cracks the lock in one go. "Stand back. Well. Forward."', 3.0),
-    b(0.1, 'runTo', { who: 'lead', to: [10.2, -2.0], dur: 0.5 }),
-    b(0.15, 'runTo', { who: 'culprit', to: 'side', dur: 0.8 }),
-    b(1.0, 'face', { who: 'culprit', at: 'door', dur: 0.15 }),
-    play(1.1, 'culprit', 'Interact'),
-    sfx(1.3, 'ding'), rig(1.3, 'vault', 'spin', null, 0.7),
+    cap(0.1, 'The team cracks the lock in one go, then everyone crowds in for a look.', 3.0),
+    play(0.3, 'team:all', 'Interact'),
+    sfx(0.6, 'ding'), rig(0.6, 'vault', 'spin', null, 0.7),
     // everyone crowds in for a look
     b(1.4, 'formation', { name: 'line', center: 'crowd', facing: 90, spacing: 1.05, walk: true, dur: 0.9 }),
-    b(1.42, 'walkTo', { who: 'culprit', to: 'side', dur: 0.1 }),
-    b(1.6, 'face', { who: 'culprit', at: 'door', dur: 0.1 }),
-    emote(1.7, 'team:others', '!', 0.7),
-    say(1.8, 'culprit', 'After you!', 0.8),
-    play(1.9, 'culprit', 'Interact'),
+    emote(1.7, 'team:all', '!', 0.7),
+    chorus(1.8, 'All together: pull!', 0.8),
+    play(2.0, 'team:all', 'Interact'),
     sfx(2.4, 'creak'),
     rig(2.6, 'vault', 'fall', null, 0.55),
-    emote(2.7, 'team:others', '!', 0.4, '#ff5544'),
+    emote(2.7, 'team:all', '!', 0.4, '#ff5544'),
     sfx(3.15, 'thud'), sfx(3.17, 'rumble', 0.7),
     cam(3.15, 'shake', { intensity: 0.8, dur: 0.5 }),
-    b(3.12, 'tweenTo', { who: 'team:others', scale: [1.35, 0.06, 1.35], dur: 0.04 }),
+    b(3.12, 'tweenTo', { who: 'team:all', scale: [1.35, 0.06, 1.35], dur: 0.04 }),
     b(3.15, 'fx', { kind: 'dust', at: [8.6, 0.3, 0], count: 40, scale: 2.4 }),
     b(3.15, 'flash', { dur: 0.2 }),
-    play(3.6, 'culprit', 'Cheer'),
-    say(3.65, 'culprit', 'Ta-da!', 0.45),
+    // a tiny voice from under the door
+    chorus(3.65, 'Ta-da…', 0.45, 'whisper'),
     b(4, 'freeze', { dur: 1.2 }),
     // the door winches itself back up. The team does not.
     sfx(5.25, 'creak'),
     rig(5.25, 'vault', 'rise', null, 0.5),
     cam(5.3, 'cut', { pos: [5.8, 4.2, 5.2], target: [9.3, 0.1, 0.3], snap: true }),
-    emote(5.6, 'culprit', '…', 0.4, '#ffffff'),
+    emote(5.6, 'team:all', '…', 0.4, '#ffffff'),
     tossOut(5.8, q.consequence),
   );
 
