@@ -71,3 +71,30 @@ test('ease and shake are bounded and deterministic', () => {
   assert.ok(shakeOffset(1, 3).every((v) => Math.abs(v) <= 0.36));
   assert.ok(shakeOffset(0, 3).every((v) => v === 0));
 });
+
+test('frame loop: a frame that throws is reported once and the loop keeps running', async () => {
+  const { frameLoop, onceReporter } = await import('../public/tv/engine/guard.js');
+  let queued = null;
+  const raf = (f) => { queued = f; };
+  const logs = [];
+  const report = onceReporter((...a) => logs.push(a));
+  const dts = [];
+  let n = 0;
+  frameLoop((dt) => { n++; dts.push(dt); if (n % 2) throw new Error('bad frame'); }, { raf, now: () => 0, report });
+  for (let t = 16; t <= 160; t += 16) queued(t);
+  assert.equal(n, 10, 'every frame ran although half of them threw');
+  assert.equal(logs.length, 1, 'the same error is logged once');
+  assert.match(logs[0][0], /\[tv\] frame/);
+  assert.ok(dts.every((d) => d >= 0 && d <= 0.1));
+  // a long stall (a hidden tab) is capped, so the world does not jump ahead
+  queued(10_000);
+  assert.equal(dts[dts.length - 1], 0.1);
+});
+
+test('frame reporter: distinct errors are each logged, repeats are not', async () => {
+  const { onceReporter } = await import('../public/tv/engine/guard.js');
+  const logs = [];
+  const report = onceReporter((...a) => logs.push(a));
+  report('frame', new Error('a')); report('frame', new Error('a')); report('frame', new Error('b')); report('beat', new Error('a'));
+  assert.equal(logs.length, 3);
+});
