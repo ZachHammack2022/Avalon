@@ -505,10 +505,13 @@ const SCREENS = {
   voteReveal() {
     const { pub } = state; const g = pub.game;
     const yes = pub.players.filter((p) => g.votes[p.id]).length;
+    // a vote a stand-in cast for an absent player says nothing about that player, so it is marked here as on the record
+    const last = (g.history || [])[(g.history || []).length - 1];
+    const standIn = new Set((last && last.standIn) || []);
     return page({ hint: false, kicker: `${yes} approve · ${pub.players.length - yes} reject`, title: g.approved ? 'Team approved' : 'Team rejected',
       sub: g.approved ? 'The quest begins.' : rejectText(g.rejectCount),
       body: [
-        h('div', { class: 'votes' }, pub.players.map((p) => h('div', { class: `vote ${g.votes[p.id] ? 'yes' : 'no'}` }, avatar(p), h('span', { class: 'pname' }, p.name), h('span', { class: 'minitoken' }, icon(g.votes[p.id] ? 'check' : 'cross'), g.votes[p.id] ? 'Approve' : 'Reject'))))] });
+        h('div', { class: 'votes' }, pub.players.map((p) => h('div', { class: `vote ${g.votes[p.id] ? 'yes' : 'no'}` }, avatar(p), h('span', { class: 'pname' }, p.name, standIn.has(p.id) ? h('small', {}, 'stand-in vote') : null), h('span', { class: 'minitoken' }, icon(g.votes[p.id] ? 'check' : 'cross'), g.votes[p.id] ? 'Approve' : 'Reject'))))] });
   },
 
   'quest-card'() {
