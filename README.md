@@ -15,7 +15,7 @@ npm start          # prints the TV URL and the phone URL
   The first person in is the **VIP** (start, bots, role toggles). Bots fill empty seats, so 1–2 humans can play.
 * **Intro:** the dragon intro (`public/intro/`, procedural three.js; video at `/intro/dragon-intro.mp4`) plays once when a game starts; any key skips, `I` replays it in the lobby, `?nointro` disables it. The live scene is at `/intro/`.
 * **The record:** every proposal, every vote and every quest result, as one board (players down the side, proposals across,
-  grouped by quest). The TV keeps it beside the campfire all game; phones show it on every waiting and deciding screen, with
+  grouped by quest, with the tally under each proposal). The TV keeps it beside the campfire all game; phones show it on every waiting and deciding screen, with
   a **Record** button at the top left for the full view. While a team is picked or voted on, the TV card and the phone's record
   say who leads next and who leads the fifth proposal. Wherever a phone asks someone to pick or vote on players (the leader's
   team, the vote, the Assassin's target), each name carries a tick or cross for every quest that player went on. Votes a

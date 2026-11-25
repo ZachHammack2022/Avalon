@@ -391,6 +391,9 @@ input.code::placeholder { letter-spacing: .25em; }
 .rb td.c.team { outline: 2.5px solid var(--gold); outline-offset: -2.5px; }
 .rb td.c.went.success { outline-color: var(--good); } .rb td.c.went.fail { outline-color: var(--evil); }
 .rb td.c.rej { opacity: .62; }
+.rb tr.tally th.nm { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.rb tr.tally td.t { max-width: var(--cell); text-align: center; white-space: nowrap; font-size: 10.500px; font-weight: 800; letter-spacing: -.02em; color: var(--muted); }
+.rb tr.tally td.t.ok { color: var(--good); } .rb tr.tally td.t.ko { color: var(--evil); } .rb.big tr.tally td.t { font-size: 13px; }
 .rb td.c.qs::before { content: ""; position: absolute; left: -4px; top: -2px; bottom: -2px; width: 1px; background: #ffffff2a; }
 .rb td.c .crown { position: absolute; top: -7px; left: -5px; width: 13px; height: 13px; color: var(--gold); filter: drop-shadow(0 1px 1px #000); }
 .rb.big td.c .crown { width: 15px; height: 15px; top: -8px; left: -6px; }

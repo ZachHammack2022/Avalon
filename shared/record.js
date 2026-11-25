@@ -9,8 +9,8 @@ import { MAX_REJECTS, QUEST_COUNT, failsRequired, teamSize } from './avalon.js';
  *   vote: 'yes'/'no' once revealed, 'in' = has voted but the vote is still face-down, null = nothing yet;
  *   standIn: the player was away and a stand-in cast this vote for them (so it says nothing about the player)
  * @typedef {{ key: string, questIndex: number, attempt: number, leader: string, team: string[], approved: boolean|null,
- *   live: boolean, yes: number, no: number, outcome: 'success'|'fail'|null, failCount: number|null, standIn: string[] }} Column
- *   live = the proposal being voted on right now; outcome = how the quest went, for the proposal that was sent;
+ *   live: boolean, yes: number, no: number, voted: number, outcome: 'success'|'fail'|null, failCount: number|null, standIn: string[] }} Column
+ *   live = the proposal being voted on right now; voted = how many have voted (for the live column: face-down); outcome = how the quest went, for the proposal that was sent;
  *   failCount = Fail cards in that quest, only in Classic mode (otherwise the count stays secret)
  */
 
@@ -38,6 +38,7 @@ export function recordFor(pub) {
     const r = c.approved ? resultOf(c.questIndex) : null;
     return {
       key: `c${i}`, questIndex: c.questIndex, attempt, leader: c.leader, team: c.team.slice(), approved: c.approved, live: c.live, yes, no,
+      voted: c.live ? (c.voted || []).length : yes + no,
       outcome: r ? r.outcome : null, failCount: r && r.failCount != null ? r.failCount : null, standIn: c.standIn.slice(),
     };
   });
@@ -111,6 +112,11 @@ export function endReason(reveal, nameOf) {
       return `The Assassin struck ${nameOf(a.target)}, but Merlin was ${merlin ? nameOf(merlin) : 'someone else'}.`;
     default: return '';
   }
+}
+
+/** The short tally under a column: "4–3" once revealed, "2/7" (voted so far) while the votes are face-down. */
+export function tallyText(col, playerCount) {
+  return col.live ? `${col.voted}/${playerCount}` : `${col.yes}–${col.no}`;
 }
 
 /** "1 Fail card" / "2 Fail cards" */

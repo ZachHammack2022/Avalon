@@ -77,9 +77,17 @@ test('phone: every screen of real games renders, with the record inline wherever
         continue;
       }
       // one row per player, one cell per proposal (plus the live one while voting), every cell labelled
-      const rows = table.querySelectorAll('tr').filter((tr) => tr.querySelector('td'));
+      const rows = table.querySelectorAll('tr').filter((tr) => tr.querySelector('td') && !tr.classList.contains('tally'));
       assert.equal(rows.length, s.pub.players.length);
       const cols = s.pub.game.history.length + (s.pub.phase === 'vote' ? 1 : 0);
+      // under every proposal, its tally: revealed votes, or how many are in while they are face-down
+      const tally = table.querySelector('.tally').querySelectorAll('td');
+      assert.equal(tally.length, cols);
+      s.pub.game.history.forEach((hh, i) => {
+        const yes = Object.values(hh.votes).filter(Boolean).length;
+        assert.equal(textOf(tally[i]), `${yes}–${s.pub.players.length - yes}`);
+      });
+      if (s.pub.phase === 'vote') assert.equal(textOf(tally[cols - 1]), `${s.pub.game.voted.length}/${s.pub.players.length}`);
       for (const tr of rows) {
         const cells = tr.querySelectorAll('td');
         assert.equal(cells.length, cols);
