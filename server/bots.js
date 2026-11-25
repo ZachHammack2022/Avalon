@@ -72,9 +72,34 @@ export function botPick(ctx) {
   return rng.pick(teamIds);
 }
 
-/** Assassin bot: random among players it doesn't know are evil (and not itself). */
+/**
+ * How much a player played like Merlin, read the way a human Assassin would: from the public vote record and who the
+ * Assassin knows is evil. Merlin sees evil, so Merlin tends to vote down teams with evil on them, wave through clean
+ * ones and propose clean teams. Each such call scores +1, each call the other way -1. Votes a player cast on a team they
+ * were on (everyone approves those) and votes a stand-in cast while they were away say nothing, so they are skipped.
+ */
+export function merlinScore(ctx, id) {
+  const evil = new Set([ctx.selfId, ...ctx.allyIds]);
+  const dirty = (team) => team.some((x) => evil.has(x));
+  let score = 0;
+  for (const h of ctx.history || []) {
+    const isDirty = dirty(h.team);
+    if (h.leader === id) score += isDirty ? -1 : 1;
+    if (h.team.includes(id) || (h.standIn && h.standIn.includes(id)) || !(id in h.votes)) continue;
+    score += h.votes[id] === !isDirty ? 1 : -1;
+  }
+  return score;
+}
+
+/**
+ * Assassin bot: the player who played most like Merlin (ties broken at random), never itself or a known ally. With no
+ * votes to read, a random guess among the rest.
+ */
 export function botAssassinate(ctx) {
   const { selfId, playerIds, allyIds, rng } = ctx;
-  const pool = playerIds.filter((id) => id !== selfId && !allyIds.includes(id));
-  return rng.pick(pool.length ? pool : playerIds.filter((id) => id !== selfId));
+  let pool = playerIds.filter((id) => id !== selfId && !allyIds.includes(id));
+  if (!pool.length) pool = playerIds.filter((id) => id !== selfId);
+  const scored = rng.shuffle(pool).map((id) => ({ id, s: merlinScore(ctx, id) }));
+  const best = Math.max(...scored.map((x) => x.s));
+  return scored.find((x) => x.s === best).id;
 }

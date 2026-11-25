@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { botAssassinate, botCard, botPick, botPropose, botVote, distrust } from '../server/bots.js';
+import { botAssassinate, botCard, botPick, botPropose, botVote, distrust, merlinScore } from '../server/bots.js';
 import { seeded } from '../shared/rng.js';
 
 const ids = ['a', 'b', 'c', 'd', 'e'];
@@ -86,4 +86,26 @@ test('a Merlin bot steers away from the evil it can see', () => {
   let y = 0;
   for (let i = 0; i < 4000; i++) if (botVote(base({ rng, evilSeen, proposedTeam: ['b', 'd'] }))) y++;
   assert.ok(Math.abs(y / 4000 - 0.1) < 0.02, `got ${y / 4000}`);
+});
+
+test('assassin bot reads the vote record for Merlin: whoever voted down evil teams and waved clean ones through', () => {
+  // a is the Assassin, b its ally. d voted like someone who could see evil; e did the opposite.
+  const all = (o) => ({ a: true, b: true, c: true, d: true, e: true, ...o });
+  const history = [
+    { leader: 'b', team: ['b', 'c'], votes: all({ d: false }), approved: true },
+    { leader: 'e', team: ['e', 'b'], votes: all({ d: false }), approved: true },
+    { leader: 'd', team: ['d', 'c'], votes: all({}), approved: true },
+  ];
+  const ctx = (o = {}) => base({ allyIds: ['b'], history, ...o });
+  assert.equal(merlinScore(ctx(), 'd'), 3, 'two dirty teams voted down, one clean team proposed');
+  assert.equal(merlinScore(ctx(), 'e'), -1, 'approved a dirty team and proposed one, approved a clean one');
+  assert.equal(merlinScore(ctx(), 'c'), -1, 'its own team does not count; approved a dirty team');
+  for (let s = 1; s < 100; s++) assert.equal(botAssassinate(ctx({ rng: seeded(s) })), 'd');
+  // votes a stand-in cast while a player was away say nothing about them
+  const away = history.map((h, i) => (i < 2 ? { ...h, standIn: ['d'] } : h));
+  assert.equal(merlinScore(ctx({ history: away }), 'd'), 1, 'only the clean team d proposed counts');
+  // ties are broken at random, never towards evil
+  const picks = new Set();
+  for (let s = 1; s < 100; s++) picks.add(botAssassinate(ctx({ rng: seeded(s), history: [] })));
+  assert.deepEqual([...picks].sort(), ['c', 'd', 'e']);
 });

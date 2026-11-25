@@ -820,3 +820,11 @@ test('the deal and the seat tokens come from the crypto source, not Math.random 
   const mean = draws.reduce((a, b) => a + b, 0) / draws.length;
   assert.ok(Math.abs(mean - 0.5) < 0.05, `mean ${mean}`);
 });
+
+test('an Assassin bot is handed the public vote record to read for Merlin', () => {
+  const t = table(5, { seed: 21 });
+  playQuests(t, { wins: 'good' });
+  const ctx = t.room._botCtx(findByRole(t.room, 'assassin'));
+  assert.ok(ctx.history.length >= 3);
+  assert.equal(ctx.history, t.room.g.proposals);
+});
