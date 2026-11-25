@@ -47,6 +47,10 @@ let joinError = '';
 let selected = []; // propose selection
 let retry = 0;
 let retryTimer = null;
+// the room we were seated in vanished (the server restarted): the TV reopens it under the same code, so keep knocking
+const REJOIN_MS = 3000; const REJOIN_TRIES = 20;
+let rejoin = null; // {code, tries, timer} while waiting for the room to come back
+const stopRejoin = () => { if (rejoin) clearTimeout(rejoin.timer); rejoin = null; };
 
 function url() { return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`; }
 
@@ -93,6 +97,7 @@ let wantJoin = false;
 function onMessage(m) {
   switch (m.t) {
     case 'joined':
+      stopRejoin();
       joined = true; joinError = '';
       roomCode = m.room;
       store.set(`sq.token.${m.room}`, m.token);
@@ -108,8 +113,20 @@ function onMessage(m) {
       break;
     case 'error':
       if (m.code === 'noRoom' || m.code === 'joinFailed') {
+        const seated = !!store.get(`sq.token.${roomCode}`) || (rejoin && rejoin.code === roomCode);
         joinError = m.msg; joined = false; wantJoin = false; state = null;
         store.del(`sq.token.${roomCode}`);
+        if (!name) name = store.get('sq.name') || '';
+        if (m.code === 'noRoom' && seated && name && (!rejoin || rejoin.tries < REJOIN_TRIES)) {
+          const code = roomCode; const tries = rejoin ? rejoin.tries + 1 : 1;
+          clearTimeout(rejoin && rejoin.timer);
+          joinError = `Room ${code} has closed. If the TV opens it again, you will rejoin by yourself.`;
+          rejoin = { code, tries, timer: setTimeout(() => {
+            if (joined || roomCode !== code || !rejoin) return;
+            wantJoin = true; // joins as soon as a socket is open, now or on the next reconnect
+            if (ws && ws.readyState === 1) send({ t: 'join', room: code, name }); else connect();
+          }, REJOIN_MS) };
+        } else stopRejoin();
         render();
       } else toast(m.msg);
       break;
@@ -409,6 +426,7 @@ function joinScreen() {
   const codeIn = h('input', { type: 'text', class: 'code', maxlength: 4, placeholder: '––––', value: roomCode, autocapitalize: 'characters', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Room code' });
   const nameIn = h('input', { type: 'text', maxlength: 12, placeholder: 'Your name', value: name, autocomplete: 'nickname', 'aria-label': 'Your name' });
   const go = () => {
+    stopRejoin();
     roomCode = codeIn.value.trim().toUpperCase(); name = nameIn.value.trim();
     if (roomCode.length !== 4) return toast('Enter the 4-letter room code from the TV.');
     if (!name) return toast('Enter a name.');
@@ -686,6 +704,6 @@ sheet.addEventListener('click', (e) => { if (e.target === sheet) closeSheet(); }
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 
 // debug handle for browser tests and the screenshot harness (inject() draws a state without a server)
-window.__sq = { get state() { return state; }, inject(s) { state = s; joined = true; roomCode = s.pub.room || roomCode; render(); if (!sheet.hidden) drawSheet(); }, openSheet, showSecret, hideSecret };
+window.__sq = { get state() { return state; }, inject(s) { state = s; joined = true; roomCode = s.pub.room || roomCode; render(); if (!sheet.hidden) drawSheet(); }, receive: onMessage, openSheet, showSecret, hideSecret };
 render();
 connect();

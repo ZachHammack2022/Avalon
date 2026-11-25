@@ -111,7 +111,8 @@ export function installDom() {
     window: globalThis,
     location: { search: '', protocol: 'http:', host: 'localhost' },
     localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) },
-    WebSocket: class { constructor() { this.readyState = 0; } send() {} close() {} },
+    // sockets the app opens; tests can open one (readyState = 1) and read what it sent
+    WebSocket: class FakeSocket { constructor() { this.readyState = 0; this.sent = []; FakeSocket.all.push(this); } send(d) { this.sent.push(JSON.parse(d)); } close() {} static all = []; },
     getComputedStyle: () => ({ paddingTop: '0', paddingBottom: '0' }),
   });
   globalThis.addEventListener = () => {};

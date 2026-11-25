@@ -359,3 +359,40 @@ test('phone: the colour picker names each colour and shows who wears it; a perso
   $('main').querySelector('.lookme').click(); // close the picker again
   function sw_label(el) { return el.getAttribute('aria-label'); }
 });
+
+test('phone: when the room vanishes (server restart) a seated phone keeps knocking until the TV reopens it', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const sock = WebSocket.all[WebSocket.all.length - 1];
+  sock.readyState = 1;
+  const lobby = clone(gameStates(8).find((s) => s.pub.phase === 'lobby'));
+  const code = lobby.pub.room;
+  const joins = () => sock.sent.filter((m) => m.t === 'join');
+  const noRoom = { t: 'error', code: 'noRoom', msg: 'No such room. Check the code on the TV.' };
+  sq.inject(lobby);
+  localStorage.setItem(`sq.token.${code}`, 'old-token');
+  localStorage.setItem('sq.name', 'Human1');
+  sq.receive(noRoom);
+  assert.equal($('main').dataset.screen, 'connecting');
+  assert.match(textOf($('main')), new RegExp(`Room ${code} has closed. If the TV opens it again, you will rejoin by yourself.`));
+  let n = joins().length;
+  t.mock.timers.tick(2999);
+  assert.equal(joins().length, n);
+  t.mock.timers.tick(1);
+  assert.deepEqual(joins().at(-1), { t: 'join', room: code, name: 'Human1' });
+  // still gone: it tries again; back: it stops
+  sq.receive(noRoom);
+  t.mock.timers.tick(3000);
+  assert.equal(joins().length, n + 2);
+  sq.receive({ t: 'joined', id: 'p1', token: 'new-token', room: code, resumed: false, standIn: false });
+  sq.inject(lobby);
+  t.mock.timers.tick(9000);
+  assert.equal(joins().length, n + 2);
+  // a phone that was never seated there (a mistyped code) just shows the error
+  localStorage.removeItem(`sq.token.${code}`);
+  sq.receive(noRoom);
+  assert.match(textOf($('main')), /No such room/);
+  n = joins().length;
+  t.mock.timers.tick(9000);
+  assert.equal(joins().length, n);
+  sock.readyState = 0;
+});
