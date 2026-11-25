@@ -43,6 +43,13 @@ test('Percival / Morgana without Merlin are blocked; Morgana without Percival on
   assert.ok(v.warnings.some((w) => /Morgana/.test(w)));
 });
 
+test('Mordred without Merlin only warns: his one power is hiding from Merlin', () => {
+  const v = validateRoleConfig(7, { merlin: false, assassin: false, mordred: true });
+  assert.equal(v.ok, true);
+  assert.ok(v.warnings.some((w) => /Mordred/.test(w)));
+  assert.ok(!validateRoleConfig(7, { mordred: true }).warnings.some((w) => /Mordred/.test(w)));
+});
+
 test('player count must be 5-10', () => {
   assert.equal(validateRoleConfig(4, {}).ok, false);
   assert.equal(validateRoleConfig(11, {}).ok, false);

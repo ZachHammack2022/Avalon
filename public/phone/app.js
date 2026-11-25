@@ -436,7 +436,16 @@ const SCREENS = {
               icon('scroll', 'tg'), h('span', { class: 'grow' }, 'Classic: show fail count', h('small', {}, 'Off by default so Evil teams stay hidden.')), h('span', { class: 'sw' }))] : [])));
       if (v.errors.length || v.warnings.length) actions.push(h('p', { class: v.errors.length ? 'err' : 'warn' }, startHint(pub)));
       actions.push(h('button', { class: 'primary big', disabled: !v.ok, onclick: () => send({ t: 'start' }) }, n < MIN_PLAYERS ? `Need ${MIN_PLAYERS - n} more (add bots)` : 'Start game'));
-    } else actions.push(h('p', { class: 'waitline' }, icon('fire'), 'Waiting for the host to start…'));
+    } else {
+      // everyone, not only the host, should know which roles are in the game before it starts
+      const on = ['merlin', 'assassin', 'percival', 'morgana', 'mordred', 'oberon'].filter((k) => cfg[k]);
+      body.splice(1, 0, h('div', { class: 'panel roles' }, h('div', { class: 'lookme static' },
+        h('span', { class: 'rolesum' }, on.map((k) => icon(k, `team-${ROLE_INFO[k].team}`))),
+        h('span', { class: 'grow' }, h('span', { class: 'label' }, n >= MIN_PLAYERS ? `Roles this game · ${evilCount(n)} Evil, ${n - evilCount(n)} Good` : 'Roles this game'),
+          h('b', {}, on.length ? on.map((k) => ROLE_INFO[k].name).join(', ') : 'No special roles'),
+          pub.config.classic ? h('small', { class: 'muted' }, ' Classic: fail counts shown') : null))));
+      actions.push(h('p', { class: 'waitline' }, icon('fire'), 'Waiting for the host to start…'));
+    }
     return page({ tracker: false, kicker: vip ? 'You are the host' : 'You are in', title: 'Gather round', body, actions });
   },
 

@@ -193,3 +193,15 @@ test('phone: the Assassin sees every other player to strike, with known allies m
   const order = chips.map((c) => (tagged.includes(c) ? 1 : 0));
   assert.deepEqual(order, order.slice().sort());
 });
+
+test('phone: in the lobby every player, not only the host, sees which roles are in the game', () => {
+  const lobby = gameStates(8).filter((s) => s.pub.phase === 'lobby');
+  const guest = lobby.find((s) => !s.me.vip);
+  const host = lobby.find((s) => s.me.vip);
+  sq.inject(guest);
+  assert.match(textOf($('main')), /Roles this game · 3 Evil, 4 Good/);
+  assert.match(textOf($('main')), /Merlin, Assassin/);
+  assert.equal($('main').querySelectorAll('.toggle').length, 0, 'guests cannot change them');
+  sq.inject(host);
+  assert.doesNotMatch(textOf($('main')), /Roles this game/);
+});
