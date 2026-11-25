@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { awards, backedFailures, cleanText, failedTeamVotes, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads, voteReport } from '../shared/record.js';
+import { awards, backedFailures, cleanText, failedTeamVotes, sentByText, teamCase, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads, voteReport } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -305,4 +305,14 @@ test('clean record: who never went on or voted to send a failed quest, for the t
   });
   assert.equal(cleanText(all, nm), 'Everyone has gone on or voted for a failed quest.');
   assert.equal(cleanText({ phase: 'lobby', players }, nm), null);
+});
+
+test('sent by: right after a quest fails, who voted to send that team from outside it', () => {
+  const nm = (id) => players.find((p) => p.id === id).name;
+  // quest 2 (p1, p3 and p5) failed; only p4 voted it through from outside
+  assert.equal(sentByText(pub('questResult'), results[1], nm), 'Voted to send it from outside the team: Dee.');
+  const away = history.map((h, i) => (i === 2 ? { ...h, standIn: ['p4'] } : h));
+  assert.equal(sentByText(pub('questResult', { history: away }), results[1], nm), 'Nobody outside the team voted to send it.', 'stand-in votes left out');
+  assert.equal(sentByText(pub('questResult'), results[0], nm), null, 'nothing for a success');
+  assert.equal(sentByText(pub('questResult', { history: [] }), results[1], nm), null);
 });

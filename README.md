@@ -24,7 +24,8 @@ npm start          # prints the TV URL and the phone URL
   Merlin's how often Merlin voted down a team with a visible Minion on it, the pattern the Assassin hunts for, and the Assassin's
   whose votes look most like that so far.
   Once a quest has failed, the vote screen and the TV's vote card sum up the case against the proposed team in one line, and while
-  a leader picks, the TV and the waiting phones name everyone never on or behind a failed quest. Votes a
+  a leader picks, the TV and the waiting phones name everyone never on or behind a failed quest. Right after a quest fails, the TV
+  card and the phones say who voted to send that team from outside it. Votes a
   stand-in cast for an absent player are marked. At game over, once roles are public, the TV and every phone show the awards,
   including the **Sharpest eye**: the good player (not Merlin) whose votes best read which teams had evil on them, and the phone's full
   record lists how every player's votes read the teams. Built from public state only (`shared/record.js`).
@@ -62,7 +63,7 @@ docs/CUTSCENES.md            authoring guide for the cutscene content
 
 | Command | What it does |
 |---|---|
-| `npm test` | ~160 unit/integration tests, no browser (≈10 s); phone screens render in a tiny fake DOM (`test/fake-dom.js`) |
+| `npm test` | ~180 unit/integration tests, no browser (≈10 s); phone screens render in a tiny fake DOM (`test/fake-dom.js`) |
 | `npm run test:browser` | Headless Chromium: plays **every cutscene** in the preview harness (seek through all segments, fail on any console warning/error or blank frame) then a **full live game** through the real TV + phone pages. Needs Playwright (`--quick`, `--shots`, `--live-only`) |
 | `npm run sim -- 200` | Bot-only soak/balance simulation per player count on a virtual clock |
 | `npm run assets` / `assets:check` | Re-download+copy the KayKit packs / verify files and animation lists |

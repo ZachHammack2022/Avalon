@@ -85,6 +85,10 @@ test('TV cards: every phase renders plain text, without secrets, and the fail co
   const fail = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, team: ['p1', 'p3'] }] }));
   assert.equal(fail.title, 'Quest failed!');
   assert.equal(fail.lines[0], 'Suspicion falls on Cy, who may have been framed.');
+  // with the team's vote on the record, the card says who voted it through from outside
+  const sent = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, team: ['p1', 'p3'] }],
+    history: [{ questIndex: 0, leader: 'p2', team: ['p1', 'p3'], votes: { p1: true, p2: true, p3: true, p4: false, p5: true }, approved: true }] }));
+  assert.equal(sent.lines[sent.lines.length - 1], 'Voted to send it from outside the team: Bo and Eli.');
   assert.ok(!fail.lines.join(' ').includes('Fail card'));
   const classic = cardFor(pub('questResult', { results: [{ questIndex: 0, outcome: 'fail', culprit: 'p3', hero: null, failCount: 2, team: [] }] }));
   assert.ok(classic.lines.join(' ').includes('2 Fail cards'));

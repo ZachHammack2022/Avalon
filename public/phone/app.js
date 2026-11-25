@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, secretRead, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, cleanText, teamCase, voteReport } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures, cleanText, sentByText, teamCase, voteReport } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -427,6 +427,12 @@ function caseLine(team) {
   return text ? h('p', { class: 'teamcase small center' }, icon('scroll'), ' ', text) : null;
 }
 
+/** After a failed quest: who voted to send that team from outside it. */
+function sentLine(r) {
+  const text = sentByText(state.pub, r, (id) => (id === state.me.id ? 'you' : byId(id).name));
+  return text ? h('p', { class: 'teamcase small center' }, icon('scroll'), ' ', text) : null;
+}
+
 /** While a leader picks: who the record has nothing against (nothing before a quest has failed). */
 function cleanLine() {
   const text = cleanText(state.pub, (id) => (id === state.me.id ? 'you' : byId(id).name));
@@ -616,7 +622,8 @@ const SCREENS = {
     return page({ hint: false, kicker: `Quest ${r.questIndex + 1}`, title: ok ? 'Quest succeeded' : 'Quest failed',
       body: [h('div', { class: `emblem ${ok ? 'good' : 'bad'}` }, icon(ok ? 'chalice' : 'brokensword')), h('div', { class: `result ${ok ? 'good' : 'bad'}` }, avatar(who, 'xl'), h('div', { class: 'label' }, ok ? 'Hero of the quest' : 'Suspicion falls on'), h('b', {}, who.name),
         r.failCount != null ? h('small', {}, `${failText(r.failCount)} played`) : null),
-        ok ? null : h('p', { class: 'muted center small' }, 'That is who the story on the TV blamed. They may have been framed.')], record: true });
+        ok ? null : h('p', { class: 'muted center small' }, 'That is who the story on the TV blamed. They may have been framed.'),
+        ok ? null : sentLine(r)], record: true });
   },
 
   assassinate() {
