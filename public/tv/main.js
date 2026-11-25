@@ -2,7 +2,7 @@
 // It never sees secrets and never makes a game-relevant random choice.
 import { Hud } from './hud.js';
 import { TvNet } from './net.js';
-import { cardFor, trackFor } from './cards.js';
+import { cardFor } from './cards.js';
 import { GameAudio } from './engine/audio.js';
 import { narrate } from './engine/narrate.js';
 
@@ -16,7 +16,7 @@ const use3d = !params.has('no3d') && webgl();
 class App {
   constructor() {
     this.pub = null; this.joinUrl = ''; this.view = 'none'; this.cutsceneActive = false; this.firstState = true; this.endingsDone = false;
-    this.chain = Promise.resolve(); this.players = new Map();
+    this.chain = Promise.resolve(); this.players = new Map(); this.boardMode = 'hidden';
     this.stage = null; this.player = null; this.campfire = null;
   }
 
@@ -26,6 +26,7 @@ class App {
       this.stage = new Stage(document.getElementById('stage'), { audio, hud, quality: params.get('q') || 'high' });
       this.player = new CutscenePlayer({ stage: this.stage });
       this.campfire = new CampfireView(this.stage);
+      window.addEventListener('resize', () => this.applySafeArea()); // the board is sized in vw/vh
       this.loop();
     } else document.getElementById('stage').style.background = 'radial-gradient(#2a2038, #0b0910)';
     this.net = new TvNet({
@@ -54,18 +55,31 @@ class App {
     const prev = this.pub; this.pub = pub;
     this.players = new Map(pub.players.map((p) => [p.id, p]));
     hud.setRoom(pub.room, this.joinUrl);
-    hud.setTrack(trackFor(pub));
     if (pub.phase === 'lobby') { this.endingsDone = false; this.cutsceneActive = false; }
     // The result card would spoil the outcome, so never show it for a cutscene we are about to play (state can in
     // principle land just before the `cutscene` message). It is only shown on a refresh mid-cutscene (prev === null).
     const aboutToPlay = pub.phase === 'cutscene' && prev && prev.phase === 'questPlay';
-    // cards (plain-text view): hidden while a cutscene plays, otherwise always up to date
-    if (pub.phase === 'cutscene' && (this.cutsceneActive || (use3d && aboutToPlay))) hud.showCard(null);
-    else if (pub.phase === 'gameover' && use3d && !first && prev && prev.phase !== 'gameover' && !this.endingsDone) hud.showCard(null);
-    else hud.showCard(cardFor(pub, { joinUrl: this.joinUrl }));
+    // cards (plain-text view): hidden while a cutscene plays, otherwise always up to date. The record board stays up
+    // beside them; while a story plays (quest cutscene, endings) it shrinks to the quest shields.
+    const story = (pub.phase === 'cutscene' && (this.cutsceneActive || (use3d && aboutToPlay)))
+      || (pub.phase === 'gameover' && use3d && !first && prev && prev.phase !== 'gameover' && !this.endingsDone);
+    hud.showCard(story ? null : cardFor(pub, { joinUrl: this.joinUrl }));
+    this.setBoard(pub.phase === 'lobby' ? 'hidden' : story || pub.phase === 'roleReveal' ? 'compact' : 'full');
     if (pub.phase !== 'cutscene' && pub.phase !== 'questResult') hud.clearCaption();
     if (!use3d) return;
     this.queue(() => this.syncView(pub, first, prev));
+  }
+
+  /** Record board mode, and the clear zone the 3D picture leaves for it (only around the campfire). */
+  setBoard(mode) {
+    this.boardMode = mode;
+    hud.setBoard(this.pub, mode);
+    this.applySafeArea();
+  }
+  applySafeArea(snap = false) {
+    if (!this.stage) return;
+    const atFire = this.view === 'campfire' || this.view === 'night';
+    this.stage.setSafeArea(atFire && this.boardMode === 'full' ? hud.boardFraction() : 0, snap);
   }
 
   async syncView(pub, first, prev) {
@@ -78,13 +92,13 @@ class App {
     }
     const campfirePhases = ['lobby', 'roleReveal', 'propose', 'vote', 'voteReveal', 'questPlay'];
     if (campfirePhases.includes(phase) || (phase === 'cutscene' && !this.cutsceneActive && this.view !== 'cutscene')) {
-      if (this.view !== 'campfire') { this.view = 'campfire'; this.cutsceneActive = false; hud.fade('black', 0.3); await sleep(300); await this.campfire.enter(false); audio.music('camp'); hud.fade('clear', 0.5); }
+      if (this.view !== 'campfire') { this.view = 'campfire'; this.cutsceneActive = false; hud.fade('black', 0.3); await sleep(300); await this.campfire.enter(false); this.applySafeArea(true); audio.music('camp'); hud.fade('clear', 0.5); }
       this.campfire.sync(pub);
     } else if (phase === 'questResult' && this.view === 'campfire') {
       // TV refreshed during the result card: keep the campfire behind it
       this.campfire.sync(pub);
     } else if (phase === 'assassination') {
-      if (this.view !== 'night') { this.view = 'night'; hud.fade('black', 0.4); await sleep(400); await this.campfire.enter(true); audio.music('night'); this.campfire.sync(pub); hud.fade('clear', 0.6); }
+      if (this.view !== 'night') { this.view = 'night'; hud.fade('black', 0.4); await sleep(400); await this.campfire.enter(true); this.applySafeArea(true); audio.music('night'); this.campfire.sync(pub); hud.fade('clear', 0.6); }
       else this.campfire.sync(pub);
     } else if (phase === 'gameover') {
       await this.gameOver(pub, first || (prev && prev.phase === 'gameover'));
@@ -93,10 +107,11 @@ class App {
 
   async onCutscene(payload) {
     if (!use3d) return;
-    this.cutsceneActive = true; hud.showCard(null);
+    this.cutsceneActive = true; hud.showCard(null); this.setBoard('compact');
     this.queue(async () => {
       this.view = 'cutscene';
       hud.fade('black', 0.3); await sleep(300);
+      this.applySafeArea(true);
       await this.player.load(payload, this.players);
       hud.fade('clear', 0.4);
       this.player.onDone = () => { this.cutsceneActive = false; };
@@ -111,6 +126,7 @@ class App {
     const play = (script) => new Promise(async (resolve) => {
       this.view = 'ending';
       hud.fade('black', 0.3); await sleep(300);
+      this.applySafeArea(true);
       await this.player.loadCustom({ ...script, players: this.players });
       hud.fade('clear', 0.4);
       this.player.onDone = resolve; this.player.start();
@@ -120,9 +136,10 @@ class App {
       if (rv.assassination) await play(assassinationScript(rv, ids));
       await play(victoryScript(rv, ids));
       hud.showCard(cardFor(this.pub, { joinUrl: this.joinUrl }));
+      this.setBoard('full');
     } else {
       this.endingsDone = true;
-      await this.player.loadCustom({ ...victoryScript(rv, ids), players: this.players }); this.view = 'ending'; this.player.seek(6); this.player.start();
+      await this.player.loadCustom({ ...victoryScript(rv, ids), players: this.players }); this.view = 'ending'; this.applySafeArea(true); this.player.seek(6); this.player.start();
     }
     if (this.pub.phase === 'gameover') hud.showCard(cardFor(this.pub, { joinUrl: this.joinUrl }));
   }

@@ -28,7 +28,8 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
       return { kind: 'vote', title: 'Vote on the team', lines: [`Proposed: ${list(names(pub, g.team))}`, `${g.voted.length} of ${pub.players.length} have voted`, g.voted.length ? `Voted: ${names(pub, g.voted).join(', ')}` : ''].filter(Boolean) };
     case 'voteReveal':
       return { kind: 'voteReveal', title: g.approved ? 'Team approved!' : 'Team rejected!', tone: g.approved ? 'good' : 'bad',
-        lines: pub.players.map((p) => `${p.name}: ${g.votes[p.id] ? '✔ Approve' : '✘ Reject'}`).concat(g.approved ? [] : [`Rejected proposals: ${g.rejectCount} of 5`]) };
+        // who voted which way is on the record board beside this card (the newest column turns over vote by vote)
+        lines: [tally(pub, g.votes)].concat(g.approved ? [] : [`Rejected proposals: ${g.rejectCount} of 5`]) };
     case 'questPlay':
       return { kind: 'questPlay', title: 'The team sets out…', lines: [list(names(pub, g.team)), `Waiting on ${g.waitingOn} player${g.waitingOn === 1 ? '' : 's'}`] };
     case 'cutscene': {
@@ -58,10 +59,10 @@ function resultCard(pub, r, quest) {
   return { kind: 'result', title: ok ? 'Quest succeeded!' : 'Quest failed!', tone: ok ? 'good' : 'bad', lines, subtitle: quest ? quest.name : '' };
 }
 
-/** Quest track: array of 'success' | 'fail' | 'current' | 'pending'. Spoiler-safe (only revealed results). */
-export function trackFor(pub) {
-  const g = pub.game; if (!g) return [];
-  return Array.from({ length: QUEST_COUNT }, (_, i) => (g.results[i] ? g.results[i].outcome : i === g.questIndex ? 'current' : 'pending'));
+/** "3 approve · 2 reject" */
+function tally(pub, votes) {
+  const yes = pub.players.filter((p) => votes[p.id] === true).length;
+  return `${yes} approve · ${pub.players.length - yes} reject`;
 }
 
 /** End-of-game superlatives from the quest recap (who got blamed, who got framed, who saved the day). */

@@ -42,6 +42,7 @@ export class Stage {
     this.silent = false;
     this.camSpec = { shot: 'wide' }; this.camStart = 0; this.camState = null; this.shake = null;
     this.stats = { frames: 0, fps: 0, _t: 0, _n: 0 };
+    this.safe = { target: 0, cur: 0, dirty: false }; // share of the screen's right side kept clear for the record board
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -51,6 +52,26 @@ export class Stage {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+    if (this.safe) this.safe.dirty = true;
+  }
+
+  /**
+   * Keep the right `frac` of the screen clear (the record board sits there): the picture slides left so its centre
+   * lands in the middle of what is left, and a wide shot pulls back a touch so the outer seats still fit.
+   * Eases over about half a second unless `snap` (use snap when a fade to black hides the change).
+   */
+  setSafeArea(frac = 0, snap = false) {
+    this.safe.target = Math.max(0, Math.min(0.45, frac || 0));
+    if (snap) { this.safe.cur = this.safe.target; this.safe.dirty = true; }
+  }
+  _applySafeArea(dt) {
+    const s = this.safe; const before = s.cur;
+    s.cur += (s.target - s.cur) * (1 - Math.exp(-dt * 6));
+    if (Math.abs(s.target - s.cur) < 1e-4) s.cur = s.target;
+    if (s.cur === before && !s.dirty) return;
+    s.dirty = false;
+    const w = this.canvas.clientWidth || window.innerWidth; const h = this.canvas.clientHeight || window.innerHeight;
+    if (s.cur > 0) this.camera.setViewOffset(w, h, (w * s.cur) / 2, 0, w, h); else this.camera.clearViewOffset();
   }
 
   // ---------- world management ----------
@@ -431,12 +452,15 @@ export class Stage {
     return ctx;
   }
   _updateCamera(dt) {
+    this._applySafeArea(dt);
     const spec = this.camSpec;
     let pose;
     try {
       const k = spec.dur ? Math.min(1, (this.time - spec.start) / spec.dur) : 0;
       const sd = this.sceneDef;
-      const withDefaults = { ...spec, dist: spec.dist ?? (spec.shot === 'wide' ? sd && sd.wideDist : undefined), height: spec.height ?? (spec.shot === 'wide' ? sd && sd.wideHeight : undefined), angle: spec.angle ?? (spec.shot === 'wide' && sd ? sd.wideAngle : 0) };
+      const pull = spec.shot === 'wide' ? 1 + 0.25 * this.safe.cur : 1; // room for the outer seats beside the board
+      const baseDist = spec.dist ?? (spec.shot === 'wide' ? sd && sd.wideDist : undefined);
+      const withDefaults = { ...spec, dist: baseDist != null ? baseDist * pull : baseDist, height: spec.height ?? (spec.shot === 'wide' && sd && sd.wideHeight != null ? sd.wideHeight * pull : undefined), angle: spec.angle ?? (spec.shot === 'wide' && sd ? sd.wideAngle : 0) };
       const ctx = this._camTargets(spec);
       withDefaults.pos = spec.pos; // resolved (and latched) by _camTargets
       if (spec.rel && ctx.yaw !== undefined) { if (spec._yaw === undefined) spec._yaw = ctx.yaw; withDefaults.angle = (withDefaults.angle || 0) + spec._yaw; } // latched when the shot starts
