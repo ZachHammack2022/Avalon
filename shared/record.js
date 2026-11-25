@@ -8,8 +8,9 @@ import { QUEST_COUNT, failsRequired, teamSize } from './avalon.js';
  * @typedef {{ vote: 'yes'|'no'|'in'|null, onTeam: boolean, leader: boolean }} Cell
  *   vote: 'yes'/'no' once revealed, 'in' = has voted but the vote is still face-down, null = nothing yet
  * @typedef {{ key: string, questIndex: number, attempt: number, leader: string, team: string[], approved: boolean|null,
- *   live: boolean, yes: number, no: number, outcome: 'success'|'fail'|null }} Column
- *   live = the proposal being voted on right now; outcome = how the quest went, for the proposal that was sent
+ *   live: boolean, yes: number, no: number, outcome: 'success'|'fail'|null, failCount: number|null }} Column
+ *   live = the proposal being voted on right now; outcome = how the quest went, for the proposal that was sent;
+ *   failCount = Fail cards in that quest, only in Classic mode (otherwise the count stays secret)
  */
 
 /** Build the board from a public state. Returns null before the game starts. */
@@ -33,7 +34,10 @@ export function recordFor(pub) {
     const yes = c.votes ? pub.players.filter((p) => c.votes[p.id] === true).length : 0;
     const no = c.votes ? pub.players.filter((p) => c.votes[p.id] === false).length : 0;
     const r = c.approved ? resultOf(c.questIndex) : null;
-    return { key: `c${i}`, questIndex: c.questIndex, attempt, leader: c.leader, team: c.team.slice(), approved: c.approved, live: c.live, yes, no, outcome: r ? r.outcome : null };
+    return {
+      key: `c${i}`, questIndex: c.questIndex, attempt, leader: c.leader, team: c.team.slice(), approved: c.approved, live: c.live, yes, no,
+      outcome: r ? r.outcome : null, failCount: r && r.failCount != null ? r.failCount : null,
+    };
   });
 
   const finished = pub.phase === 'gameover';
@@ -81,6 +85,10 @@ export function describeColumn(col, nameOf) {
   const head = `Quest ${col.questIndex + 1}, proposal ${col.attempt}: ${nameOf(col.leader)} proposed ${team}.`;
   if (col.live) return `${head} Voting now.`;
   const verdict = `${col.approved ? 'Approved' : 'Rejected'} ${col.yes} to ${col.no}.`;
-  const outcome = col.outcome === 'success' ? ' The quest succeeded.' : col.outcome === 'fail' ? ' The quest failed.' : '';
+  const fails = col.failCount ? ` with ${failText(col.failCount)}` : '';
+  const outcome = col.outcome === 'success' ? ` The quest succeeded${fails}.` : col.outcome === 'fail' ? ` The quest failed${fails}.` : '';
   return `${head} ${verdict}${outcome}`;
 }
+
+/** "1 Fail card" / "2 Fail cards" */
+export const failText = (n) => `${n} Fail card${n === 1 ? '' : 's'}`;

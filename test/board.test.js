@@ -59,6 +59,19 @@ test('board: shields, reject pips, one column per proposal grouped under its que
   const cy = rows[2].kids.slice(1);
   assert.equal(find(cy[1], 'hero').length, 1);
   assert.equal(find(tree, 'bd-legend').length, 1);
+  // the legend explains the star and the skull once they are on the board, and not before
+  assert.match(text(find(tree, 'bd-legend')[0]), /★hero☠blamed/);
+  const early = boardTree(pub('propose', { questIndex: 1, results: [] }));
+  assert.doesNotMatch(text(find(early, 'bd-legend')[0]), /hero|blamed/);
+});
+
+test('board: Classic mode keeps the Fail count under each played shield', () => {
+  const plain = find(boardTree(pub('propose')), 'fc');
+  assert.equal(plain.length, 0);
+  const classic = [{ ...results[0], failCount: 0 }, { ...results[1], failCount: 2 }];
+  const fc = find(boardTree(pub('propose', { results: classic })), 'fc');
+  assert.deepEqual(fc.map(text), ['0 Fails', '2 Fails']); // short enough to sit under a shield
+  assert.deepEqual(fc.map((n) => has(n, 'some')), [false, true]);
 });
 
 test('board: the team under vote shows live, with face-down marks for who has voted', () => {

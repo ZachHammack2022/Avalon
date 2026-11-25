@@ -49,6 +49,7 @@ html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } h
 .bq.success .q { background: var(--good); color: #05261c; border-color: #fff; } .bq.fail .q { background: var(--bad); color: #2a0904; border-color: #fff; }
 .bq.current .q { border-color: var(--gold); box-shadow: 0 0 2vh var(--gold); }
 .bq small { font-size: 1.7vh; line-height: 1.1; opacity: .85; white-space: nowrap; } .bq small.two { color: var(--bad); font-weight: 800; opacity: 1; }
+.bq small.fc { font-weight: 800; opacity: 1; } .bq small.fc.some { color: var(--bad); }
 .bd-rej { display: flex; flex-direction: column; align-items: center; gap: .7vh; padding-top: 1.2vh; font-size: 1.7vh; white-space: nowrap; opacity: .9; }
 .bd-rej .pips { display: flex; gap: .5vh; } .bd-rej i { width: 1.6vh; height: 1.6vh; border-radius: 50%; border: .25vh solid #8a7a66; } .bd-rej i.on { background: var(--bad); border-color: var(--bad); }
 .bd-empty { margin: 0; font-size: 2.2vh; opacity: .8; text-align: center; }
@@ -77,6 +78,7 @@ html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } h
 .bd-legend b.yes { background: #e9d7ae; color: #245a2b; } .bd-legend b.no { background: #2c2731; color: #ff7a66; }
 .bd-legend b.team { outline: .3vh solid var(--gold); outline-offset: -.3vh; } .bd-legend b.fail { outline: .3vh solid var(--bad); outline-offset: -.3vh; }
 .bd-legend b.crown { width: auto; color: var(--gold); font-size: 2vh; }
+.bd-legend b.hero, .bd-legend b.blamed { width: auto; font-size: 2vh; } .bd-legend b.hero { color: var(--gold); } .bd-legend b.blamed { color: #fff; }
 /* with the board up, the phase cards sit over the campfire half of the screen */
 body.board-on .card { left: 32vw; max-width: 58vw; }
 body.board-on .card.lobby, body.board-on .card.gameover { min-width: 40vw; }

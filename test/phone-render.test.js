@@ -13,9 +13,10 @@ const $ = (id) => document.getElementById(id);
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
 /** Every state message every seat would get over a whole bot game (one human seat, played by its stand-in). */
-function gameStates(seed, bots = 6) {
+function gameStates(seed, bots = 6, { classic = false } = {}) {
   const { room, clock } = makeRoom({ seed });
   const [h] = fill(room, 1, bots);
+  if (classic) room.handle(room.vip.id, { t: 'setClassic', on: true });
   const out = [];
   const broadcast = room.broadcast.bind(room);
   room.broadcast = () => {
@@ -71,6 +72,10 @@ test('phone: every screen of real games renders, with the record inline wherever
         assert.equal(cells.length, cols);
         assert.ok(cells.every((td) => /quest \d proposal \d/.test(td.getAttribute('aria-label'))));
       }
+      // the legend explains the star and the skull only when the record shows them
+      const legend = textOf(panel.querySelector('.rb-legend'));
+      assert.equal(/hero/.test(legend), table.querySelectorAll('.mk.hero').length > 0, `${screen}: ${legend}`);
+      assert.equal(/blamed/.test(legend), table.querySelectorAll('.mk.blamed').length > 0, `${screen}: ${legend}`);
       // roles are never on a phone's record before the game is over
       assert.equal(table.querySelectorAll('.rl').length, s.pub.phase === 'gameover' ? s.pub.players.length : 0, screen);
       // while the votes are face-down only "has voted" shows for the live proposal
@@ -112,4 +117,20 @@ test('phone: the record is one tap away from the top bar during a game, and has 
   sq.inject(lobby);
   assert.equal($('roomtag').querySelector('.recbtn'), null);
   assert.match(textOf($('roomtag')), /Room/);
+});
+
+test('phone: in Classic mode each played quest shows its Fail count under the shield, and the full record says it too', () => {
+  const states = gameStates(8, 6, { classic: true });
+  const late = states.filter((s) => s.pub.phase === 'propose' && s.pub.game.results.length >= 2).pop();
+  assert.ok(late, 'a game that reached quest 3');
+  sq.inject(late);
+  const counts = $('main').querySelectorAll('small.fc').map(textOf);
+  assert.deepEqual(counts, late.pub.game.results.map((r) => `${r.failCount} Fail${r.failCount === 1 ? '' : 's'}`));
+  $('roomtag').querySelector('.recbtn').click();
+  const sheet = $('sheet');
+  for (const r of late.pub.game.results.filter((x) => x.failCount)) assert.match(textOf(sheet), new RegExp(`${r.failCount} Fail card`));
+  // without Classic no count shows anywhere
+  const plain = gameStates(8).filter((s) => s.pub.phase === 'propose' && s.pub.game.results.length >= 2).pop();
+  sq.inject(plain);
+  assert.equal($('main').querySelectorAll('small.fc').length, 0);
 });
