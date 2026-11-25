@@ -6,7 +6,7 @@ import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '/shared/avatars.js';
 import { QUEST_COUNT, MIN_PLAYERS, MAX_REJECTS, evilCount, teamSize, failsRequired } from '/shared/avalon.js';
 import { HOW_TO, GENERAL_TIPS, roleTips, coachFor, counselFor, questStrip } from './guide.js';
 import { icon } from './icons.js';
-import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil } from '/shared/record.js';
+import { recordFor, describeColumn, failText, crownText, endReason, rejectText, tallyText, awards, noToEvil, backedFailures } from '/shared/record.js';
 
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -518,8 +518,11 @@ const SCREENS = {
 
   propose() {
     const { pub, me } = state; const size = me.legal.size;
+    // the record at the moment of choosing: beside the quests each player went on, the failed teams they voted to send
+    const backed = backedFailures(pub);
+    const tag = (id) => youTag(id) || (backed[id] ? `Voted to send ${backed[id]} failed team${backed[id] === 1 ? '' : 's'}` : null);
     return page({ kicker: 'You wear the crown', title: `Pick ${size} for the quest`,
-      body: [h('div', { class: 'people' }, pub.players.map((p) => personChip(p, { sel: selected.includes(p.id), tag: youTag(p.id), went: true, mark: icon('check', 'selmark'), onclick: () => { selected = toggleSelection(selected, p.id, size); render(); } })))], record: true,
+      body: [h('div', { class: 'people' }, pub.players.map((p) => personChip(p, { sel: selected.includes(p.id), tag: tag(p.id), went: true, mark: icon('check', 'selmark'), onclick: () => { selected = toggleSelection(selected, p.id, size); render(); } })))], record: true,
       actions: [h('div', { class: 'slots', 'aria-hidden': 'true' }, Array.from({ length: size }, (_, i) => (selected[i] ? avatar(byId(selected[i])) : h('span', { class: 'av empty' })))),
         canConfirm(selected, size) ? h('button', { class: 'primary big', onclick: () => send({ t: 'propose', team: selected }) }, 'Send this team') : h('p', { class: 'armhint' }, `Choose ${size - selected.length} more`)] });
   },

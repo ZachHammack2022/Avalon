@@ -6,7 +6,7 @@ import { installDom, textOf } from './fake-dom.js';
 import { fill, makeRoom, runUntil } from './helpers.js';
 import { screenFor } from '../public/phone/model.js';
 import { ROLE_INFO } from '../shared/roles-info.js';
-import { awards, noToEvil } from '../shared/record.js';
+import { awards, backedFailures, noToEvil } from '../shared/record.js';
 
 const document = installDom();
 await import('../public/phone/app.js');
@@ -409,4 +409,22 @@ test('phone: when the room vanishes (server restart) a seated phone keeps knocki
   t.mock.timers.tick(9000);
   assert.equal(joins().length, n);
   sock.readyState = 0;
+});
+
+test('phone: the leader sees, beside each name, the failed teams that player voted to send', () => {
+  let found = null;
+  for (let seed = 1; seed < 60 && !found; seed++) {
+    found = gameStates(seed).find((s) => screenFor(s) === 'propose' && Object.keys(backedFailures(s.pub)).some((id) => id !== s.me.id));
+  }
+  assert.ok(found, 'a leader picking a team after a failed quest');
+  sq.inject(found);
+  const backed = backedFailures(found.pub);
+  const chips = $('main').querySelector('.people').querySelectorAll('.person');
+  for (const p of found.pub.players) {
+    const chip = chips.find((c) => textOf(c.querySelector('.pname')).startsWith(p.name));
+    const small = chip.querySelector('small');
+    if (p.id === found.me.id) assert.equal(textOf(small), 'you');
+    else if (backed[p.id]) assert.equal(textOf(small), `Voted to send ${backed[p.id]} failed team${backed[p.id] === 1 ? '' : 's'}`);
+    else assert.equal(small, null);
+  }
 });

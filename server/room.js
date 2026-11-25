@@ -7,6 +7,7 @@ import {
 } from '../shared/avalon.js';
 import { QUESTS } from '../shared/campaign-lost-crown.js';
 import { cutsceneSeconds } from '../shared/cutscene.js';
+import { backedFailures } from '../shared/record.js';
 import { randomBytes } from 'node:crypto';
 import { makeRng } from '../shared/rng.js';
 import { AVATAR_CLASSES, AVATAR_COLORS, colorName } from '../shared/avatars.js';
@@ -617,14 +618,10 @@ export class Room {
     const allyIds = k.team === 'evil' ? k.knows : [];
     // the record as the table sees it (results whose cutscene has played): how many failed quests each player went on,
     // and how many of those failed teams they voted to send without going themselves (stand-in votes left out)
+    const shown = g.results.slice(0, g.shown);
     const failedWith = {};
-    const backedFail = {};
-    for (const r of g.results.slice(0, g.shown)) {
-      if (r.outcome !== 'fail') continue;
-      for (const id of r.team) failedWith[id] = (failedWith[id] || 0) + 1;
-      const sent = g.proposals.filter((h) => h.questIndex === r.questIndex && h.approved).pop();
-      if (sent) for (const [id, yes] of Object.entries(sent.votes)) if (yes && !sent.team.includes(id) && !(sent.standIn || []).includes(id)) backedFail[id] = (backedFail[id] || 0) + 1;
-    }
+    for (const r of shown) if (r.outcome === 'fail') for (const id of r.team) failedWith[id] = (failedWith[id] || 0) + 1;
+    const backedFail = backedFailures({ game: { history: g.proposals, results: shown } });
     return {
       selfId: p.id, team: k.team, role: k.role, allyIds, rng: this.rng, playerIds: this.playerIds(), size: g.questIndex < QUEST_COUNT ? teamSize(this.players.length, g.questIndex) : 0,
       proposedTeam: g.team, rejectCount: g.rejectCount,

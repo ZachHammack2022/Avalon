@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { awards, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
+import { awards, backedFailures, crownOrder, crownText, describeColumn, endReason, noToEvil, recordFor, rejectText, sharpestEye, tallyText, voteReads } from '../shared/record.js';
 import { FakeConn, fill, makeRoom, runUntil } from './helpers.js';
 
 const players = ['Ann', 'Bo', 'Cy', 'Dee', 'Eli'].map((name, i) => ({ id: `p${i + 1}`, name, color: '#fff', cls: 'knight' }));
@@ -245,4 +245,15 @@ test('the Assassin\'s read: how often each player voted down a team with someone
   const away = pub('assassination', { history: history.map((h, i) => (i === 0 ? { ...h, standIn: ['p4'] } : h)) });
   assert.deepEqual(noToEvil(away, ['p5', 'p2']).p4, { no: 0, of: 2 });
   assert.deepEqual(noToEvil({ phase: 'lobby', players }, ['p5']), {});
+});
+
+test('backed failures: the failed teams each player voted to send without going on them', () => {
+  // quest 2 (p1, p3 and p5) failed; p4 voted to send it from outside, p2 voted against
+  assert.deepEqual(backedFailures(pub('propose')), { p4: 1 });
+  // a stand-in's vote says nothing about the player
+  const away = history.map((h, i) => (i === 2 ? { ...h, standIn: ['p4'] } : h));
+  assert.deepEqual(backedFailures(pub('propose', { history: away })), {});
+  // a quest whose result is not public yet (its cutscene still playing) does not count
+  assert.deepEqual(backedFailures(pub('cutscene', { results: results.slice(0, 1) })), {});
+  assert.deepEqual(backedFailures({ phase: 'lobby', players }), {});
 });

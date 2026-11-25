@@ -185,6 +185,26 @@ export function voteReads(pub) {
 const EVIL_ROLES = new Set(['minion', 'assassin', 'morgana', 'mordred', 'oberon']);
 
 /**
+ * How many failed teams each player voted to send without going on them: {id: n}. Evil players wave their allies'
+ * teams through, so this is evidence the table can use when picking a team. Only quests whose result is public count,
+ * and a vote a stand-in cast for an absent player is left out.
+ */
+export function backedFailures(pub) {
+  const g = pub && pub.game;
+  const out = {};
+  if (!g || !Array.isArray(g.history)) return out;
+  for (const r of g.results || []) {
+    if (r.outcome !== 'fail') continue;
+    const sent = g.history.filter((h) => h.questIndex === r.questIndex && h.approved).pop();
+    if (!sent) continue;
+    for (const [id, yes] of Object.entries(sent.votes || {})) {
+      if (yes && !sent.team.includes(id) && !(sent.standIn && sent.standIn.includes(id))) out[id] = (out[id] || 0) + 1;
+    }
+  }
+  return out;
+}
+
+/**
  * For the Assassin's choice: how often each player voted down a team that had someone on it the asker knows is evil
  * (`evilIds`: the Assassin and the allies they can see). Merlin, who sees evil, tends to say no to those. Votes on a
  * player's own team and votes a stand-in cast for them are left out. Returns {id: {no, of}}. Uses only the public
