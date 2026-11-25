@@ -48,14 +48,20 @@ export function botPropose(ctx) {
   return team.slice(0, size);
 }
 
+/** How often an evil bot approves a team: with a known ally on it, clean with someone the record speaks against, clean. */
+export const EVIL_VOTE = { ally: 0.85, suspect: 0.1, clean: 0.2 };
+
 /** ctx: { selfId, team, role?, allyIds, proposedTeam, rejectCount, rng, failedWith?, evilSeen? } */
 export function botVote(ctx) {
   const { selfId, proposedTeam, rejectCount, rng } = ctx;
   if (rejectCount >= 4) return true; // fifth proposal: everyone approves
   if (proposedTeam.includes(selfId)) return true;
   if (ctx.team === 'evil') {
-    // approve if an evil player (known to this bot, or itself) is on the team
-    return proposedTeam.some((id) => ctx.allyIds.includes(id));
+    // An ally's team is usually waved through, but not always, and a clean team now and then: a bot that rejected
+    // every clean team and approved every ally's would be named by the record (the vote board, the clean line).
+    if (proposedTeam.some((id) => ctx.allyIds.includes(id))) return rng.chance(EVIL_VOTE.ally);
+    const worst = Math.max(0, ...proposedTeam.map((id) => distrust({ ...ctx, evilSeen: null }, id)));
+    return rng.chance(worst > 0 ? EVIL_VOTE.suspect : EVIL_VOTE.clean);
   }
   // good: a team with someone the record (or Merlin's sight) speaks against is usually rejected
   const worst = Math.max(0, ...proposedTeam.map((id) => distrust(ctx, id)));
@@ -65,7 +71,7 @@ export function botVote(ctx) {
   if (ctx.role === 'merlin' && worst >= 3 && !onRecord) return rng.chance(0.5);
   if (worst >= 3) return rng.chance(0.1);
   if (worst > 0) return rng.chance(0.3);
-  return rng.chance(0.65);
+  return rng.chance(0.5);
 }
 
 /** ctx: { selfId, team, teamIds, lastTeamFailed, rng } -> 'success' | 'fail' */

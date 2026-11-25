@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { botAssassinate, botCard, botPick, botPropose, botVote, distrust, merlinScore, pickDistrust } from '../server/bots.js';
+import { EVIL_VOTE, botAssassinate, botCard, botPick, botPropose, botVote, distrust, merlinScore, pickDistrust } from '../server/bots.js';
 import { seeded } from '../shared/rng.js';
 
 const ids = ['a', 'b', 'c', 'd', 'e'];
@@ -18,21 +18,24 @@ test('propose: includes self, correct size, distinct, valid ids', () => {
   }
 });
 
-test('vote: good approves ~65%, always if on the team, always on the fifth proposal', () => {
+test('vote: good approves a team with nothing against it half the time, always if on the team, always on the fifth proposal', () => {
   const rng = seeded(3);
   let yes = 0;
   const N = 4000;
   for (let i = 0; i < N; i++) if (botVote(base({ rng }))) yes++;
-  assert.ok(Math.abs(yes / N - 0.65) < 0.03, `got ${yes / N}`);
+  assert.ok(Math.abs(yes / N - 0.5) < 0.03, `got ${yes / N}`);
   for (let i = 0; i < 50; i++) assert.equal(botVote(base({ rng, proposedTeam: ['a', 'b'] })), true);
   for (let i = 0; i < 50; i++) assert.equal(botVote(base({ rng, rejectCount: 4 })), true);
 });
 
-test('vote: evil approves iff an evil player is on the team (fifth proposal excepted)', () => {
-  const ctx = base({ team: 'evil', allyIds: ['c'] });
-  assert.equal(botVote({ ...ctx, proposedTeam: ['b', 'c'] }), true);
-  assert.equal(botVote({ ...ctx, proposedTeam: ['b', 'd'] }), false);
-  assert.equal(botVote({ ...ctx, proposedTeam: ['b', 'd'], rejectCount: 4 }), true);
+test('vote: evil mostly backs an ally\'s team and rejects a clean one, but not always, so its votes do not give it away', () => {
+  const rate = (o) => { const rng = seeded(5); let y = 0; for (let i = 0; i < 4000; i++) if (botVote(base({ team: 'evil', allyIds: ['c'], rng, ...o }))) y++; return y / 4000; };
+  assert.ok(Math.abs(rate({ proposedTeam: ['b', 'c'] }) - EVIL_VOTE.ally) < 0.03, 'an ally on the team');
+  assert.ok(Math.abs(rate({ proposedTeam: ['b', 'd'] }) - EVIL_VOTE.clean) < 0.03, 'a clean team');
+  assert.ok(Math.abs(rate({ proposedTeam: ['b', 'd'], failedWith: { d: 1 } }) - EVIL_VOTE.suspect) < 0.03, 'a clean team the record speaks against');
+  assert.ok(EVIL_VOTE.ally > 0.5 && EVIL_VOTE.ally < 1 && EVIL_VOTE.clean > 0 && EVIL_VOTE.clean < 0.5);
+  assert.equal(rate({ proposedTeam: ['a', 'd'] }), 1, 'its own team');
+  assert.equal(rate({ proposedTeam: ['b', 'd'], rejectCount: 4 }), 1, 'the fifth proposal');
 });
 
 test('quest: good always plays Success; evil Fails ~70% (less after a failed team)', () => {
@@ -71,7 +74,7 @@ test('good bots read the record: they leave players off failed quests out of the
     assert.ok(ev.includes('a') && ev.length === 3);
   }
   const rate = (o) => { const rng = seeded(7); let y = 0; for (let i = 0; i < 4000; i++) if (botVote(base({ rng, failedWith, ...o }))) y++; return y / 4000; };
-  assert.ok(Math.abs(rate({ proposedTeam: ['d', 'e'] }) - 0.65) < 0.03, 'a clean team: as before');
+  assert.ok(Math.abs(rate({ proposedTeam: ['d', 'e'] }) - 0.5) < 0.03, 'a clean team: as before');
   assert.ok(Math.abs(rate({ proposedTeam: ['b', 'd'] }) - 0.3) < 0.03, 'someone from a failed quest: mostly rejected');
   assert.equal(rate({ proposedTeam: ['b', 'd'], rejectCount: 4 }), 1, 'but never the fifth proposal');
   assert.equal(rate({ proposedTeam: ['a', 'c'] }), 1, 'and always when the bot itself is on it');
@@ -115,7 +118,7 @@ test('a Merlin bot keeps its sight quiet: it votes down a team only it knows is 
   const merlin = { role: 'merlin', evilSeen: ['c'], proposedTeam: ['c', 'd'] };
   assert.ok(Math.abs(rate(merlin) - 0.5) < 0.03, 'nothing on the record against c: a coin flip');
   assert.ok(Math.abs(rate({ ...merlin, failedWith: { c: 1 } }) - 0.1) < 0.02, 'the record speaks against c too: rejected as before');
-  assert.ok(Math.abs(rate({ ...merlin, proposedTeam: ['d', 'e'] }) - 0.65) < 0.03, 'a clean team: as any good player');
+  assert.ok(Math.abs(rate({ ...merlin, proposedTeam: ['d', 'e'] }) - 0.5) < 0.03, 'a clean team: as any good player');
 });
 
 test('good bots picking a team also pass over whoever voted to send a team that failed', () => {
@@ -131,5 +134,5 @@ test('good bots picking a team also pass over whoever voted to send a team that 
   // votes still go by what went wrong on the quests alone
   const rng = seeded(5); let y = 0;
   for (let i = 0; i < 4000; i++) if (botVote(base({ rng, backedFail, proposedTeam: ['b', 'c'] }))) y++;
-  assert.ok(Math.abs(y / 4000 - 0.65) < 0.03);
+  assert.ok(Math.abs(y / 4000 - 0.5) < 0.03);
 });

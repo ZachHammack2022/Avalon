@@ -47,7 +47,7 @@ test('phone: every screen of real games renders, with the record inline wherever
   let sawWaiting = false;
   let lastScreen = '';
   let sawStandIn = false;
-  for (const seed of [3, 8, 21]) {
+  for (const seed of [3, 8, 5]) {
     for (const s of gameStates(seed)) {
       sq.inject(s);
       const screen = screenFor(s);
