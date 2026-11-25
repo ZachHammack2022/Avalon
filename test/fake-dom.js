@@ -1,6 +1,7 @@
 // A deliberately tiny DOM, just enough to run public/phone/app.js in Node so tests can render every phone screen
 // without a browser. Supports what the phone code uses: element trees, classes, attributes, `hidden`, events
 // (stored, not dispatched), and querySelector/closest for simple selectors (`tag`, `.class`, `#id`, combined).
+import { readFileSync } from 'node:fs';
 import { register } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
@@ -87,11 +88,17 @@ export function installDom() {
     addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); },
     getElementById(id) { return this.body.id === id ? this.body : this.body.querySelector(`#${id}`); },
   };
-  const mk = (tag, id, hidden) => { const e = new Element(tag); e.id = id; if (hidden) e.hidden = true; return e; };
-  const top = mk('header', 'top');
-  top.append(mk('span', 'roomtag'), mk('button', 'peek', true), mk('button', 'helpbtn'));
-  const sheet = mk('div', 'sheet', true); sheet.append(mk('div', 'sheetbody'));
-  document.body.append(top, mk('div', 'offline', true), mk('main', 'main'), mk('div', 'toast'), sheet, mk('div', 'secret', true));
+  // the body of the real page, so tests see the same elements and attributes (tags and attributes only, no text)
+  const html = readFileSync(new URL('public/phone.html', root), 'utf8');
+  const body = html.slice(html.indexOf('<body>') + 6, html.indexOf('</body>'));
+  const stack = [document.body];
+  for (const [, close, tag, attrs] of body.matchAll(/<(\/?)([a-z0-9]+)([^>]*)>/gi)) {
+    if (close) { stack.pop(); continue; }
+    const e = new Element(tag);
+    for (const [, k, v] of attrs.matchAll(/([\w-]+)(?:="([^"]*)")?/g)) e.setAttribute(k, v ?? '');
+    stack[stack.length - 1].append(e);
+    stack.push(e);
+  }
   const store = new Map();
   Object.assign(globalThis, {
     document,

@@ -215,9 +215,18 @@ function render() {
   }
   if (screen !== lastScreen) {
     if (['propose', 'vote', 'quest-card', 'quest-pick', 'assassinate'].includes(screen)) buzz(HAPTIC.turn);
+    announce(main);
     main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
     lastScreen = screen;
   }
+}
+
+/** Screen readers hear each new screen once, by its heading (the whole screen redraws on every state, so it is not
+ * itself a live region: that would read the screen out again every time anyone votes). */
+function announce(root) {
+  const el = $('announce'); if (!el) return;
+  const head = root.querySelector('.head');
+  el.textContent = head ? [...head.children].map((c) => c.textContent.trim()).filter(Boolean).join('. ') : '';
 }
 
 // ---------- building blocks ----------
