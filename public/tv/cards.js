@@ -1,7 +1,7 @@
 // Pure: public state -> plain-text card for the TV HUD. This is the Milestone-1 "no 3D" view: the game is fully
 // playable from these cards alone (?no3d). Unit-tested in Node (no DOM here).
 import { QUEST_COUNT } from '../../shared/avalon.js';
-import { ROLE_INFO } from '../../shared/roles-info.js';
+import { ROLE_INFO, rolesText } from '../../shared/roles-info.js';
 import { QUESTS } from '../../shared/campaign-lost-crown.js';
 import { crownText, endReason } from '../../shared/record.js';
 
@@ -19,7 +19,8 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
       return { kind: 'lobby', title: 'Avalon', big: pub.room, lines: [
         'Join on your phone', joinUrl || 'Open the game URL on your phone and enter the room code',
         `${pub.players.length} player${pub.players.length === 1 ? '' : 's'} at the campfire: ${names(pub, pub.players.map((p) => p.id)).join(', ') || 'nobody yet'}`,
-        pub.validation && !pub.validation.ok ? pub.validation.errors[0] : 'Waiting for the VIP to start…',
+        `Roles: ${rolesText(pub.config && pub.config.roles)}${pub.config && pub.config.classic ? ' · Classic (fail counts shown)' : ''}`,
+        pub.validation && !pub.validation.ok ? pub.validation.errors[0] : 'Waiting for the host to start…',
       ] };
     case 'roleReveal':
       return { kind: 'roleReveal', title: 'Check your phones', lines: ['Keep them secret.', `${pub.players.filter((p) => p.ready).length} of ${pub.players.length} ready`] };

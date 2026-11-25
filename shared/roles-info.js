@@ -5,10 +5,23 @@ export const ROLE_INFO = {
   percival: { name: 'Percival', team: 'good', icon: '🗡️', blurb: 'You can see Merlin and Morgana, but not which is which.' },
   minion:   { name: 'Minion', team: 'evil', icon: '😈', blurb: 'You serve Mordred. Fail quests without being caught.' },
   assassin: { name: 'Assassin', team: 'evil', icon: '🔪', blurb: 'If good wins three quests, you get one guess at who Merlin is.' },
-  morgana:  { name: 'Morgana', team: 'evil', icon: '🧛', blurb: 'You appear to Percival as a possible Merlin. Make him doubt.' },
+  morgana:  { name: 'Morgana', team: 'evil', icon: '🧛', blurb: 'You appear to Percival as a possible Merlin. Make Percival doubt.' },
   mordred:  { name: 'Mordred', team: 'evil', icon: '👿', blurb: 'Merlin cannot see you. Stay hidden in plain sight.' },
   oberon:   { name: 'Oberon', team: 'evil', icon: '👻', blurb: 'You work alone. The other Minions do not know you, and you do not know them. Merlin sees you.' },
 };
+
+/** The roles the host can switch on, in the order they are listed everywhere. */
+export const SPECIAL_ROLES = ['merlin', 'assassin', 'percival', 'morgana', 'mordred', 'oberon'];
+
+/** The special roles switched on in a role config, in the usual order. */
+export const rolesInPlay = (roles) => SPECIAL_ROLES.filter((k) => roles && roles[k]);
+
+/** "Merlin, Assassin and Percival" / "No special roles" for a role config. */
+export function rolesText(roles) {
+  const on = rolesInPlay(roles).map((k) => ROLE_INFO[k].name);
+  if (!on.length) return 'No special roles';
+  return on.length === 1 ? on[0] : `${on.slice(0, -1).join(', ')} and ${on[on.length - 1]}`;
+}
 
 export const ROLE_TOGGLE_INFO = {
   merlin: 'Merlin knows the Minions of Mordred (but not Mordred).',

@@ -200,10 +200,18 @@ test('phone: in the lobby every player, not only the host, sees which roles are 
   const host = lobby.find((s) => s.me.vip);
   sq.inject(guest);
   assert.match(textOf($('main')), /Roles this game · 3 Evil, 4 Good/);
-  assert.match(textOf($('main')), /Merlin, Assassin/);
+  assert.match(textOf($('main')), /Merlin and Assassin/);
   assert.equal($('main').querySelectorAll('.toggle').length, 0, 'guests cannot change them');
   sq.inject(host);
   assert.doesNotMatch(textOf($('main')), /Roles this game/);
+  // the host's summary names the roles too, instead of only counting them
+  assert.match(textOf($('main')), /Roles · 3 Evil, 4 Good/);
+  assert.match(textOf($('main')), /Merlin and Assassin/);
+  // every warning is shown, not just the first
+  const odd = clone(host);
+  odd.pub.validation = { ok: true, errors: [], warnings: ['First warning.', 'Second warning.'] };
+  sq.inject(odd);
+  assert.match(textOf($('main')), /First warning\. Second warning\./);
 });
 
 test('phone: game over says why the game ended and lists only the quests that were played', () => {

@@ -41,3 +41,12 @@ test('role tips follow the roles in this game', () => {
   for (const r of ['oberon', 'loyal', 'merlin', 'percival']) assert.doesNotMatch(roleTips(r, cfg({ oberon: true })).join(' '), /Oberon is in this game/, r);
   for (const r of Object.keys(ROLE_TIPS)) assert.ok(roleTips(r, cfg({ percival: true, morgana: true, mordred: true, oberon: true })).length, r);
 });
+
+test('roles in play: the special roles switched on, named in the usual order', async () => {
+  const { rolesInPlay, rolesText } = await import('../shared/roles-info.js');
+  assert.deepEqual(rolesInPlay({ oberon: true, merlin: true, assassin: true }), ['merlin', 'assassin', 'oberon']);
+  assert.equal(rolesText({ merlin: true }), 'Merlin');
+  assert.equal(rolesText({ merlin: true, assassin: true, mordred: true }), 'Merlin, Assassin and Mordred');
+  assert.equal(rolesText({}), 'No special roles');
+  assert.equal(rolesText(null), 'No special roles');
+});

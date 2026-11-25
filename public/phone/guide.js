@@ -28,7 +28,7 @@ export const GENERAL_TIPS = {
 
 export const ROLE_TIPS = {
   loyal: ['You have no secret info, so your voice and your votes are your power.', 'Trust the team record, not smooth talk.'],
-  merlin: ['You know the Minions of Mordred. Steer teams away from them, but not too perfectly.', 'If good wins, the Assassin guesses Merlin. Act a bit clueless.', 'Mordred, if he is in play, is hidden from you.'],
+  merlin: ['You know the Minions of Mordred. Steer teams away from them, but not too perfectly.', 'If good wins, the Assassin guesses Merlin. Act a bit clueless.', 'Mordred, if in play, is hidden from you.'],
   percival: ['You see two people: Merlin and Morgana. You do not know which.', 'Watch their votes. Protect the one who acts like the real Merlin.'],
   minion: ['Get yourself or an ally onto teams. Fail when it is safe, or when it wins.', 'Look for the loudest good player: that may be Merlin.'],
   assassin: ['Pay attention all game: the player who steers teams away from your allies is likely Merlin.', 'You get one guess if good wins three quests. Make it count.'],

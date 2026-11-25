@@ -57,5 +57,5 @@ export function startHint(pub) {
   const v = pub.validation;
   if (!v) return '';
   if (v.errors.length) return v.errors[0];
-  return v.warnings[0] || '';
+  return v.warnings.join(' '); // the game can start, so every warning is worth reading
 }
