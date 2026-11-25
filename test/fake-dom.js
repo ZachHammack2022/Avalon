@@ -1,12 +1,16 @@
 // A deliberately tiny DOM, just enough to run public/phone/app.js in Node so tests can render every phone screen
 // without a browser. Supports what the phone code uses: element trees, classes, attributes, `hidden`, events
-// (stored; tests run them with el.fire(type)), and querySelector/closest for simple selectors (`tag`, `.class`, `#id`, combined).
+// (stored; tests run them with el.fire(type)), focus (document.activeElement), and querySelector/closest for simple
+// selectors (`tag`, `.class`, `#id`, combined).
 import { readFileSync } from 'node:fs';
 import { register } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
+let doc = null; // the installed document, for focus and isConnected
+
 class Node {
   constructor() { this.childNodes = []; this.parentNode = null; }
+  get isConnected() { return !!doc && doc.body.contains(this); }
   get firstChild() { return this.childNodes[0] || null; }
   get children() { return this.childNodes.filter((n) => n.nodeType === 1); }
   get textContent() { return this.childNodes.map((n) => n.textContent).join(''); }
@@ -62,7 +66,8 @@ class Element extends Node {
   removeAttribute(k) { this.attrs.delete(k); }
   addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
   removeEventListener(type, fn) { this.listeners[type] = (this.listeners[type] || []).filter((f) => f !== fn); }
-  focus() {} setPointerCapture() {}
+  focus() { if (doc) doc.activeElement = this; }
+  setPointerCapture() {}
   matches(sel) { const s = parseSel(sel); return (!s.tag || s.tag === this.tagName) && s.ids.every((i) => this.id === i) && s.cls.every((c) => this._cls().includes(c)); }
   querySelectorAll(sel) { const out = []; const walk = (n) => { for (const k of n.children) { if (k.matches(sel)) out.push(k); walk(k); } }; walk(this); return out; }
   querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
@@ -94,6 +99,8 @@ export function installDom() {
     addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); },
     getElementById(id) { return this.body.id === id ? this.body : this.body.querySelector(`#${id}`); },
   };
+  document.activeElement = document.body;
+  doc = document;
   // the body of the real page, so tests see the same elements and attributes (tags and attributes only, no text)
   const html = readFileSync(new URL('public/phone.html', root), 'utf8');
   const body = html.slice(html.indexOf('<body>') + 6, html.indexOf('</body>'));

@@ -664,9 +664,37 @@ const SCREENS = {
 // ---------- help sheet (table-safe: never shows your role) ----------
 const sheet = $('sheet'); const sheetBody = $('sheetbody');
 let sheetTab = 'now';
-function openSheet(tab) { sheetTab = tab === 'log' ? 'record' : tab || sheetTab; drawSheet(); sheet.hidden = false; hideSecret(); }
-function closeSheet() { sheet.hidden = true; sheetBody.replaceChildren(); }
+// The sheet is a modal dialog: opening it moves focus in and makes the page behind inert (so Tab and screen
+// readers stay inside), redrawing keeps focus inside, and closing hands focus back to what opened it.
+let sheetReturn = null;
+const behindSheet = () => [$('top'), $('main')];
+function openSheet(tab) {
+  const opening = sheet.hidden;
+  if (opening) sheetReturn = document.activeElement || null;
+  sheetTab = tab === 'log' ? 'record' : tab || sheetTab;
+  drawSheet(); sheet.hidden = false; hideSecret();
+  if (opening) { for (const el of behindSheet()) el.inert = true; focusInSheet('.close'); }
+}
+function closeSheet() {
+  if (sheet.hidden) return;
+  sheet.hidden = true; sheetBody.replaceChildren();
+  for (const el of behindSheet()) el.inert = false;
+  const back = sheetReturn; sheetReturn = null;
+  // the top bar and screen are redrawn on every state, so the button that opened the sheet may be a new one by now
+  const again = back && !back.isConnected && ['recbtn', 'more'].find((c) => back.classList && back.classList.contains(c));
+  const to = back && back.isConnected ? back : (again && document.body.querySelector(`.${again}`)) || $('helpbtn');
+  if (to && to.focus) to.focus();
+}
+function focusInSheet(sel) { const el = sheetBody.querySelector(sel); if (el) el.focus(); return !!el; }
 function drawSheet() {
+  const was = document.activeElement; const inside = !!was && sheet.contains(was);
+  drawSheetBody();
+  if (!inside || sheet.contains(document.activeElement)) return;
+  // the focused control was redrawn away: put focus back on the same control, else on Close
+  const role = was.getAttribute && was.getAttribute('role');
+  if (!(role === 'tab' && focusInSheet('button.on')) && !(role === 'switch' && focusInSheet('.toggle'))) focusInSheet('.close');
+}
+function drawSheetBody() {
   const pub = state && state.pub;
   const inGame = !!(state && state.me && state.me.role && pub.phase !== 'lobby');
   if (sheetTab === 'record') {
