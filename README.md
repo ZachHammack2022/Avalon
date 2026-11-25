@@ -1,7 +1,7 @@
-# Saboteur Quests: The Lost Crown
+# Avalon: The Lost Crown
 
 A family party game for the TV with phones as controllers (Jackbox-style). It follows **The Resistance: Avalon** 1:1 (5–10 players, all
-six optional roles). Every quest plays out as a funny 3D cutscene; when a quest fails, the saboteurs secretly choose **who gets framed**.
+six optional roles). Every quest plays out as a funny 3D cutscene; when a quest fails, the Minions of Mordred secretly choose **who gets framed**.
 Full spec: [`goals.md`](goals.md).
 
 ```bash
@@ -13,6 +13,7 @@ npm start          # prints the TV URL and the phone URL
   `?no3d` runs the plain-text card view (also the automatic fallback without WebGL), `?fps` shows a frame counter, `?q=low` drops shadows.
 * **Phones:** open `http://<your-LAN-IP>:3000` (the console prints it) on the same Wi-Fi and enter the 4-letter room code.
   The first person in is the **VIP** (start, bots, role toggles). Bots fill empty seats, so 1–2 humans can play.
+* **Intro:** the dragon intro (`public/intro/`, procedural three.js; video at `/intro/dragon-intro.mp4`) plays once when a game starts; any key skips, `I` replays it in the lobby, `?nointro` disables it. The live scene is at `/intro/`.
 * **Cutscene preview harness:** `http://localhost:3000/preview` (no phones needed).
 * `npm run dev` restarts the server on change. `PORT=3001 npm start` changes the port.
 

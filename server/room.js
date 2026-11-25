@@ -204,6 +204,7 @@ export class Room {
       team: g.team,
       results: g.results.slice(0, g.shown).map((r) => this._publicResult(r)),
       assassinationEnabled: g.config.merlin,
+      history: g.proposals, // every revealed proposal: public table knowledge, shown as the phone's Record
     };
     if (this.phase === 'vote') pub.game.voted = [...g.votes.keys()];
     if (this.phase === 'voteReveal') pub.game.votes = Object.fromEntries(g.votes);

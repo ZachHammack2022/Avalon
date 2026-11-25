@@ -15,7 +15,7 @@ export function cardFor(pub, { joinUrl = '' } = {}) {
   const qline = quest ? `Quest ${g.questIndex + 1} of ${QUEST_COUNT}: ${quest.name}` : '';
   switch (pub.phase) {
     case 'lobby':
-      return { kind: 'lobby', title: 'Saboteur Quests', big: pub.room, lines: [
+      return { kind: 'lobby', title: 'Avalon', big: pub.room, lines: [
         'Join on your phone', joinUrl || 'Open the game URL on your phone and enter the room code',
         `${pub.players.length} player${pub.players.length === 1 ? '' : 's'} at the campfire: ${names(pub, pub.players.map((p) => p.id)).join(', ') || 'nobody yet'}`,
         pub.validation && !pub.validation.ok ? pub.validation.errors[0] : 'Waiting for the VIP to start…',

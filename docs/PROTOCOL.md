@@ -44,7 +44,8 @@ me: { id, name, vip, takeover,
   validation?: {ok,errors,warnings}            // lobby only
   game?: { n, questIndex, quest:{id,name}, teamSize, leader, rejectCount, team:[ids],
            results:[{questIndex,outcome,team,culprit,hero,failCount?}],   // only results whose cutscene has finished
-           voted?:[ids] (vote), votes?:{id:bool} + approved (voteReveal), waitingOn? (questPlay), assassinationEnabled },
+           voted?:[ids] (vote), votes?:{id:bool} + approved (voteReveal), waitingOn? (questPlay), assassinationEnabled,
+           history:[{questIndex,leader,team,votes:{id:bool},approved}] (every revealed proposal; public) },
   reveal?: { winner, reason, roles:{id:role}, assassination, recap:[…] }  // gameover only, the ONLY place roles/cards/picks appear
 }
 ```

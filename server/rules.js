@@ -52,9 +52,9 @@ export function knowledgeFor(selfId, assignment, order = [...assignment.keys()])
   } else if (team === 'evil' && role !== 'oberon') {
     kind = 'allies';
     knows = ids.filter((id) => isEvilRole(roleOf(id)) && roleOf(id) !== 'oberon');
-    note = knows.length ? 'These are your fellow saboteurs.' : 'You have no known allies.';
+    note = knows.length ? 'These are your fellow Minions of Mordred.' : 'You have no known allies.';
   } else if (role === 'oberon') {
-    note = 'You work alone. The other saboteurs do not know you, and you do not know them.';
+    note = 'You work alone. The other Minions do not know you, and you do not know them.';
   } else if (role === 'loyal') {
     note = 'You know nothing. Trust your instincts.';
   }

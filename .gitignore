@@ -3,3 +3,5 @@ node_modules/
 .shots/
 *.log
 .DS_Store
+cook-archive/*/audio/*.wav
+cook-archive/*/final/

@@ -107,7 +107,7 @@ if (!process.argv.includes('--live-only')) {
   const { port: p2 } = await live.listen();
   const url = `http://127.0.0.1:${p2}`;
   const tv = await newPage(1280, 720);
-  await tv.goto(`${url}/tv`);
+  await tv.goto(`${url}/tv?nointro`);
   await tv.waitForSelector('#code:not(:empty)');
   await tv.waitForFunction(() => document.getElementById('code').textContent.length === 4);
   const code = (await tv.textContent('#code')).trim();
@@ -117,11 +117,11 @@ if (!process.argv.includes('--live-only')) {
   await phone.goto(`${url}/?room=${code}`);
   await phone.fill('input[placeholder="Your name"]', 'Tester');
   await phone.click('main button.primary');
-  await phone.waitForSelector('text=VIP');
-  for (let i = 0; i < 4; i++) await phone.click('text=+ Bot');
+  await phone.waitForSelector('.stepper');
+  for (let i = 0; i < 4; i++) await phone.click('.stepper button[aria-label="Add a bot"]');
   await phone.waitForFunction(() => window.__sq.state && window.__sq.state.pub.players.length === 5);
   await phone.click('text=Start game');
-  await phone.waitForSelector('text=Your role');
+  await phone.waitForSelector('.cardback');
   await tv.waitForFunction(() => /Check your phones/.test(document.getElementById('card').textContent));
   await tv.waitForFunction(() => window.__tv.app.view === 'campfire', null, { timeout: 60000 });
   await tv.waitForTimeout(1500);
@@ -150,12 +150,15 @@ if (!process.argv.includes('--live-only')) {
     if (phase === 'gameover') break;
     const clicked = await phone.evaluate(() => {
       const st = window.__sq.state; const L = st.me.legal; const btn = (txt) => [...document.querySelectorAll('main button')].find((b) => b.textContent.includes(txt) && !b.disabled);
-      if (L.action === 'propose') { const chips = [...document.querySelectorAll('.chip')]; chips.slice(0, L.size).forEach((c) => c.click()); const s = btn('Send'); if (s && !s.disabled) { s.click(); return true; } return false; }
-      if (L.action === 'vote') { const b = btn('Approve'); if (b) { b.click(); return true; } }
-      if (L.action === 'assassinate') { window.confirm = () => true; const c = document.querySelector('.chip'); if (c) { c.click(); return true; } }
+      // every choice is select-then-confirm: pick something, then press the primary action
+      const go = () => { const b = document.querySelector('main .actions button.big:not([disabled])'); if (b) { b.click(); return true; } return false; };
+      const first = (sel) => { const c = document.querySelector(sel); if (c) c.click(); return !!c; };
+      if (L.action === 'propose') { const chips = [...document.querySelectorAll('.people button')]; if (!chips.some((c) => c.classList.contains('sel'))) chips.slice(0, L.size).forEach((c) => c.click()); return go(); }
+      if (L.action === 'vote') return first('.token.yes') && go();
+      if (L.action === 'assassinate') return first('.people button') && go();
       if (st.me.quest && st.me.quest.onTeam) {
-        if (st.me.quest.step === 'card') { const b = btn('Success'); if (b) { b.click(); return true; } }
-        if (st.me.quest.step === 'pick') { const c = document.querySelector('.chip'); if (c) { c.click(); return true; } }
+        if (st.me.quest.step === 'card') return first('.qcard.success') && go();
+        if (st.me.quest.step === 'pick') return first('.people button') && go();
       }
       return false;
     });
@@ -214,9 +217,13 @@ if (!process.argv.includes('--live-only')) {
     const vis = (v) => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v }); document.dispatchEvent(new Event('visibilitychange')); };
     vis('hidden'); await new Promise((r) => setTimeout(r, 2500)); vis('visible');
   });
-  await phone.waitForSelector('main button.ok', { timeout: 10000 }).catch(() => fail('phone did not show the vote buttons after waking'));
+  await phone.waitForSelector('.token.yes', { timeout: 10000 }).catch(() => fail('phone did not show the vote tokens after waking'));
+  // choose Approve, then lock it in (retry: a state push can replace the buttons mid-tap)
   for (let i = 0; i < 20 && room.phase === 'vote' && !room.g.votes.has(me.id); i++) {
-    await phone.click('main button.ok', { timeout: 500 }).catch(() => {});
+    await phone.evaluate(() => {
+      const lock = [...document.querySelectorAll('main button')].find((b) => b.textContent.includes('Lock in my vote'));
+      if (lock) lock.click(); else { const t = document.querySelector('.token.yes'); if (t) t.click(); }
+    });
     await phone.waitForTimeout(200);
   }
   const voted = room.g.votes.has(me.id) || room.g.proposals.some((pr) => me.id in pr.votes);
