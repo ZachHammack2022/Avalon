@@ -20,8 +20,19 @@ export function hashString(s) {
   return h >>> 0;
 }
 
-/** Wraps a raw () => [0,1) function with helpers. */
-export function makeRng(fn = Math.random) {
+/**
+ * A uniform number in [0,1) from the platform's cryptographic source (53 random bits). Math.random is a fast PRNG whose
+ * state can be worked out from a handful of its outputs, and the server hands some draws out (seat tokens, cutscene
+ * seeds, room codes): with Math.random behind the deal, a determined player could predict who gets which role.
+ */
+export function secureRandom() {
+  const a = new Uint32Array(2);
+  globalThis.crypto.getRandomValues(a);
+  return (a[0] * 2 ** 21 + (a[1] >>> 11)) / 2 ** 53;
+}
+
+/** Wraps a raw () => [0,1) function with helpers. Without one, draws are cryptographically random. */
+export function makeRng(fn = secureRandom) {
   const rng = {
     next: fn,
     int(n) { return Math.floor(fn() * n); },
@@ -43,4 +54,4 @@ export function makeRng(fn = Math.random) {
 }
 
 export const seeded = (seed) => makeRng(mulberry32(seed));
-export const randomSeed = () => (Math.random() * 4294967296) >>> 0;
+export const randomSeed = () => (secureRandom() * 4294967296) >>> 0;
