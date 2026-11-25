@@ -25,6 +25,7 @@ export const DEFAULT_TIMING = {
 export const CLASSES = AVATAR_CLASSES.map((c) => c.id);
 export const COLORS = AVATAR_COLORS;
 const NAME_MAX = 12;
+const isColor = (c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
 
 const real = { setTimeout: (f, ms) => setTimeout(f, ms), clearTimeout: (id) => clearTimeout(id), now: () => Date.now() };
 
@@ -144,7 +145,7 @@ export class Room {
   }
 
   _newToken() { return Array.from({ length: 4 }, () => Math.floor(this.rng.next() * 2 ** 32).toString(36)).join(''); }
-  _cleanName(name) { return String(name ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().replace(/\s+/g, ' ').slice(0, NAME_MAX); }
+  _cleanName(name) { return (typeof name === 'string' ? name : '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().replace(/\s+/g, ' ').slice(0, NAME_MAX); }
   _uniqueName(base) {
     const taken = new Set(this.players.map((p) => p.name.toLowerCase()));
     if (!taken.has(base.toLowerCase())) return base;
@@ -160,7 +161,7 @@ export class Room {
       name: this._uniqueName(name),
       isBot,
       cls: CLASSES.includes(cls) ? cls : this.rng.pick(CLASSES),
-      color: /^#[0-9a-f]{6}$/i.test(color || '') ? color : (COLORS.find((c) => !usedColors.has(c)) || this.rng.pick(COLORS)),
+      color: isColor(color) ? color : (COLORS.find((c) => !usedColors.has(c)) || this.rng.pick(COLORS)),
       conn: null, connected: isBot, takeover: false, vip: false, ready: false, token: null, dcTimer: null,
     };
     this.players.push(p);
@@ -276,19 +277,13 @@ export class Room {
     const p = this.player(playerId);
     if (!p || !msg || typeof msg !== 'object') return { error: 'bad message' };
     this.lastActivity = this.clock.now();
-    const fn = this._actions[msg.t];
-    if (!fn) return { error: `unknown action ${msg.t}` };
+    // own keys only: a message named after an Object.prototype member ('__proto__', '__defineGetter__', ...) must not
+    // reach a built-in, where it could throw and take the whole server down
+    const fn = typeof msg.t === 'string' && Object.hasOwn(ACTIONS, msg.t) ? ACTIONS[msg.t] : null;
+    if (!fn) return { error: 'unknown action' };
     const res = fn.call(this, p, msg) || {};
     if (!res.error) this.broadcast();
     return res.error ? res : undefined;
-  }
-
-  get _actions() {
-    return {
-      setAvatar: this._setAvatar, setRoles: this._setRoles, setClassic: this._setClassic, addBot: this._addBot,
-      removeBot: this._removeBot, kick: this._kick, leave: this._leave, start: this._start, ready: this._ready,
-      propose: this._propose, vote: this._vote, play: this._play, pick: this._pick, assassinate: this._assassinate, again: this._again,
-    };
   }
 
   _needLobby(p, vipOnly = true) {
@@ -300,7 +295,7 @@ export class Room {
   _setAvatar(p, m) {
     if (this.phase !== 'lobby') return { error: 'Avatars are locked once the game starts.' };
     if (m.cls !== undefined) { if (!CLASSES.includes(m.cls)) return { error: 'bad class' }; p.cls = m.cls; }
-    if (m.color !== undefined) { if (!/^#[0-9a-f]{6}$/i.test(m.color)) return { error: 'bad color' }; p.color = m.color; }
+    if (m.color !== undefined) { if (!isColor(m.color)) return { error: 'bad color' }; p.color = m.color; }
   }
   _setRoles(p, m) {
     const bad = this._needLobby(p); if (bad) return bad;
@@ -612,3 +607,11 @@ export class Room {
     for (const p of this.players) if (p.dcTimer != null) this.clock.clearTimeout(p.dcTimer);
   }
 }
+
+/** Phone actions by message type (a null-prototype table: only these names are reachable from the wire). */
+const ACTIONS = Object.freeze(Object.assign(Object.create(null), {
+  setAvatar: Room.prototype._setAvatar, setRoles: Room.prototype._setRoles, setClassic: Room.prototype._setClassic,
+  addBot: Room.prototype._addBot, removeBot: Room.prototype._removeBot, kick: Room.prototype._kick, leave: Room.prototype._leave,
+  start: Room.prototype._start, ready: Room.prototype._ready, propose: Room.prototype._propose, vote: Room.prototype._vote,
+  play: Room.prototype._play, pick: Room.prototype._pick, assassinate: Room.prototype._assassinate, again: Room.prototype._again,
+}));

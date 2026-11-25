@@ -131,7 +131,9 @@ export function createGameServer({
         return;
       }
       if (role === 'phone') {
-        const err = room.handle(playerId, msg);
+        let err;
+        // a bug in one action must cost one message, not every room on the server
+        try { err = room.handle(playerId, msg); } catch (e) { console.error(`[room ${room.code}]`, e); err = { error: 'Something went wrong. Try again.' }; }
         if (err) conn.send({ t: 'error', code: 'action', msg: err.error });
       }
     });

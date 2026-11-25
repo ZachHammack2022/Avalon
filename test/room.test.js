@@ -60,11 +60,12 @@ test('room caps at 10 and rejects new joins once the game started', () => {
 test('names are cleaned and made unique', () => {
   const { room } = makeRoom();
   const r1 = room.join({ name: '  <b>Zed</b>  ' }, new FakeConn());
-  const r2 = room.join({ name: 'zed' }, new FakeConn());
-  assert.equal(r1.player.name, 'bZedb'.replace(/b/g, (m, o) => (o === 0 ? 'b' : m)).length ? r1.player.name : '');
-  assert.ok(!/[<>]/.test(r1.player.name));
-  assert.notEqual(r1.player.name.toLowerCase(), r2.player.name.toLowerCase());
+  assert.equal(r1.player.name, 'bZed/b');
+  // the same name in another case gets a number, so the table can tell them apart
+  assert.equal(room.join({ name: 'BZED/B' }, new FakeConn()).player.name, 'BZED/B 2');
+  assert.equal(room.join({ name: 'Ann\u0007   \t Lee' }, new FakeConn()).player.name, 'Ann Lee');
   assert.equal(room.join({ name: '   ' }, new FakeConn()).ok, false);
+  assert.equal(room.join({ name: 42 }, new FakeConn()).ok, false);
   assert.ok(room.join({ name: 'x'.repeat(50) }, new FakeConn()).player.name.length <= 12);
 });
 
@@ -99,6 +100,34 @@ test('kick / leave / removeBot in the lobby', () => {
   assert.equal(room.players.length, 2);
   assert.ok(b.conn.closed);
   assert.ok(act(room, a.p, { t: 'kick', id: a.p.id }).error);
+});
+
+test('malformed phone messages are refused without throwing, in every phase', () => {
+  const { room, clock } = makeRoom({ seed: 4 });
+  const [a] = fill(room, 1, 4);
+  // names of Object.prototype members must not reach a built-in (one of them used to throw and crash the server)
+  const builtins = ['__proto__', '__defineGetter__', '__defineSetter__', '__lookupGetter__', 'constructor', 'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf'];
+  const junk = [undefined, null, 0, 7, 'x', '', true, [], {}, ['p1', 'p1'], { a: 1 }];
+  const fields = ['team', 'approve', 'card', 'id', 'roles', 'on', 'cls', 'color'];
+  const poke = () => {
+    for (const t of builtins) assert.deepEqual(room.handle(a.p.id, { t }), { error: 'unknown action' }, t);
+    for (const t of [5, null, ['vote'], { x: 1 }]) assert.ok(room.handle(a.p.id, { t }).error);
+    for (const t of ['propose', 'vote', 'play', 'pick', 'assassinate', 'setAvatar']) {
+      for (const f of fields) for (const v of junk) assert.doesNotThrow(() => room.handle(a.p.id, { t, [f]: v }), `${room.phase} ${t} ${f}=${JSON.stringify(v)}`);
+    }
+  };
+  poke();
+  assert.equal(room.players.length, 5);
+  // a colour has to be a string: an array that merely stringifies to one is refused
+  assert.ok(room.handle(a.p.id, { t: 'setAvatar', color: ['#123456'] }).error);
+  assert.match(room.player(a.p.id).color, /^#[0-9a-f]{6}$/i);
+  assert.equal(room.join({ name: { toString: 'Eve' }, color: ['#123456'] }, new FakeConn()).ok, false);
+  room.handle(a.p.id, { t: 'start' });
+  room.detachPhone(a.p.id, a.conn);
+  const phases = new Set();
+  while (room.phase !== 'gameover') { phases.add(room.phase); poke(); clock.advance(1000); }
+  poke();
+  for (const ph of ['roleReveal', 'propose', 'vote', 'questPlay']) assert.ok(phases.has(ph), ph);
 });
 
 // ---------- the whole game, every size and role combination ----------

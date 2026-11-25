@@ -175,6 +175,24 @@ test('a phone that reconnects with its token resumes its seat; a TV that reconne
   } finally { await app.close(); }
 });
 
+test('a phone sending a message named after a built-in gets an error and the server keeps running', async () => {
+  const { app, ws, base } = await boot();
+  try {
+    const tv = new Client(ws); await tv.open;
+    tv.send({ t: 'tv' });
+    const { code } = await tv.waitFor((m) => m.t === 'room');
+    const ph = new Client(ws); await ph.open;
+    ph.send({ t: 'join', room: code, name: 'Mal' });
+    await ph.waitFor((m) => m.t === 'joined');
+    for (const t of ['__proto__', '__defineGetter__', '__defineSetter__', 'constructor']) ph.send({ t });
+    await ph.waitFor((m) => m.t === 'error' && m.code === 'action' && ph.msgs.filter((x) => x.t === 'error').length === 4);
+    assert.equal((await fetch(`${base}/healthz`)).status, 200);
+    // the room still works for the same phone
+    ph.send({ t: 'addBot' });
+    await tv.waitFor((m) => m.t === 'state' && m.pub.players.length === 2);
+  } finally { await app.close(); }
+});
+
 test('oversized and flooding messages do not crash or wedge the server', async () => {
   const { app, ws } = await boot();
   try {
