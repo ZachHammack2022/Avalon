@@ -356,22 +356,31 @@ function trackerBar() {
       h('span', {}, `Rejected teams ${g.rejectCount}/${MAX_REJECTS}`), Array.from({ length: MAX_REJECTS }, (_, i) => h('i', { class: i < g.rejectCount ? 'on' : '' }))));
 }
 
-/** A row/tile for a player. `mark` is an optional trailing element. */
-const personChip = (p, { sel = false, onclick, mark, tag } = {}) => h(onclick ? 'button' : 'div', { class: `person ${sel ? 'sel' : ''}`, onclick, 'aria-pressed': onclick ? String(sel) : null },
-  avatar(p), h('span', { class: 'pname' }, p.name, tag ? h('small', {}, tag) : null), mark || null);
+/** A row/tile for a player. `mark` is an optional trailing element; `went` shows their quest history from the record. */
+const personChip = (p, { sel = false, onclick, mark, tag, went = false } = {}) => h(onclick ? 'button' : 'div', { class: `person ${sel ? 'sel' : ''}`, onclick, 'aria-pressed': onclick ? String(sel) : null },
+  avatar(p), h('span', { class: 'pname' }, p.name, tag ? h('small', {}, tag) : null), went ? wentMarks(p.id) : null, mark || null);
+
+/**
+ * The record at the moment of decision: a tick or a cross for every quest this player went on, in order, or null
+ * if they have not been on one yet. Shown wherever a team is picked, voted on or a target chosen.
+ */
+function wentMarks(id) {
+  const rec = recordFor(state.pub);
+  const row = rec && rec.rows.find((x) => x.id === id);
+  const qs = row ? row.quests : [];
+  if (!qs.length) return null;
+  const f = qs.filter((o) => o === 'fail').length;
+  const label = `${row.name} went on ${qs.length} quest${qs.length === 1 ? '' : 's'}${f ? `, ${f} failed` : ', all succeeded'}`;
+  return h('span', { class: 'went', role: 'img', 'aria-label': label }, qs.map((o) => icon(o === 'success' ? 'check' : 'cross', o === 'success' ? 'ok' : 'ko')));
+}
 
 function teamRow(ids, label) {
   const g = state.pub.game;
-  // the record at the moment of decision: under each name, how every quest they went on turned out
-  const rec = recordFor(state.pub);
-  const went = (id) => { const r = rec && rec.rows.find((x) => x.id === id); return r ? r.quests : []; };
-  const wentLabel = (qs) => { const f = qs.filter((o) => o === 'fail').length; return `went on ${qs.length} quest${qs.length === 1 ? '' : 's'}${f ? `, ${f} failed` : ', all succeeded'}`; };
   return h('div', { class: 'panel' },
     label ? h('div', { class: 'label' }, label) : null,
     h('div', { class: 'team' }, ids.map((id) => {
-      const p = byId(id); const qs = went(id);
-      return h('div', { class: 'member' }, avatar(p, 'lg'), h('span', {}, p.name),
-        qs.length ? h('span', { class: 'went', role: 'img', 'aria-label': `${p.name} ${wentLabel(qs)}` }, qs.map((o) => icon(o === 'success' ? 'check' : 'cross', o === 'success' ? 'ok' : 'ko'))) : null,
+      const p = byId(id);
+      return h('div', { class: 'member' }, avatar(p, 'lg'), h('span', {}, p.name), wentMarks(id),
         id === g.leader ? icon('leader', 'leadmark') : null);
     })));
 }
@@ -466,7 +475,7 @@ const SCREENS = {
   propose() {
     const { pub, me } = state; const size = me.legal.size;
     return page({ kicker: 'You wear the crown', title: `Pick ${size} for the quest`,
-      body: [h('div', { class: 'people' }, pub.players.map((p) => personChip(p, { sel: selected.includes(p.id), tag: youTag(p.id), mark: icon('check', 'selmark'), onclick: () => { selected = toggleSelection(selected, p.id, size); render(); } })))], record: true,
+      body: [h('div', { class: 'people' }, pub.players.map((p) => personChip(p, { sel: selected.includes(p.id), tag: youTag(p.id), went: true, mark: icon('check', 'selmark'), onclick: () => { selected = toggleSelection(selected, p.id, size); render(); } })))], record: true,
       actions: [h('div', { class: 'slots', 'aria-hidden': 'true' }, Array.from({ length: size }, (_, i) => (selected[i] ? avatar(byId(selected[i])) : h('span', { class: 'av empty' })))),
         canConfirm(selected, size) ? h('button', { class: 'primary big', onclick: () => send({ t: 'propose', team: selected }) }, 'Send this team') : h('p', { class: 'armhint' }, `Choose ${size - selected.length} more`)] });
   },
@@ -551,7 +560,7 @@ const SCREENS = {
     const ally = (id) => (me.knows || []).includes(id);
     const options = [...me.legal.options.filter((id) => !ally(id)), ...me.legal.options.filter(ally)];
     return page({ tracker: false, kicker: 'Good won three quests', title: 'Find Merlin',
-      body: [h('div', { class: 'people' }, options.map((id) => personChip(byId(id), { sel: choice === id, tag: ally(id) ? 'your ally' : null, mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
+      body: [h('div', { class: 'people' }, options.map((id) => personChip(byId(id), { sel: choice === id, tag: ally(id) ? 'your ally' : null, went: true, mark: icon('check', 'selmark'), onclick: () => { choice = id; render(); } })))],
       record: true,
       actions: [choice ? h('button', { class: 'danger big', 'data-buzz': 'bad', onclick: () => send({ t: 'assassinate', id: choice }) }, `Strike ${byId(choice).name}`) : h('p', { class: 'armhint' }, 'Tap a name to choose your target')] });
   },

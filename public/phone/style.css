@@ -129,7 +129,8 @@ button.person { padding: 8px 14px 8px 10px; border-radius: 999px; }
 
 /* team + selection */
 .team { display: flex; flex-wrap: wrap; gap: 12px 8px; justify-content: center; }
-.member .went { display: inline-flex; gap: 1px; margin-top: -3px; font-size: 13px; } .member .went .ok { color: var(--good); } .member .went .ko { color: var(--evil); }
+.member .went { display: inline-flex; gap: 1px; margin-top: -3px; font-size: 13px; } .went .ok { color: var(--good); } .went .ko { color: var(--evil); }
+.person .went { display: inline-flex; gap: 1px; flex: none; font-size: 15px; }
 .member { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 72px; font-size: 13.500px; font-weight: 600; text-align: center; } .member span:not(.av):not(.ic) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leadmark { position: absolute; top: -9px; right: 4px; font-size: 20px; color: var(--gold); filter: drop-shadow(0 1px 1px #000); }
 .people { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
