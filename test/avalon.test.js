@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EVIL_COUNT, TEAM_SIZES, failsRequired, validateRoleConfig, normalizeRoleConfig, MIN_PLAYERS, MAX_PLAYERS } from '../shared/avalon.js';
+import { EVIL_COUNT, TEAM_SIZES, failsRequired, validateRoleConfig, normalizeRoleConfig, recommendedRoles, specialRoles, MIN_PLAYERS, MAX_PLAYERS } from '../shared/avalon.js';
 
 test('tables match the Avalon rulebook', () => {
   assert.deepEqual(EVIL_COUNT, { 5: 2, 6: 2, 7: 3, 8: 3, 9: 3, 10: 4 });
@@ -18,7 +18,29 @@ test('quest 4 needs two fails at 7+ players, everything else one', () => {
 
 test('default config: Merlin + Assassin', () => {
   const c = normalizeRoleConfig();
-  assert.deepEqual(c, { merlin: true, assassin: true, percival: false, morgana: false, mordred: false, oberon: false });
+  assert.deepEqual(c, { merlin: true, assassin: true, percival: false, morgana: false, mordred: false, oberon: false, lancelot: false });
+});
+
+test('the recommended roles are a valid game at every table size, with Merlin, Percival, the Assassin and Morgana', () => {
+  for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {
+    const r = recommendedRoles(n);
+    const v = validateRoleConfig(n, r);
+    assert.ok(v.ok, `n=${n}: ${v.errors}`);
+    assert.deepEqual(v.warnings, [], `n=${n}`);
+    for (const k of ['merlin', 'assassin', 'percival', 'morgana']) assert.ok(r[k], `${k} n=${n}`);
+    assert.equal(r.lancelot, false, 'Lancelot is the host\'s to add');
+  }
+  assert.deepEqual(recommendedRoles(3), recommendedRoles(5));
+});
+
+test('Lancelot takes a good and an evil seat, and is meant for 7 or more', () => {
+  assert.ok(validateRoleConfig(5, { lancelot: true }).ok, 'Assassin + Evil Lancelot fill 5-player evil');
+  assert.equal(validateRoleConfig(5, { lancelot: true, morgana: true, percival: true }).ok, false, 'three evil roles at 5');
+  assert.match(validateRoleConfig(6, { lancelot: true }).warnings.join(' '), /7 or more/);
+  assert.deepEqual(validateRoleConfig(7, { lancelot: true }).warnings, []);
+  assert.ok(validateRoleConfig(10, { percival: true, morgana: true, mordred: true, lancelot: true }).ok);
+  assert.equal(validateRoleConfig(10, { percival: true, morgana: true, mordred: true, oberon: true, lancelot: true }).ok, false, 'five evil roles at 10');
+  assert.deepEqual(specialRoles({ lancelot: true, percival: true }), ['merlin', 'percival', 'goodlancelot', 'assassin', 'evillancelot']);
 });
 
 test('Assassin is forced on whenever Merlin is on', () => {

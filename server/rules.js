@@ -1,22 +1,10 @@
 // Server-side Avalon rules: role assignment, knowledge, quest resolution.
 // Everything here is pure (state in, state out); randomness comes from an injected rng.
 import {
-  EVIL_COUNT, ROLES, failsRequired, isEvilRole, normalizeRoleConfig, validateRoleConfig,
+  ROLES, buildRoleList, failsRequired, isEvilRole, normalizeRoleConfig, validateRoleConfig,
 } from '../shared/avalon.js';
 
-export { validateRoleConfig, normalizeRoleConfig };
-
-/** The multiset of roles for a game of `n` players. */
-export function buildRoleList(n, cfgIn) {
-  const v = validateRoleConfig(n, cfgIn);
-  if (!v.ok) throw new Error(v.errors.join(' '));
-  const cfg = v.config;
-  const evil = ['assassin', 'morgana', 'mordred', 'oberon'].filter((r) => cfg[r]);
-  while (evil.length < EVIL_COUNT[n]) evil.push('minion');
-  const good = ['merlin', 'percival'].filter((r) => cfg[r]);
-  while (good.length < n - EVIL_COUNT[n]) good.push('loyal');
-  return [...good, ...evil];
-}
+export { validateRoleConfig, normalizeRoleConfig, buildRoleList };
 
 /** Randomly deal roles to player ids. Returns Map id -> role id. */
 export function assignRoles(playerIds, cfg, rng) {
@@ -27,8 +15,12 @@ export function assignRoles(playerIds, cfg, rng) {
 /**
  * What a player is allowed to know at the role reveal (see goals §4).
  * Returns { role, team, kind, knows: [id...], note }.
- *  kind: 'none' | 'evil' (Merlin's view) | 'allies' (evil view) | 'merlins' (Percival's view)
+ *  kind: 'none' | 'evil' (Merlin's view) | 'allies' (evil view) | 'merlins' (Percival's view) | 'lancelot' (each
+ *  Lancelot sees the other one, and knows which side that one is on)
  * `knows` is sorted by player id order given by `order` so it can't leak role order.
+ *
+ * Lancelot follows the Avalon rulebook: the two Lancelots know each other. Evil Lancelot shows himself to the other
+ * Minions of Mordred (and, like every Minion but Mordred, to Merlin) but does not learn who they are.
  */
 export function knowledgeFor(selfId, assignment, order = [...assignment.keys()]) {
   const role = assignment.get(selfId);
@@ -49,10 +41,18 @@ export function knowledgeFor(selfId, assignment, order = [...assignment.keys()])
     note = inPlay('morgana')
       ? 'One of these is Merlin and one is Morgana. You do not know which is which.'
       : 'This is Merlin.';
+  } else if (role === 'goodlancelot' || role === 'evillancelot') {
+    kind = 'lancelot';
+    const other = role === 'goodlancelot' ? 'evillancelot' : 'goodlancelot';
+    knows = ids.filter((id) => roleOf(id) === other);
+    note = role === 'goodlancelot'
+      ? 'This is Evil Lancelot, your rival. Keep them off the quests.'
+      : 'This is Good Lancelot, your rival. The other Minions of Mordred know you are evil, but you do not know who they are.';
   } else if (team === 'evil' && role !== 'oberon') {
     kind = 'allies';
     knows = ids.filter((id) => isEvilRole(roleOf(id)) && roleOf(id) !== 'oberon');
     note = knows.length ? 'These are your fellow Minions of Mordred.' : 'You have no known allies.';
+    if (inPlay('evillancelot')) note += ' One of them is Evil Lancelot, who does not know who you are.';
     if (inPlay('oberon')) note += ' Oberon is evil too, but hidden from you.';
   } else if (role === 'oberon') {
     note = 'You work alone. The other Minions do not know you, and you do not know them.';

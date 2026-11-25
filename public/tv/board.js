@@ -2,7 +2,7 @@
 // grouped by quest), kept on screen beside the campfire so the table can argue from it. Data comes from
 // shared/record.js. boardTree() is pure (unit-tested in Node); toDom() turns the tree into elements in the browser.
 import { recordFor, tallyText } from '../../shared/record.js';
-import { ROLE_INFO } from '../../shared/roles-info.js';
+import { ROLE_INFO, deckFor, sideText } from '../../shared/roles-info.js';
 import { MAX_REJECTS } from '../../shared/avalon.js';
 
 /** A tiny element description: {tag, cls, kids, attrs}. Strings in kids become text. */
@@ -31,7 +31,10 @@ export function boardTree(pub, { flip = null } = {}) {
     q.outcome && q.failCount != null ? el('small', `fc${q.failCount ? ' some' : ''}`, `${q.failCount} Fail${q.failCount === 1 ? '' : 's'}`) : null,
   ])));
   const rejects = el('div', 'bd-rej', [el('span', '', `Rejected ${rec.rejectCount}/${MAX_REJECTS}`), el('div', 'pips', Array.from({ length: MAX_REJECTS }, (_, i) => el('i', i < rec.rejectCount ? 'on' : '')))]);
-  const top = el('div', 'bd-top', [shields, rejects]);
+  // the roles in play stay on screen all game, so nobody has to remember whether Mordred or Lancelot is in
+  const deck = pub.config && deckFor(pub.players.length, pub.config.roles);
+  const roles = deck ? el('div', 'bd-roles', [el('span', 'rg', `Good: ${sideText(deck.good)}`), el('span', 're', `Evil: ${sideText(deck.evil)}`)]) : null;
+  const top = el('div', 'bd-top', [shields, rejects, roles]);
   if (rec.empty) return [top, el('p', 'bd-empty', 'Every proposal and vote will be recorded here.')];
 
   const cols = rec.columns;

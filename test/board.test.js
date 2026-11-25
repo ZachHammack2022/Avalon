@@ -122,3 +122,14 @@ test('board: roles and team colours only at game over', () => {
   assert.equal(find(tree, 'team-evil').length, 2);
   assert.ok(find(tree, 'bq').every((s) => !has(s, 'current')));
 });
+
+test('board: the roles in play stay under the quest shields all game, by side', () => {
+  const tree = boardTree(pub('propose', {}, { config: { roles: { merlin: true, assassin: true, percival: true, morgana: true } } }));
+  const roles = find(tree, 'bd-roles');
+  assert.equal(roles.length, 1);
+  assert.equal(text(find(tree, 'rg')[0]), 'Good: Merlin, Percival and 1 Loyal Servant');
+  assert.equal(text(find(tree, 're')[0]), 'Evil: Assassin and Morgana');
+  // also before the first vote
+  assert.equal(find(boardTree(pub('propose', { history: [], results: [], questIndex: 0 }, { config: { roles: {} } })), 'bd-roles').length, 1);
+  assert.equal(find(boardTree(pub('propose')), 'bd-roles').length, 0, 'no config, no line');
+});

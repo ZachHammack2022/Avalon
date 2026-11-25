@@ -40,6 +40,8 @@ test('role tips follow the roles in this game', () => {
   for (const r of ['minion', 'assassin', 'morgana', 'mordred']) assert.match(roleTips(r, cfg({ oberon: true })).join(' '), /Oberon is in this game/, r);
   for (const r of ['oberon', 'loyal', 'merlin', 'percival']) assert.doesNotMatch(roleTips(r, cfg({ oberon: true })).join(' '), /Oberon is in this game/, r);
   for (const r of Object.keys(ROLE_TIPS)) assert.ok(roleTips(r, cfg({ percival: true, morgana: true, mordred: true, oberon: true })).length, r);
+  for (const r of ['minion', 'assassin', 'morgana', 'mordred']) assert.match(roleTips(r, cfg({ lancelot: true })).join(' '), /Evil Lancelot is among the allies you see/, r);
+  assert.doesNotMatch(roleTips('minion', cfg({})).join(' '), /Lancelot/);
 });
 
 test('roles in play: the special roles switched on, named in the usual order', async () => {
@@ -97,6 +99,7 @@ test('the Assassin reads the record during the game: whose votes look most like 
   assert.equal(assassinRead(st2(hist, { role: 'minion' })), assassinRead(st2(hist)), 'every Minion who knows the others');
   assert.equal(assassinRead(st2(hist, { role: 'loyal' })), null);
   assert.equal(assassinRead(st2(hist, { role: 'oberon', knows: [] })), null, 'Oberon knows nobody');
+  assert.equal(assassinRead(st2(hist, { role: 'evillancelot', knows: ['p1'] })), null, 'Evil Lancelot knows no allies: the one player he sees is Good Lancelot');
   assert.equal(secretRead(st2(hist)), assassinRead(st2(hist)), 'no quest has failed, so nothing about its own record');
 });
 

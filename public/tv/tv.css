@@ -42,7 +42,10 @@ html[data-caps="small"] { --cap: .75; } html[data-caps="medium"] { --cap: 1; } h
 #board[hidden] { display: none; }
 #board.full { background: var(--panel); border: .3vh solid rgba(255,255,255,.14); border-radius: 2.2vh; padding: 1.4vh 1.2vw 1.2vh; max-width: 36vw; box-shadow: 0 1vh 3vh rgba(0,0,0,.45); }
 #board.compact .bd-grid, #board.compact .bd-legend, #board.compact .bd-empty, #board.compact .bd-rej, #board.compact .bq small { display: none; }
-.bd-top { display: flex; align-items: flex-start; justify-content: flex-end; gap: 1.4vw; }
+.bd-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: flex-end; gap: 1.4vw; }
+.bd-roles { flex: 1 0 100%; display: flex; flex-direction: column; gap: .3vh; font-size: 1.7vh; line-height: 1.3; text-align: right; opacity: .92; }
+.bd-roles .rg { color: var(--good); } .bd-roles .re { color: var(--bad); }
+#board.compact .bd-roles { display: none; }
 .bd-quests { display: flex; gap: .8vw; }
 .bq { display: flex; flex-direction: column; align-items: center; gap: .3vh; min-width: 6.4vh; }
 .bq .q { width: 6.4vh; height: 6.4vh; border-radius: 50%; display: grid; place-items: center; font-size: 3.4vh; font-weight: 800; background: var(--panel); border: .5vh solid #5a4b3d; }

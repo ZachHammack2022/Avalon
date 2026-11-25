@@ -36,6 +36,8 @@ export const ROLE_TIPS = {
   morgana: ['Percival sees you as a possible Merlin. Talk like Merlin would.', 'Give Percival reasons to doubt the real one.'],
   mordred: ['Merlin cannot see you, so you can act trustworthy and stay on teams.', 'Be the Minion nobody suspects.'],
   oberon: ['You work alone. Your allies do not know you and you do not know them.', 'Merlin can see you, so be careful. Fail when you can.'],
+  goodlancelot: ['You know exactly who Evil Lancelot is. Keep them off your teams, but think about how you explain why.', 'Evil Lancelot knows you too, and may try to make you look like the traitor.'],
+  evillancelot: ['The other Minions know you are evil, but you do not know who they are. Watch who keeps you on teams.', 'Good Lancelot knows you are evil. Make the table doubt them before they doubt you.'],
 };
 
 /**
@@ -46,8 +48,10 @@ export function roleTips(role, cfg) {
   if (!cfg) return ROLE_TIPS[role];
   if (role === 'percival' && !cfg.morgana) return ['You see Merlin. Morgana is not in this game, so it really is them.', 'Protect Merlin: back their judgement without making it obvious who they are.'];
   if (role === 'merlin') return ROLE_TIPS.merlin.filter((t) => !t.startsWith('Mordred')).concat(cfg.mordred ? ['Mordred is in this game and hidden from you: one Minion you cannot see.'] : []);
-  if (cfg.oberon && ['minion', 'assassin', 'morgana', 'mordred'].includes(role)) return ROLE_TIPS[role].concat(['Oberon is in this game: one of your allies is hidden from you, and does not know you.']);
-  return ROLE_TIPS[role];
+  const tips = ROLE_TIPS[role].slice();
+  if (cfg.oberon && ['minion', 'assassin', 'morgana', 'mordred'].includes(role)) tips.push('Oberon is in this game: one of your allies is hidden from you, and does not know you.');
+  if (cfg.lancelot && ['minion', 'assassin', 'morgana', 'mordred'].includes(role)) tips.push('Lancelot is in this game: Evil Lancelot is among the allies you see, but does not know who you are.');
+  return tips;
 }
 
 /**
@@ -136,7 +140,7 @@ export function merlinRead(state) {
  */
 export function assassinRead(state) {
   const me = state && state.me; const pub = state && state.pub;
-  if (!me || !me.role || ROLE_INFO[me.role].team !== 'evil' || me.role === 'oberon') return null;
+  if (!me || !me.role || ROLE_INFO[me.role].team !== 'evil' || me.role === 'oberon' || me.role === 'evillancelot') return null;
   if (!pub || !pub.game || pub.phase === 'assassination' || pub.phase === 'gameover') return null;
   const reads = noToEvil(pub, [me.id, ...(me.knows || [])]);
   let best = null;
