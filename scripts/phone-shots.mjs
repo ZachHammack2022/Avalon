@@ -78,6 +78,12 @@ for (const [name, st, step] of SHOTS) {
   // overflow check: anything wider than the viewport is a layout bug
   const over = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
   if (over) errs.push(`${name}: horizontal overflow`);
+  // the record must stay a grid: every vote cell in a row at the same top, every cell the same height
+  const misaligned = await p.evaluate(() => [...document.querySelectorAll('.rb tbody tr')].some((r) => {
+    const boxes = [...r.querySelectorAll('td.c')].map((c) => c.getBoundingClientRect());
+    return boxes.some((b) => Math.abs(b.top - boxes[0].top) > 1 || Math.abs(b.height - boxes[0].height) > 1);
+  }));
+  if (misaligned) errs.push(`${name}: record cells out of their grid`);
   await p.close();
 }
 await browser.close();

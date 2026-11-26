@@ -381,6 +381,8 @@ input.code::placeholder { letter-spacing: .25em; }
 .rb { --cell: 27px; border-collapse: separate; border-spacing: 3px; margin: -3px 0; }
 .rb.big { --cell: 33px; border-spacing: 4px; }
 .rb th, .rb td { padding: 0; }
+/* cells carry state classes (team, went, live…) that other screens style as flex boxes: keep every cell a table cell so the grid stays aligned */
+.rb tr { display: table-row; } .rb th, .rb td, .rb td.c, .rb td.t { display: table-cell; float: none; }
 .rb th.nm { position: sticky; left: 0; z-index: 2; max-width: 104px; padding: 0 6px 0 2px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; font-weight: 700; background: linear-gradient(90deg, var(--panel2) 88%, transparent); }
 .rb.big th.nm { max-width: 132px; font-size: 15px; background: linear-gradient(90deg, #271e16 88%, transparent); }
 .rb th.nm .av { margin-right: 6px; vertical-align: -5px; }
